@@ -26,6 +26,8 @@ class Player {
         
         this.hp = this.getMaxHp();
         this.mana = this.getMaxMana();
+
+        this.bestiary = [];
     }
 
     load(data) {
@@ -38,6 +40,7 @@ class Player {
         this.playerClass = data.playerClass || 'Nenhuma';
         this.hp = data.hp || this.getMaxHp();
         this.mana = data.mana || this.getMaxMana();
+        this.bestiary = data.bestiary || [];
     }
 
     save() {
@@ -49,7 +52,8 @@ class Player {
             statPoints: this.statPoints,
             playerClass: this.playerClass,
             hp: this.hp,
-            mana: this.mana
+            mana: this.mana,
+            bestiary: this.bestiary
         };
     }
 

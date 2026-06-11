@@ -8,6 +8,7 @@ class UIManager {
         this.cacheDOM();
         this.bindEvents();
         this.setupNavigation();
+        this.renderShop();
         
         // Subscribe to engine events
         Engine.on('playerUpdated', p => this.renderPlayer(p));
@@ -20,6 +21,7 @@ class UIManager {
         Engine.on('systemLog', msg => this.showToast(msg));
         Engine.on('questsUpdated', qs => this.renderQuests(qs));
         Engine.on('bestiaryUpdate', m => this.updateBestiary(m));
+        Engine.on('combatAnimation', a => this.playCombatAnimation(a));
     }
 
     cacheDOM() {
@@ -63,6 +65,8 @@ class UIManager {
         this.btnExplore = document.getElementById('btn-explore');
 
         // Combat
+        this.elCombatPlayerSide = document.querySelector('.player-side');
+        this.elCombatMonsterSide = document.querySelector('.monster-side');
         this.elCombatPlayerHpBar = document.getElementById('combat-player-hp-bar');
         this.elCombatPlayerHp = document.getElementById('combat-player-hp');
         this.elCombatPlayerHpMax = document.getElementById('combat-player-hp-max');
@@ -83,6 +87,19 @@ class UIManager {
 
         // Crafting
         this.elCraftingRecipes = document.getElementById('crafting-recipes');
+
+        // Shop
+        this.elShopList = document.getElementById('shop-list');
+
+        // Bestiary
+        this.elBestiaryList = document.getElementById('bestiary-list');
+        this.elBestiaryDetails = document.getElementById('bestiary-details');
+        this.elBestName = document.getElementById('best-name');
+        this.elBestHabitat = document.getElementById('best-habitat');
+        this.elBestDesc = document.getElementById('best-desc');
+        this.elBestWeak = document.getElementById('best-weak');
+        this.elBestLoot = document.getElementById('best-loot');
+        this.btnCloseBestiary = document.getElementById('btn-close-bestiary');
 
         // Tooltip
         this.tooltip = document.getElementById('item-tooltip');
@@ -159,9 +176,18 @@ class UIManager {
         this.elCharClass.addEventListener('click', () => {
             if (window.gamePlayer.playerClass === 'Nenhuma' && window.gamePlayer.level >= 5) {
                 const cls = prompt('Escolha sua classe: Caçador, Exorcista, Alquimista ou Bruxo');
-                window.gamePlayer.setClass(cls);
+                if (cls) {
+                    window.gamePlayer.setClass(cls);
+                }
             }
         });
+
+        if (this.btnCloseBestiary) {
+            this.btnCloseBestiary.addEventListener('click', () => {
+                this.elBestiaryDetails.classList.add('hidden');
+                this.elBestiaryList.classList.remove('hidden');
+            });
+        }
     }
 
     setupNavigation() {
@@ -189,6 +215,7 @@ class UIManager {
     }
 
     renderPlayer(p) {
+        this.renderBestiary();
         this.elHeaderLevel.innerText = `Nível: ${p.level}`;
         this.elHeaderHp.innerText = `HP: ${p.hp}/${p.getMaxHp()}`;
         this.elHeaderMana.innerText = `Mana: ${p.mana}/${p.getMaxMana()}`;
@@ -427,9 +454,94 @@ class UIManager {
     }
 
     updateBestiary(monster) {
-        // Implementation left as a simple registry check
-        // Full bestiary UI expansion would go here.
-        // For now, let's just ensure we capture the event without error.
+        if (!window.gamePlayer.bestiary) window.gamePlayer.bestiary = [];
+        if (!window.gamePlayer.bestiary.find(m => m.id === monster.id)) {
+            // Save base monster info
+            const baseMonster = MonsterDatabase.monsters.find(m => m.id === monster.id) || monster;
+            window.gamePlayer.bestiary.push({
+                id: baseMonster.id,
+                name: baseMonster.name,
+                type: baseMonster.type,
+                weakness: baseMonster.weakness,
+                desc: 'Encontrado no mundo.'
+            });
+            this.renderBestiary();
+            Engine.emit('systemLog', `Novo monstro adicionado ao bestiário: ${monster.name}`);
+        }
+    }
+
+    renderBestiary() {
+        if (!this.elBestiaryList) return;
+        this.elBestiaryList.innerHTML = '';
+        const bestiary = window.gamePlayer.bestiary || [];
+
+        bestiary.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'bestiary-card';
+            div.innerText = m.name;
+            div.onclick = () => {
+                this.elBestiaryList.classList.add('hidden');
+                this.elBestName.innerText = m.name;
+                this.elBestHabitat.innerText = m.type;
+                this.elBestDesc.innerText = m.desc || 'Sem descrição.';
+                this.elBestWeak.innerText = m.weakness && m.weakness.length > 0 ? m.weakness.join(', ') : 'Nenhuma conhecida';
+                this.elBestLoot.innerText = 'Vário';
+                this.elBestiaryDetails.classList.remove('hidden');
+            };
+            this.elBestiaryList.appendChild(div);
+        });
+    }
+
+    playCombatAnimation(data) {
+        let el = data.target === 'player' ? this.elCombatPlayerSide : this.elCombatMonsterSide;
+        if (!el) return;
+
+        const animClass = data.anim === 'attack' ? 'anim-attack' : 'anim-damage';
+        el.classList.add(animClass);
+
+        setTimeout(() => {
+            el.classList.remove(animClass);
+        }, 500); // Wait long enough for animation to finish
+    }
+
+    renderShop() {
+        if (!this.elShopList) return;
+        this.elShopList.innerHTML = '';
+
+        // Define some basic shop items
+        const shopItems = [
+            ItemDatabase.getPotion('p1'),
+            ItemDatabase.getPotion('p2'),
+            ItemDatabase.getPotion('p3'),
+            ItemDatabase.getMaterial('m1'),
+            ItemDatabase.getMaterial('m2')
+        ];
+
+        shopItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'shop-card';
+            div.innerHTML = `<strong>${item.name}</strong><br>
+                             Tipo: ${item.type}<br>
+                             Preço: ${item.gold || item.value || 10} Ouro<br>`;
+
+            const btnBuy = document.createElement('button');
+            btnBuy.innerText = 'Comprar';
+            btnBuy.onclick = () => {
+                const cost = item.gold || item.value || 10;
+                if (window.gamePlayer.gold >= cost) {
+                    const newItem = item.type === 'potion' ? ItemDatabase.getPotion(item.id) : ItemDatabase.getMaterial(item.id);
+                    if (newItem && window.gameInventory.addItem(newItem)) {
+                        window.gamePlayer.gold -= cost;
+                        Engine.emit('playerUpdated', window.gamePlayer);
+                        Engine.emit('systemLog', `Você comprou ${item.name} por ${cost} Ouro.`);
+                    }
+                } else {
+                    Engine.emit('systemLog', 'Ouro insuficiente.');
+                }
+            };
+            div.appendChild(btnBuy);
+            this.elShopList.appendChild(div);
+        });
     }
 }
 

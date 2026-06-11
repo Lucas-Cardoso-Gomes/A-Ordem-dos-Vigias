@@ -81,19 +81,24 @@ class CombatSystem {
         if (hitWeakness) msg += ` (Fraqueza explorada!)`;
         
         this.logPlayer(msg);
-        Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
+        Engine.emit('combatAnimation', { target: 'player', anim: 'attack' });
+        setTimeout(() => {
+            Engine.emit('combatAnimation', { target: 'monster', anim: 'damage' });
+            Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
 
-        if (this.monster.hp <= 0) {
-            this.monster.hp = 0;
-            this.winCombat();
-        } else {
-            this.processStatusEffects(this.monster, this.monsterStatus, 'monster');
-            if (this.monster.hp > 0) {
-                setTimeout(() => this.monsterTurn(), 1000);
-            } else {
+            if (this.monster.hp <= 0) {
+                this.monster.hp = 0;
                 this.winCombat();
+            } else {
+                this.processStatusEffects(this.monster, this.monsterStatus, 'monster');
+                if (this.monster.hp > 0) {
+                    setTimeout(() => this.monsterTurn(), 1000);
+                } else {
+                    this.winCombat();
+                }
             }
-        }
+        }, 300);
+        return; // Early return because rest is in timeout
     }
 
     monsterTurn() {
@@ -109,21 +114,25 @@ class CombatSystem {
         let dmg = this.monster.dmg - Math.floor(defense * 0.5);
         if (dmg < 1) dmg = 1;
 
-        this.player.hp -= dmg;
         this.logMonster(`${this.monster.name} atacou e causou ${dmg} de dano.`);
         
-        Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
-        Engine.emit('playerUpdated', this.player); // Update global UI
+        Engine.emit('combatAnimation', { target: 'monster', anim: 'attack' });
+        setTimeout(() => {
+            this.player.hp -= dmg;
+            Engine.emit('combatAnimation', { target: 'player', anim: 'damage' });
+            Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
+            Engine.emit('playerUpdated', this.player); // Update global UI
 
-        if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.loseCombat();
-        } else {
-            this.processStatusEffects(this.player, this.playerStatus, 'player');
             if (this.player.hp <= 0) {
+                this.player.hp = 0;
                 this.loseCombat();
+            } else {
+                this.processStatusEffects(this.player, this.playerStatus, 'player');
+                if (this.player.hp <= 0) {
+                    this.loseCombat();
+                }
             }
-        }
+        }, 300);
     }
 
     processStatusEffects(entity, statusArray, type) {

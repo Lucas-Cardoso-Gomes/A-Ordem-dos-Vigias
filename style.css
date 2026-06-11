@@ -232,6 +232,39 @@ button.danger:hover {
     text-align: center;
 }
 
+/* Combat Animations */
+@keyframes attack-anim {
+    0% { transform: translateX(0) scale(1); }
+    50% { transform: translateX(20px) scale(1.1); }
+    100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes damage-anim {
+    0% { transform: translateX(0); filter: brightness(1); }
+    25% { transform: translateX(-5px) rotate(-2deg); filter: brightness(2) drop-shadow(0 0 10px red); }
+    50% { transform: translateX(5px) rotate(2deg); filter: brightness(2) drop-shadow(0 0 10px red); }
+    75% { transform: translateX(-5px) rotate(-2deg); filter: brightness(2) drop-shadow(0 0 10px red); }
+    100% { transform: translateX(0); filter: brightness(1); }
+}
+
+.anim-attack {
+    animation: attack-anim 0.3s ease;
+}
+
+.anim-damage {
+    animation: damage-anim 0.4s ease;
+}
+
+.monster-side.anim-attack {
+    animation: attack-anim-reverse 0.3s ease;
+}
+
+@keyframes attack-anim-reverse {
+    0% { transform: translateX(0) scale(1); }
+    50% { transform: translateX(-20px) scale(1.1); }
+    100% { transform: translateX(0) scale(1); }
+}
+
 /* Combat */
 .combat-arena {
     display: flex;
