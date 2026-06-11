@@ -24,6 +24,18 @@ class UIManager {
         Engine.on('combatLog', log => this.appendCombatLog(log));
         Engine.on('combatStarted', m => this.showCombatScreen(m));
         Engine.on('combatEnded', v => this.hideCombatScreen(v));
+        Engine.on('turnStarted', () => {
+            if (this.btnAttack) this.btnAttack.disabled = false;
+            if (this.btnSkill) this.btnSkill.disabled = false;
+            if (this.btnPotion) this.btnPotion.disabled = false;
+            if (this.btnFlee) this.btnFlee.disabled = false;
+        });
+        Engine.on('turnEnded', () => {
+            if (this.btnAttack) this.btnAttack.disabled = true;
+            if (this.btnSkill) this.btnSkill.disabled = true;
+            if (this.btnPotion) this.btnPotion.disabled = true;
+            if (this.btnFlee) this.btnFlee.disabled = true;
+        });
         Engine.on('systemLog', msg => this.showToast(msg));
         Engine.on('questsUpdated', qs => this.renderQuests(qs));
         Engine.on('bestiaryUpdate', m => this.updateBestiary(m));

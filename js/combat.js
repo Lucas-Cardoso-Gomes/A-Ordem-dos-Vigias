@@ -12,6 +12,7 @@ class CombatSystem {
         
         this.playerStatus = [];
         this.monsterStatus = [];
+        this.isPlayerTurn = true;
     }
 
     startCombat(monster) {
@@ -19,13 +20,17 @@ class CombatSystem {
         this.inCombat = true;
         this.playerStatus = [];
         this.monsterStatus = [];
+        this.isPlayerTurn = true;
         
         Engine.emit('combatStarted', this.monster);
+        Engine.emit('turnStarted', null);
         this.logSystem(`Você encontrou um ${monster.name} (Nível ${monster.level})!`);
     }
 
     flee() {
-        if (!this.inCombat) return;
+        if (!this.inCombat || !this.isPlayerTurn) return;
+        this.isPlayerTurn = false;
+        Engine.emit('turnEnded', null);
         // Base chance to flee 50%, increased by Agility
         const fleeChance = 50 + (this.player.getTotalAttr('agi') * 0.5);
         if (Engine.randomChance(fleeChance)) {
@@ -39,7 +44,9 @@ class CombatSystem {
 
     // Process turn: Player Action -> Process Status -> Monster Action -> Process Status
     playerAttack() {
-        if (!this.inCombat) return;
+        if (!this.inCombat || !this.isPlayerTurn) return;
+        this.isPlayerTurn = false;
+        Engine.emit('turnEnded', null);
 
         // Calculate Damage
         let { min, max, weaknessMods } = this.calculatePlayerDamage();
@@ -102,7 +109,7 @@ class CombatSystem {
     }
 
     playerSkill(skill) {
-        if (!this.inCombat) return;
+        if (!this.inCombat || !this.isPlayerTurn) return;
 
         if (!skill) {
             this.logSystem('Nenhuma habilidade selecionada.');
@@ -114,6 +121,8 @@ class CombatSystem {
             return;
         }
 
+        this.isPlayerTurn = false;
+        Engine.emit('turnEnded', null);
         this.player.mana -= skill.manaCost;
         Engine.emit('playerUpdated', this.player);
 
@@ -200,6 +209,9 @@ class CombatSystem {
                 this.processStatusEffects(this.player, this.playerStatus, 'player');
                 if (this.player.hp <= 0) {
                     this.loseCombat();
+                } else {
+                    this.isPlayerTurn = true;
+                    Engine.emit('turnStarted', null);
                 }
             }
         }, 300);
@@ -274,9 +286,11 @@ class CombatSystem {
     }
 
     usePotion(itemInstanceId) {
-        if (!this.inCombat) return;
+        if (!this.inCombat || !this.isPlayerTurn) return;
         
         if (this.inventory.useItem(itemInstanceId)) {
+            this.isPlayerTurn = false;
+            Engine.emit('turnEnded', null);
             this.logPlayer(`Você usou uma poção.`);
             setTimeout(() => this.monsterTurn(), 1000);
         }

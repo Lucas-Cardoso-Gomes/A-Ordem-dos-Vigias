@@ -125,6 +125,11 @@ class Inventory {
             return false;
         }
 
+        if (item.effect === 'cure_poison') {
+            Engine.emit('systemLog', 'Esta poção não pode ser usada agora.');
+            return false;
+        }
+
         if (item.effect === 'heal') {
             this.player.heal(item.value);
             Engine.emit('systemLog', `Você usou ${item.name} e curou ${item.value} HP.`);
