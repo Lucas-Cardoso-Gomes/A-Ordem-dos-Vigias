@@ -22,7 +22,7 @@ class Player {
         };
         
         this.statPoints = 0;
-        this.playerClass = 'Nenhuma'; // Caçador, Exorcista, Alquimista, Bruxo
+        this.playerClass = 'Nenhuma'; // Caçador, Exorcista, Alquimista, Bruxo, Mago
         
         this.hp = this.getMaxHp();
         this.mana = this.getMaxMana();
@@ -132,7 +132,7 @@ class Player {
     }
 
     setClass(newClass) {
-        const validClasses = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo'];
+        const validClasses = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago'];
         if (validClasses.includes(newClass)) {
             this.playerClass = newClass;
             Engine.emit('playerUpdated', this);
@@ -150,6 +150,8 @@ class Player {
                 return { name: "Bomba Ácida", manaCost: 10, type: 'attack', multiplier: 1.2 };
             case 'Bruxo':
                 return { name: "Dreno de Vida", manaCost: 25, type: 'drain', multiplier: 1.5 };
+            case 'Mago':
+                return { name: "Bola de Fogo", manaCost: 20, type: 'attack', multiplier: 1.8, element: 'fogo' };
             default:
                 return null;
         }

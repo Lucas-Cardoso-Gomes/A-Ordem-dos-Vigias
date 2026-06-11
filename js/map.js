@@ -25,11 +25,21 @@ const MapSystem = {
 
         this.currentRegion = region;
         
-        // 5% chance to encounter a boss if player level is near max region level
-        const isBoss = Engine.randomChance(5) && region.maxLvl >= 80;
-
-        const monster = MonsterDatabase.generateMonster(region.minLvl, region.maxLvl, isBoss);
-        return monster;
+        // Determine event type: 70% combat, 15% trap, 15% supplies
+        const rand = Math.random() * 100;
+        if (rand < 70) {
+            // Combat
+            // 5% chance to encounter a boss if player level is near max region level
+            const isBoss = Engine.randomChance(5) && region.maxLvl >= 80;
+            const monster = MonsterDatabase.generateMonster(region.minLvl, region.maxLvl, isBoss);
+            return { type: 'combat', data: monster };
+        } else if (rand < 85) {
+            // Trap
+            return { type: 'armadilha' };
+        } else {
+            // Supplies
+            return { type: 'suprimentos' };
+        }
     }
 };
 

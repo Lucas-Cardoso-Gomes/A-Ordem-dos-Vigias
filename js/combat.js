@@ -122,8 +122,18 @@ class CombatSystem {
             let { min, max } = this.calculatePlayerDamage();
             let dmg = Math.floor(Engine.randomInt(min, max) * skill.multiplier);
             
+            let weaknessHit = false;
+            if (skill.element && this.monster.weakness && this.monster.weakness.includes(skill.element)) {
+                dmg *= 2; // Double damage for elemental weakness
+                weaknessHit = true;
+            }
+
             this.monster.hp -= dmg;
-            this.logPlayer(`Você usou ${skill.name} e causou ${dmg} de dano.`);
+
+            let logMsg = `Você usou ${skill.name} e causou ${dmg} de dano.`;
+            if (weaknessHit) logMsg += " (Fraqueza explorada!)";
+
+            this.logPlayer(logMsg);
             
             if (skill.type === 'drain') {
                 const heal = Math.floor(dmg / 2);
