@@ -101,6 +101,67 @@ class CombatSystem {
         return; // Early return because rest is in timeout
     }
 
+    playerSkill() {
+        if (!this.inCombat) return;
+
+        const skill = this.player.getSkill();
+        if (!skill) {
+            this.logSystem('Você não possui uma classe para usar habilidades.');
+            return;
+        }
+
+        if (this.player.mana < skill.manaCost) {
+            this.logSystem(`Mana insuficiente. Requer ${skill.manaCost} Mana.`);
+            return;
+        }
+
+        this.player.mana -= skill.manaCost;
+        Engine.emit('playerUpdated', this.player);
+
+        if (skill.type === 'attack' || skill.type === 'drain') {
+            let { min, max } = this.calculatePlayerDamage();
+            let dmg = Math.floor(Engine.randomInt(min, max) * skill.multiplier);
+            
+            this.monster.hp -= dmg;
+            this.logPlayer(`Você usou ${skill.name} e causou ${dmg} de dano.`);
+            
+            if (skill.type === 'drain') {
+                const heal = Math.floor(dmg / 2);
+                this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
+                this.logPlayer(`Você sugou ${heal} de vida.`);
+            }
+
+            Engine.emit('combatAnimation', { target: 'player', anim: 'attack' });
+            setTimeout(() => {
+                Engine.emit('combatAnimation', { target: 'monster', anim: 'damage' });
+                Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
+
+                if (this.monster.hp <= 0) {
+                    this.monster.hp = 0;
+                    this.winCombat();
+                } else {
+                    this.processStatusEffects(this.monster, this.monsterStatus, 'monster');
+                    if (this.monster.hp > 0) {
+                        setTimeout(() => this.monsterTurn(), 1000);
+                    } else {
+                        this.winCombat();
+                    }
+                }
+            }, 300);
+        } else if (skill.type === 'heal') {
+            const heal = skill.healAmount;
+            this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
+            this.logPlayer(`Você usou ${skill.name} e curou ${heal} de vida.`);
+            
+            Engine.emit('combatAnimation', { target: 'player', anim: 'damage' }); // Reusing damage anim for a subtle flash
+            Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
+            
+            setTimeout(() => {
+                this.monsterTurn();
+            }, 1000);
+        }
+    }
+
     monsterTurn() {
         if (!this.inCombat || this.monster.hp <= 0) return;
 

@@ -139,6 +139,21 @@ class Player {
             Engine.emit('systemLog', `Você se tornou um ${newClass}!`);
         }
     }
+
+    getSkill() {
+        switch (this.playerClass) {
+            case 'Caçador':
+                return { name: "Tiro Preciso", manaCost: 15, type: 'attack', multiplier: 1.5 };
+            case 'Exorcista':
+                return { name: "Cura Sagrada", manaCost: 20, type: 'heal', healAmount: 50 + this.attributes.int };
+            case 'Alquimista':
+                return { name: "Bomba Ácida", manaCost: 10, type: 'attack', multiplier: 1.2 };
+            case 'Bruxo':
+                return { name: "Dreno de Vida", manaCost: 25, type: 'drain', multiplier: 1.5 };
+            default:
+                return null;
+        }
+    }
 }
 
 window.Player = Player;

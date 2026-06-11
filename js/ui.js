@@ -12,7 +12,12 @@ class UIManager {
         
         // Subscribe to engine events
         Engine.on('playerUpdated', p => this.renderPlayer(p));
-        Engine.on('inventoryUpdated', inv => this.renderInventory(inv));
+        Engine.on('inventoryUpdated', inv => {
+            this.renderInventory(inv);
+            if (this.elShopList && !this.elShopList.parentElement.parentElement.classList.contains('hidden')) {
+                this.renderShop();
+            }
+        });
         Engine.on('equipmentUpdated', eq => this.renderEquipment(eq));
         Engine.on('combatUpdated', c => this.renderCombatStats(c));
         Engine.on('combatLog', log => this.appendCombatLog(log));
@@ -77,6 +82,7 @@ class UIManager {
         this.elCombatMonsterWeaknesses = document.getElementById('combat-monster-weaknesses');
         
         this.btnAttack = document.getElementById('btn-attack');
+        this.btnSkill = document.getElementById('btn-skill');
         this.btnPotion = document.getElementById('btn-potion');
         this.btnFlee = document.getElementById('btn-flee');
         this.elCombatLog = document.getElementById('combat-log');
@@ -149,6 +155,9 @@ class UIManager {
         });
 
         this.btnAttack.addEventListener('click', () => window.gameCombat.playerAttack());
+        if (this.btnSkill) {
+            this.btnSkill.addEventListener('click', () => window.gameCombat.playerSkill());
+        }
         this.btnFlee.addEventListener('click', () => window.gameCombat.flee());
         this.btnPotion.addEventListener('click', () => {
             // Find first potion
@@ -343,12 +352,14 @@ class UIManager {
         }
         
         this.btnAttack.disabled = false;
+        if (this.btnSkill) this.btnSkill.disabled = false;
         this.btnFlee.disabled = false;
         this.btnPotion.disabled = false;
     }
 
     hideCombatScreen(victory) {
         this.btnAttack.disabled = true;
+        if (this.btnSkill) this.btnSkill.disabled = true;
         this.btnFlee.disabled = true;
         this.btnPotion.disabled = true;
         if (victory) {
@@ -507,7 +518,7 @@ class UIManager {
     renderShop() {
         if (!this.elShopList) return;
         this.elShopList.innerHTML = '';
-
+        
         // Define some basic shop items
         const shopItems = [
             ItemDatabase.getPotion('p1'),
@@ -523,7 +534,7 @@ class UIManager {
             div.innerHTML = `<strong>${item.name}</strong><br>
                              Tipo: ${item.type}<br>
                              Preço: ${item.gold || item.value || 10} Ouro<br>`;
-
+            
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
             btnBuy.onclick = () => {
@@ -540,6 +551,44 @@ class UIManager {
                 }
             };
             div.appendChild(btnBuy);
+            this.elShopList.appendChild(div);
+        });
+
+        // Add a separator for selling
+        const hr = document.createElement('hr');
+        hr.style.gridColumn = '1 / -1';
+        hr.style.margin = '1rem 0';
+        hr.style.borderColor = 'var(--border-color)';
+        this.elShopList.appendChild(hr);
+
+        const sellTitle = document.createElement('h3');
+        sellTitle.innerText = 'Vender seus itens';
+        sellTitle.style.gridColumn = '1 / -1';
+        sellTitle.style.color = 'var(--accent-gold)';
+        this.elShopList.appendChild(sellTitle);
+
+        window.gameInventory.items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `shop-card rarity-${item.rarity}`;
+            
+            const sellPrice = item.sellValue || Math.floor((item.gold || item.value || 10) / 2) || 5;
+
+            div.innerHTML = `<strong>${item.name}</strong><br>
+                             Tipo: ${item.type}<br>
+                             Venda: ${sellPrice} Ouro<br>`;
+            
+            const btnSell = document.createElement('button');
+            btnSell.innerText = 'Vender';
+            btnSell.onclick = () => {
+                const removedItem = window.gameInventory.removeItem(item.instanceId);
+                if (removedItem) {
+                    window.gamePlayer.gold += sellPrice;
+                    Engine.emit('playerUpdated', window.gamePlayer);
+                    Engine.emit('systemLog', `Você vendeu ${item.name} por ${sellPrice} Ouro.`);
+                    // We don't need to manually re-render because we hooked into inventoryUpdated
+                }
+            };
+            div.appendChild(btnSell);
             this.elShopList.appendChild(div);
         });
     }
