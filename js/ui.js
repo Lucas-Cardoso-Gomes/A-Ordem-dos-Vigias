@@ -72,6 +72,11 @@ class UIManager {
         this.elInvCount = document.getElementById('inv-count');
         this.elInvList = document.getElementById('inventory-list');
         this.elInvFilter = document.getElementById('inv-filter');
+        this.elInvActionPanel = document.getElementById('inventory-action-panel');
+        this.elActionPanelName = document.getElementById('action-panel-name');
+        this.elActionPanelDesc = document.getElementById('action-panel-desc');
+        this.btnEquipItem = document.getElementById('btn-equip-item');
+        this.btnUseItem = document.getElementById('btn-use-item');
 
         // Equipment slots
         this.eqSlots = document.querySelectorAll('.eq-slot');
@@ -145,6 +150,24 @@ class UIManager {
         this.elInvFilter.addEventListener('change', (e) => {
             this.renderInventory(window.gameInventory, e.target.value);
         });
+
+        if (this.btnEquipItem) {
+            this.btnEquipItem.addEventListener('click', () => {
+                if (this.selectedItemInstanceId) {
+                    window.gameInventory.equip(this.selectedItemInstanceId);
+                    if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
+                }
+            });
+        }
+
+        if (this.btnUseItem) {
+            this.btnUseItem.addEventListener('click', () => {
+                if (this.selectedItemInstanceId) {
+                    window.gameInventory.useItem(this.selectedItemInstanceId);
+                    if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
+                }
+            });
+        }
 
         this.eqSlots.forEach(slot => {
             slot.addEventListener('click', (e) => {
@@ -263,6 +286,11 @@ class UIManager {
                 const targetScreen = document.getElementById(target);
                 targetScreen.classList.remove('hidden');
                 targetScreen.classList.add('active');
+
+                // Explicitly render shop if navigating to it
+                if (target === 'screen-shop') {
+                    this.renderShop();
+                }
             });
         });
     }
@@ -323,13 +351,37 @@ class UIManager {
         items.forEach(item => {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
+            div.style.position = 'relative';
             div.innerText = item.name.substring(0, 3) + '.';
             
+            if ((item.type === 'material' || item.type === 'potion') && item.count > 1) {
+                div.innerHTML += `<span class="item-count">x${item.count}</span>`;
+            }
+
             div.addEventListener('click', () => {
-                if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') {
-                    inv.equip(item.instanceId);
-                } else if (item.type === 'potion') {
-                    inv.useItem(item.instanceId);
+                this.selectedItemInstanceId = item.instanceId;
+                if (this.elInvActionPanel) {
+                    this.elInvActionPanel.classList.remove('hidden');
+                    this.elActionPanelName.innerText = item.name;
+
+                    let desc = `<em>Raridade: ${item.rarity}</em><br>Tipo: ${item.type}<br>`;
+                    if (item.count) desc += `Quantidade: ${item.count}<br>`;
+                    if (item.minDmg) desc += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
+                    if (item.def) desc += `Defesa: ${item.def}<br>`;
+                    if (item.weakness) desc += `Elemento/Especial: ${item.weakness}<br>`;
+                    if (item.effect) desc += `Efeito: Cura/Mana ${item.value}<br>`;
+                    if (item.reqLvl) desc += `Nível Requerido: ${item.reqLvl}<br>`;
+
+                    this.elActionPanelDesc.innerHTML = desc;
+
+                    this.btnEquipItem.classList.add('hidden');
+                    this.btnUseItem.classList.add('hidden');
+
+                    if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') {
+                        this.btnEquipItem.classList.remove('hidden');
+                    } else if (item.type === 'potion') {
+                        this.btnUseItem.classList.remove('hidden');
+                    }
                 }
             });
 
@@ -651,8 +703,13 @@ class UIManager {
             ItemDatabase.getPotion('p1'),
             ItemDatabase.getPotion('p2'),
             ItemDatabase.getPotion('p3'),
+            ItemDatabase.getPotion('p4'),
+            ItemDatabase.getPotion('p5'),
             ItemDatabase.getMaterial('m1'),
-            ItemDatabase.getMaterial('m2')
+            ItemDatabase.getMaterial('m2'),
+            ItemDatabase.getMaterial('m8'),
+            ItemDatabase.generateItem(5, 'comum'), // Arma/Armadura Aleatória Comum
+            ItemDatabase.generateItem(15, 'incomum') // Arma/Armadura Aleatória Incomum
         ];
 
         shopItems.forEach(item => {
@@ -700,22 +757,42 @@ class UIManager {
             
             const sellPrice = item.sellValue || Math.floor((item.gold || item.value || 10) / 2) || 5;
 
-            div.innerHTML = `<strong>${item.name}</strong><br>
-                             Tipo: ${item.type}<br>
-                             Venda: ${sellPrice} Ouro<br>`;
+            let desc = `<strong>${item.name}</strong><br>
+                        Tipo: ${item.type}<br>
+                        Venda: ${sellPrice} Ouro${item.count > 1 ? ' (cada)' : ''}<br>`;
+            if (item.count > 1) {
+                desc += `Quantidade: ${item.count}<br>`;
+            }
+            div.innerHTML = desc;
             
             const btnSell = document.createElement('button');
-            btnSell.innerText = 'Vender';
+            btnSell.innerText = 'Vender 1';
             btnSell.onclick = () => {
-                const removedItem = window.gameInventory.removeItem(item.instanceId);
+                const removedItem = window.gameInventory.removeItem(item.instanceId, 1);
                 if (removedItem) {
                     window.gamePlayer.gold += sellPrice;
                     Engine.emit('playerUpdated', window.gamePlayer);
-                    Engine.emit('systemLog', `Você vendeu ${item.name} por ${sellPrice} Ouro.`);
-                    // We don't need to manually re-render because we hooked into inventoryUpdated
+                    Engine.emit('systemLog', `Você vendeu 1x ${item.name} por ${sellPrice} Ouro.`);
                 }
             };
             div.appendChild(btnSell);
+
+            if (item.count > 1) {
+                const btnSellAll = document.createElement('button');
+                btnSellAll.innerText = 'Vender Todos';
+                btnSellAll.onclick = () => {
+                    const totalSells = item.count;
+                    const totalGold = sellPrice * totalSells;
+                    const removedItem = window.gameInventory.removeItem(item.instanceId, totalSells);
+                    if (removedItem) {
+                        window.gamePlayer.gold += totalGold;
+                        Engine.emit('playerUpdated', window.gamePlayer);
+                        Engine.emit('systemLog', `Você vendeu ${totalSells}x ${item.name} por ${totalGold} Ouro.`);
+                    }
+                };
+                div.appendChild(btnSellAll);
+            }
+
             this.elShopList.appendChild(div);
         });
     }

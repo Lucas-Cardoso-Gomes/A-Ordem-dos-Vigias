@@ -24,7 +24,9 @@ const ItemDatabase = {
         { id: 'w7', name: 'Cajado de Gelo', type: 'weapon', slot: 'weaponMain', minDmg: 6, maxDmg: 14, reqLvl: 10, weakness: 'gelo', magic: true },
         { id: 'w8', name: 'Cajado de Fogo', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 18, reqLvl: 15, weakness: 'fogo', magic: true },
         { id: 'w9', name: 'Tomo Sagrado', type: 'weapon', slot: 'weaponMain', minDmg: 10, maxDmg: 20, reqLvl: 20, weakness: 'luz sagrada', magic: true },
-        { id: 'w10', name: 'Grimório Sombrio', type: 'weapon', slot: 'weaponMain', minDmg: 15, maxDmg: 25, reqLvl: 30, weakness: 'magia arcana', magic: true }
+        { id: 'w10', name: 'Grimório Sombrio', type: 'weapon', slot: 'weaponMain', minDmg: 15, maxDmg: 25, reqLvl: 30, weakness: 'magia arcana', magic: true },
+        { id: 'w11', name: 'Katana Sombria', type: 'weapon', slot: 'weaponMain', minDmg: 20, maxDmg: 35, reqLvl: 40, weakness: 'trevas' },
+        { id: 'w12', name: 'Martelo dos Deuses', type: 'weapon', slot: 'weaponMain', minDmg: 30, maxDmg: 50, reqLvl: 60, weakness: 'sagrado' }
     ],
 
     armorBases: [
@@ -34,7 +36,9 @@ const ItemDatabase = {
         { id: 'a4', name: 'Calças de Couro', type: 'armor', slot: 'legs', def: 3, reqLvl: 1 },
         { id: 'a5', name: 'Botas de Couro', type: 'armor', slot: 'boots', def: 2, reqLvl: 1 },
         { id: 'a6', name: 'Elmo de Ferro', type: 'armor', slot: 'head', def: 5, reqLvl: 10 },
-        { id: 'a7', name: 'Cota de Malha', type: 'armor', slot: 'chest', def: 10, reqLvl: 10 }
+        { id: 'a7', name: 'Cota de Malha', type: 'armor', slot: 'chest', def: 10, reqLvl: 10 },
+        { id: 'a8', name: 'Armadura de Placas Rúnicas', type: 'armor', slot: 'chest', def: 30, reqLvl: 40 },
+        { id: 'a9', name: 'Manto do Arquimago', type: 'armor', slot: 'chest', def: 15, reqLvl: 40, stats: { int: 10, mana: 50 } }
     ],
 
     materials: [
@@ -44,18 +48,24 @@ const ItemDatabase = {
         { id: 'm4', name: 'Escamas', type: 'material', value: 10 },
         { id: 'm5', name: 'Sangue Vampírico', type: 'material', value: 20 },
         { id: 'm6', name: 'Chifre de Minotauro', type: 'material', value: 25 },
-        { id: 'm7', name: 'Essência Demoníaca', type: 'material', value: 50 }
+        { id: 'm7', name: 'Essência Demoníaca', type: 'material', value: 50 },
+        { id: 'm8', name: 'Fragmento de Cristal', type: 'material', value: 75 },
+        { id: 'm9', name: 'Pó Mágico', type: 'material', value: 100 }
     ],
 
     potions: [
         { id: 'p1', name: 'Poção de Vida Menor', type: 'potion', effect: 'heal', value: 50, gold: 10 },
         { id: 'p2', name: 'Poção de Mana Menor', type: 'potion', effect: 'mana', value: 30, gold: 10 },
-        { id: 'p3', name: 'Antídoto', type: 'potion', effect: 'cure_poison', value: 0, gold: 20 }
+        { id: 'p3', name: 'Antídoto', type: 'potion', effect: 'cure_poison', value: 0, gold: 20 },
+        { id: 'p4', name: 'Poção de Vida Maior', type: 'potion', effect: 'heal', value: 200, gold: 50 },
+        { id: 'p5', name: 'Poção de Mana Maior', type: 'potion', effect: 'mana', value: 100, gold: 50 }
     ],
 
     accessories: [
         { id: 'ac1', name: 'Amuleto do Lobo', type: 'accessory', slot: 'amulet', stats: { str: 2 }, reqLvl: 5 },
-        { id: 'ac2', name: 'Anel de Rubi', type: 'accessory', slot: 'ring1', stats: { hp: 20 }, reqLvl: 5 }
+        { id: 'ac2', name: 'Anel de Rubi', type: 'accessory', slot: 'ring1', stats: { hp: 20 }, reqLvl: 5 },
+        { id: 'ac3', name: 'Anel de Safira', type: 'accessory', slot: 'ring1', stats: { int: 5, mana: 30 }, reqLvl: 20 },
+        { id: 'ac4', name: 'Amuleto do Corvo', type: 'accessory', slot: 'amulet', stats: { agi: 8, luk: 5 }, reqLvl: 30 }
     ],
 
     generateItem(level, forceRarity = null) {

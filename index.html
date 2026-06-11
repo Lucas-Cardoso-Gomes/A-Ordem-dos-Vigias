@@ -79,10 +79,21 @@
                         <option value="material">Materiais</option>
                     </select>
                 </div>
-                <div class="inventory-grid" id="inventory-list">
-                    <!-- Items populated dynamically -->
+                <div style="display: flex; gap: 1rem;">
+                    <div class="inventory-grid" id="inventory-list" style="flex: 1;">
+                        <!-- Items populated dynamically -->
+                    </div>
+
+                    <div id="inventory-action-panel" class="hidden" style="flex: 1; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-panel); display: flex; flex-direction: column; gap: 0.5rem;">
+                        <h3 id="action-panel-name">Item Name</h3>
+                        <p id="action-panel-desc" style="font-size: 0.9rem; flex-grow: 1;">Details here.</p>
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button id="btn-equip-item" class="hidden">Equipar</button>
+                            <button id="btn-use-item" class="hidden">Usar</button>
+                        </div>
+                    </div>
                 </div>
-                
+
                 <div id="crafting-section" style="margin-top: 2rem;">
                     <h3>Crafting</h3>
                     <div id="crafting-recipes" class="recipe-list">
