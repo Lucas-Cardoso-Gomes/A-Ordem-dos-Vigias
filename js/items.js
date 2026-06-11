@@ -99,6 +99,7 @@ const ItemDatabase = {
         if (item.def) item.def = Math.floor(item.def * mult);
         
         if (item.stats) {
+            item.stats = { ...item.stats };
             for (let k in item.stats) {
                 item.stats[k] = Math.floor(item.stats[k] * mult);
             }
