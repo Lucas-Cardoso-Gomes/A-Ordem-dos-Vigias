@@ -121,10 +121,10 @@ class CombatSystem {
         if (skill.type === 'attack' || skill.type === 'drain') {
             let { min, max } = this.calculatePlayerDamage();
             let dmg = Math.floor(Engine.randomInt(min, max) * skill.multiplier);
-
+            
             this.monster.hp -= dmg;
             this.logPlayer(`Você usou ${skill.name} e causou ${dmg} de dano.`);
-
+            
             if (skill.type === 'drain') {
                 const heal = Math.floor(dmg / 2);
                 this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
@@ -152,10 +152,10 @@ class CombatSystem {
             const heal = skill.healAmount;
             this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
             this.logPlayer(`Você usou ${skill.name} e curou ${heal} de vida.`);
-
+            
             Engine.emit('combatAnimation', { target: 'player', anim: 'damage' }); // Reusing damage anim for a subtle flash
             Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
-
+            
             setTimeout(() => {
                 this.monsterTurn();
             }, 1000);

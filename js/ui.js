@@ -518,7 +518,7 @@ class UIManager {
     renderShop() {
         if (!this.elShopList) return;
         this.elShopList.innerHTML = '';
-
+        
         // Define some basic shop items
         const shopItems = [
             ItemDatabase.getPotion('p1'),
@@ -534,7 +534,7 @@ class UIManager {
             div.innerHTML = `<strong>${item.name}</strong><br>
                              Tipo: ${item.type}<br>
                              Preço: ${item.gold || item.value || 10} Ouro<br>`;
-
+            
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
             btnBuy.onclick = () => {
@@ -570,13 +570,13 @@ class UIManager {
         window.gameInventory.items.forEach(item => {
             const div = document.createElement('div');
             div.className = `shop-card rarity-${item.rarity}`;
-
+            
             const sellPrice = item.sellValue || Math.floor((item.gold || item.value || 10) / 2) || 5;
 
             div.innerHTML = `<strong>${item.name}</strong><br>
                              Tipo: ${item.type}<br>
                              Venda: ${sellPrice} Ouro<br>`;
-
+            
             const btnSell = document.createElement('button');
             btnSell.innerText = 'Vender';
             btnSell.onclick = () => {
