@@ -110,15 +110,44 @@ class Player {
         }
     }
 
+    getTotalAttr(attr) {
+        let val = this.attributes[attr] || 0;
+        if (window.gameInventory && window.gameInventory.equipment) {
+            Object.values(window.gameInventory.equipment).forEach(item => {
+                if (item && item.stats && item.stats[attr]) {
+                    val += item.stats[attr];
+                }
+            });
+        }
+        return val;
+    }
+
     getMaxHp() {
-        // Base 100 + 10 per Str + 5 per Def + level bonus
-        let max = 100 + (this.attributes.str * 10) + (this.attributes.def * 5) + (this.level * 10);
+        // Base 100 + 10 per Str + 5 per Def + level bonus + item bonuses
+        let max = 100 + (this.getTotalAttr('str') * 10) + (this.getTotalAttr('def') * 5) + (this.level * 10);
+
+        if (window.gameInventory && window.gameInventory.equipment) {
+            Object.values(window.gameInventory.equipment).forEach(item => {
+                if (item && item.stats && item.stats.hp) {
+                    max += item.stats.hp;
+                }
+            });
+        }
         return max;
     }
 
     getMaxMana() {
-        // Base 50 + 10 per Int + level bonus
-        return 50 + (this.attributes.int * 10) + (this.level * 5);
+        // Base 50 + 10 per Int + level bonus + item bonuses
+        let max = 50 + (this.getTotalAttr('int') * 10) + (this.level * 5);
+
+        if (window.gameInventory && window.gameInventory.equipment) {
+            Object.values(window.gameInventory.equipment).forEach(item => {
+                if (item && item.stats && item.stats.mana) {
+                    max += item.stats.mana;
+                }
+            });
+        }
+        return max;
     }
 
     heal(amount) {
@@ -140,21 +169,36 @@ class Player {
         }
     }
 
-    getSkill() {
+    getSkills() {
+        let skills = [];
         switch (this.playerClass) {
             case 'Caçador':
-                return { name: "Tiro Preciso", manaCost: 15, type: 'attack', multiplier: 1.5 };
+                skills.push({ id: 's_cacador_1', name: "Tiro Preciso", manaCost: 15, type: 'attack', multiplier: 1.5, reqLvl: 5 });
+                if (this.level >= 10) skills.push({ id: 's_cacador_2', name: "Saraivada", manaCost: 30, type: 'attack', multiplier: 2.2, reqLvl: 10 });
+                if (this.level >= 20) skills.push({ id: 's_cacador_3', name: "Flecha Perfurante", manaCost: 50, type: 'attack', multiplier: 3.5, element: 'estaca', reqLvl: 20 });
+                break;
             case 'Exorcista':
-                return { name: "Cura Sagrada", manaCost: 20, type: 'heal', healAmount: 50 + this.attributes.int };
+                skills.push({ id: 's_exorcista_1', name: "Cura Sagrada", manaCost: 20, type: 'heal', healAmount: 50 + this.getTotalAttr('int') * 2, reqLvl: 5 });
+                if (this.level >= 10) skills.push({ id: 's_exorcista_2', name: "Punição Divina", manaCost: 35, type: 'attack', multiplier: 2.0, element: 'luz sagrada', reqLvl: 10 });
+                if (this.level >= 20) skills.push({ id: 's_exorcista_3', name: "Aura de Proteção", manaCost: 60, type: 'heal', healAmount: 150 + this.getTotalAttr('int') * 3, reqLvl: 20 });
+                break;
             case 'Alquimista':
-                return { name: "Bomba Ácida", manaCost: 10, type: 'attack', multiplier: 1.2 };
+                skills.push({ id: 's_alquimista_1', name: "Bomba Ácida", manaCost: 10, type: 'attack', multiplier: 1.2, reqLvl: 5 });
+                if (this.level >= 10) skills.push({ id: 's_alquimista_2', name: "Fogo Alquímico", manaCost: 25, type: 'attack', multiplier: 1.8, element: 'fogo', reqLvl: 10 });
+                if (this.level >= 20) skills.push({ id: 's_alquimista_3', name: "Transmutação Explosiva", manaCost: 45, type: 'attack', multiplier: 3.0, reqLvl: 20 });
+                break;
             case 'Bruxo':
-                return { name: "Dreno de Vida", manaCost: 25, type: 'drain', multiplier: 1.5 };
+                skills.push({ id: 's_bruxo_1', name: "Dreno de Vida", manaCost: 25, type: 'drain', multiplier: 1.5, reqLvl: 5 });
+                if (this.level >= 10) skills.push({ id: 's_bruxo_2', name: "Maldição Sombria", manaCost: 40, type: 'attack', multiplier: 2.5, element: 'magia arcana', reqLvl: 10 });
+                if (this.level >= 20) skills.push({ id: 's_bruxo_3', name: "Festim de Almas", manaCost: 70, type: 'drain', multiplier: 3.5, reqLvl: 20 });
+                break;
             case 'Mago':
-                return { name: "Bola de Fogo", manaCost: 20, type: 'attack', multiplier: 1.8, element: 'fogo' };
-            default:
-                return null;
+                skills.push({ id: 's_mago_1', name: "Bola de Fogo", manaCost: 20, type: 'attack', multiplier: 1.8, element: 'fogo', reqLvl: 5 });
+                if (this.level >= 10) skills.push({ id: 's_mago_2', name: "Lança de Gelo", manaCost: 30, type: 'attack', multiplier: 2.2, element: 'gelo', reqLvl: 10 });
+                if (this.level >= 20) skills.push({ id: 's_mago_3', name: "Tempestade Arcana", manaCost: 65, type: 'attack', multiplier: 4.0, element: 'magia arcana', reqLvl: 20 });
+                break;
         }
+        return skills;
     }
 }
 

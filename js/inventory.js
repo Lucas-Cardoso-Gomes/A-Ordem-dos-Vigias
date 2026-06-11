@@ -76,8 +76,12 @@ class Inventory {
             return false;
         }
 
-        const slot = slotOverride || item.slot;
+        let slot = slotOverride || item.slot;
         
+        if (slot === 'ring1' && this.equipment.ring1 && !this.equipment.ring2) {
+            slot = 'ring2';
+        }
+
         // Un-equip current item in slot
         if (this.equipment[slot]) {
             this.items.push(this.equipment[slot]);

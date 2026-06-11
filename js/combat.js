@@ -27,7 +27,7 @@ class CombatSystem {
     flee() {
         if (!this.inCombat) return;
         // Base chance to flee 50%, increased by Agility
-        const fleeChance = 50 + (this.player.attributes.agi * 0.5);
+        const fleeChance = 50 + (this.player.getTotalAttr('agi') * 0.5);
         if (Engine.randomChance(fleeChance)) {
             this.logSystem(`Você conseguiu fugir com sucesso!`);
             this.endCombat(false);
@@ -46,7 +46,7 @@ class CombatSystem {
         let dmg = Engine.randomInt(min, max);
         
         // Critical Hit (based on Luk and Agi)
-        const critChance = 5 + (this.player.attributes.luk * 0.2) + (this.player.attributes.agi * 0.1);
+        const critChance = 5 + (this.player.getTotalAttr('luk') * 0.2) + (this.player.getTotalAttr('agi') * 0.1);
         let isCrit = false;
         if (Engine.randomChance(critChance)) {
             dmg = Math.floor(dmg * 1.5);
@@ -101,12 +101,11 @@ class CombatSystem {
         return; // Early return because rest is in timeout
     }
 
-    playerSkill() {
+    playerSkill(skill) {
         if (!this.inCombat) return;
 
-        const skill = this.player.getSkill();
         if (!skill) {
-            this.logSystem('Você não possui uma classe para usar habilidades.');
+            this.logSystem('Nenhuma habilidade selecionada.');
             return;
         }
 
@@ -176,7 +175,7 @@ class CombatSystem {
         if (!this.inCombat || this.monster.hp <= 0) return;
 
         // Calculate damage reduction from armor
-        let defense = this.player.attributes.def;
+        let defense = this.player.getTotalAttr('def');
         Object.values(this.inventory.equipment).forEach(item => {
             if (item && item.def) defense += item.def;
         });
@@ -213,8 +212,8 @@ class CombatSystem {
     }
 
     calculatePlayerDamage() {
-        let min = 1 + Math.floor(this.player.attributes.str * 0.5);
-        let max = 2 + this.player.attributes.str;
+        let min = 1 + Math.floor(this.player.getTotalAttr('str') * 0.5);
+        let max = 2 + this.player.getTotalAttr('str');
         let weaknessMods = [];
 
         const mainWeapon = this.inventory.equipment.weaponMain;
@@ -225,8 +224,8 @@ class CombatSystem {
             
             // Int scaling for magic weapons
             if (mainWeapon.magic) {
-                min += Math.floor(this.player.attributes.int * 0.8);
-                max += this.player.attributes.int;
+                min += Math.floor(this.player.getTotalAttr('int') * 0.8);
+                max += this.player.getTotalAttr('int');
             }
         }
 
