@@ -92,6 +92,11 @@ const MonsterDatabase = {
             }
 
             loot.items.push(ItemDatabase.generateItem(monster.level, forcedRarity));
+
+            // Small chance for a secondary item drop for bosses
+            if (monster.isBoss && Engine.randomChance(30)) {
+                loot.items.push(ItemDatabase.generateItem(monster.level, 'epico'));
+            }
         }
 
         // Potion drop

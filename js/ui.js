@@ -703,8 +703,13 @@ class UIManager {
             ItemDatabase.getPotion('p1'),
             ItemDatabase.getPotion('p2'),
             ItemDatabase.getPotion('p3'),
+            ItemDatabase.getPotion('p4'),
+            ItemDatabase.getPotion('p5'),
             ItemDatabase.getMaterial('m1'),
-            ItemDatabase.getMaterial('m2')
+            ItemDatabase.getMaterial('m2'),
+            ItemDatabase.getMaterial('m8'),
+            ItemDatabase.generateItem(5, 'comum'), // Arma/Armadura Aleatória Comum
+            ItemDatabase.generateItem(15, 'incomum') // Arma/Armadura Aleatória Incomum
         ];
 
         shopItems.forEach(item => {
