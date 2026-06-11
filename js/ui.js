@@ -145,9 +145,28 @@ class UIManager {
                     this.elLocName.innerHTML = `${loc.name} (Nível ${loc.minLvl}-${loc.maxLvl})<br><small>${loc.desc}</small>`;
                     this.btnExplore.classList.remove('hidden');
                     this.btnExplore.onclick = () => {
-                        const monster = MapSystem.explore(locId);
-                        if (monster) {
-                            window.gameCombat.startCombat(monster);
+                        const event = MapSystem.explore(locId);
+                        if (event) {
+                            if (event.type === 'combat') {
+                                window.gameCombat.startCombat(event.data);
+                            } else if (event.type === 'armadilha') {
+                                const dano = Math.floor(window.gamePlayer.getMaxHp() * 0.1);
+                                window.gamePlayer.hp -= dano;
+                                let msg = `Você caiu em uma armadilha e perdeu ${dano} HP!`;
+                                if (window.gamePlayer.hp <= 0) {
+                                    window.gamePlayer.hp = 1;
+                                    msg += ` Você quase morreu na armadilha! Retornando...`;
+                                }
+                                Engine.emit('playerUpdated', window.gamePlayer);
+                                Engine.emit('systemLog', msg);
+                            } else if (event.type === 'suprimentos') {
+                                const cura = Math.floor(window.gamePlayer.getMaxHp() * 0.2);
+                                const manaRestaurada = Math.floor(window.gamePlayer.getMaxMana() * 0.2);
+                                window.gamePlayer.heal(cura);
+                                window.gamePlayer.restoreMana(manaRestaurada);
+                                Engine.emit('playerUpdated', window.gamePlayer);
+                                Engine.emit('systemLog', `Você encontrou suprimentos! Restaurou ${cura} HP e ${manaRestaurada} Mana.`);
+                            }
                         }
                     };
                 }
@@ -184,7 +203,7 @@ class UIManager {
         // Add class selection logic on level 5
         this.elCharClass.addEventListener('click', () => {
             if (window.gamePlayer.playerClass === 'Nenhuma' && window.gamePlayer.level >= 5) {
-                const cls = prompt('Escolha sua classe: Caçador, Exorcista, Alquimista ou Bruxo');
+                const cls = prompt('Escolha sua classe: Caçador, Exorcista, Alquimista, Bruxo ou Mago');
                 if (cls) {
                     window.gamePlayer.setClass(cls);
                 }
