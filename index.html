@@ -42,11 +42,11 @@
                         <p>Pontos de Atributo: <span id="char-points">0</span></p>
                         
                         <div class="attribute-list">
-                            <div class="attr-row"><span>Força: <span id="attr-str">10</span></span> <button class="btn-add-attr" data-attr="str">+</button></div>
-                            <div class="attr-row"><span>Agilidade: <span id="attr-agi">10</span></span> <button class="btn-add-attr" data-attr="agi">+</button></div>
-                            <div class="attr-row"><span>Inteligência: <span id="attr-int">10</span></span> <button class="btn-add-attr" data-attr="int">+</button></div>
-                            <div class="attr-row"><span>Defesa: <span id="attr-def">10</span></span> <button class="btn-add-attr" data-attr="def">+</button></div>
-                            <div class="attr-row"><span>Sorte: <span id="attr-luk">10</span></span> <button class="btn-add-attr" data-attr="luk">+</button></div>
+                            <div class="attr-row" title="Aumenta HP máximo e dano de ataques físicos"><span>Força: <span id="attr-str">10</span></span> <button class="btn-add-attr" data-attr="str">+</button></div>
+                            <div class="attr-row" title="Aumenta chance de fuga e dano crítico"><span>Agilidade: <span id="attr-agi">10</span></span> <button class="btn-add-attr" data-attr="agi">+</button></div>
+                            <div class="attr-row" title="Aumenta Mana máxima e dano mágico"><span>Inteligência: <span id="attr-int">10</span></span> <button class="btn-add-attr" data-attr="int">+</button></div>
+                            <div class="attr-row" title="Aumenta HP máximo e redução de dano físico"><span>Defesa: <span id="attr-def">10</span></span> <button class="btn-add-attr" data-attr="def">+</button></div>
+                            <div class="attr-row" title="Aumenta chance de dano crítico"><span>Sorte: <span id="attr-luk">10</span></span> <button class="btn-add-attr" data-attr="luk">+</button></div>
                         </div>
                     </div>
                     <div class="equipment-panel">
@@ -135,9 +135,17 @@
                 </div>
                 <div class="combat-actions">
                     <button id="btn-attack">Atacar</button>
-                    <button id="btn-skill">Habilidade</button>
-                    <button id="btn-potion">Poção</button>
+                    <button id="btn-skill">Habilidades</button>
+                    <button id="btn-potion">Itens</button>
                     <button id="btn-flee">Fugir</button>
+                </div>
+                <div id="combat-skills-menu" class="hidden" style="margin-bottom: 1rem; text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
+                    <h4>Habilidades</h4>
+                    <div id="combat-skills-list" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;"></div>
+                </div>
+                <div id="combat-items-menu" class="hidden" style="margin-bottom: 1rem; text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
+                    <h4>Itens</h4>
+                    <div id="combat-items-list" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;"></div>
                 </div>
                 <div class="combat-log" id="combat-log">
                     <!-- Logs go here -->

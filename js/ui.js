@@ -13,7 +13,8 @@ class UIManager {
         // Subscribe to engine events
         Engine.on('playerUpdated', p => this.renderPlayer(p));
         Engine.on('inventoryUpdated', inv => {
-            this.renderInventory(inv);
+            const currentFilter = this.elInvFilter ? this.elInvFilter.value : 'all';
+            this.renderInventory(inv, currentFilter);
             if (this.elShopList && !this.elShopList.parentElement.parentElement.classList.contains('hidden')) {
                 this.renderShop();
             }
@@ -86,6 +87,11 @@ class UIManager {
         this.btnPotion = document.getElementById('btn-potion');
         this.btnFlee = document.getElementById('btn-flee');
         this.elCombatLog = document.getElementById('combat-log');
+
+        this.elCombatSkillsMenu = document.getElementById('combat-skills-menu');
+        this.elCombatSkillsList = document.getElementById('combat-skills-list');
+        this.elCombatItemsMenu = document.getElementById('combat-items-menu');
+        this.elCombatItemsList = document.getElementById('combat-items-list');
 
         // Quests
         this.elActiveQuests = document.getElementById('active-quests-list');
@@ -173,19 +179,26 @@ class UIManager {
             });
         });
 
-        this.btnAttack.addEventListener('click', () => window.gameCombat.playerAttack());
+        this.btnAttack.addEventListener('click', () => {
+            this.hideCombatMenus();
+            window.gameCombat.playerAttack();
+        });
+
         if (this.btnSkill) {
-            this.btnSkill.addEventListener('click', () => window.gameCombat.playerSkill());
+            this.btnSkill.addEventListener('click', () => {
+                this.hideCombatMenus();
+                this.showCombatSkillsMenu();
+            });
         }
-        this.btnFlee.addEventListener('click', () => window.gameCombat.flee());
+
+        this.btnFlee.addEventListener('click', () => {
+            this.hideCombatMenus();
+            window.gameCombat.flee();
+        });
+
         this.btnPotion.addEventListener('click', () => {
-            // Find first potion
-            const pot = window.gameInventory.items.find(i => i.type === 'potion');
-            if (pot) {
-                window.gameCombat.usePotion(pot.instanceId);
-            } else {
-                this.showToast('Nenhuma poção no inventário.');
-            }
+            this.hideCombatMenus();
+            this.showCombatItemsMenu();
         });
 
         this.btnSave.addEventListener('click', () => window.game.save());
@@ -266,11 +279,20 @@ class UIManager {
         
         this.elCharPoints.innerText = p.statPoints;
 
-        this.elAttrStr.innerText = p.attributes.str;
-        this.elAttrAgi.innerText = p.attributes.agi;
-        this.elAttrInt.innerText = p.attributes.int;
-        this.elAttrDef.innerText = p.attributes.def;
-        this.elAttrLuk.innerText = p.attributes.luk;
+        const attrStr = p.getTotalAttr('str');
+        this.elAttrStr.innerText = attrStr !== p.attributes.str ? `${p.attributes.str} (${attrStr})` : p.attributes.str;
+
+        const attrAgi = p.getTotalAttr('agi');
+        this.elAttrAgi.innerText = attrAgi !== p.attributes.agi ? `${p.attributes.agi} (${attrAgi})` : p.attributes.agi;
+
+        const attrInt = p.getTotalAttr('int');
+        this.elAttrInt.innerText = attrInt !== p.attributes.int ? `${p.attributes.int} (${attrInt})` : p.attributes.int;
+
+        const attrDef = p.getTotalAttr('def');
+        this.elAttrDef.innerText = attrDef !== p.attributes.def ? `${p.attributes.def} (${attrDef})` : p.attributes.def;
+
+        const attrLuk = p.getTotalAttr('luk');
+        this.elAttrLuk.innerText = attrLuk !== p.attributes.luk ? `${p.attributes.luk} (${attrLuk})` : p.attributes.luk;
 
         this.btnAttrs.forEach(btn => {
             btn.style.display = p.statPoints > 0 ? 'inline-block' : 'none';
@@ -359,8 +381,81 @@ class UIManager {
         this.tooltip.classList.add('hidden');
     }
 
+    hideCombatMenus() {
+        if (this.elCombatSkillsMenu) this.elCombatSkillsMenu.classList.add('hidden');
+        if (this.elCombatItemsMenu) this.elCombatItemsMenu.classList.add('hidden');
+    }
+
+    showCombatSkillsMenu() {
+        if (!this.elCombatSkillsMenu) return;
+        this.elCombatSkillsList.innerHTML = '';
+
+        const skills = window.gamePlayer.getSkills();
+        if (skills.length === 0) {
+            this.elCombatSkillsList.innerText = 'Nenhuma habilidade disponível.';
+        } else {
+            skills.forEach(skill => {
+                const btn = document.createElement('button');
+                btn.innerText = `${skill.name} (${skill.manaCost} MP)`;
+                if (window.gamePlayer.mana < skill.manaCost) {
+                    btn.disabled = true;
+                }
+                btn.onclick = () => {
+                    this.hideCombatMenus();
+                    window.gameCombat.playerSkill(skill);
+                };
+                this.elCombatSkillsList.appendChild(btn);
+            });
+        }
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.className = 'danger';
+        cancelBtn.onclick = () => this.hideCombatMenus();
+        this.elCombatSkillsList.appendChild(cancelBtn);
+
+        this.elCombatSkillsMenu.classList.remove('hidden');
+    }
+
+    showCombatItemsMenu() {
+        if (!this.elCombatItemsMenu) return;
+        this.elCombatItemsList.innerHTML = '';
+
+        const potions = window.gameInventory.items.filter(i => i.type === 'potion');
+
+        // Group by ID
+        const grouped = {};
+        potions.forEach(p => {
+            if (!grouped[p.id]) grouped[p.id] = { count: 0, instanceId: p.instanceId, name: p.name };
+            grouped[p.id].count++;
+        });
+
+        if (Object.keys(grouped).length === 0) {
+            this.elCombatItemsList.innerText = 'Nenhum item disponível.';
+        } else {
+            Object.values(grouped).forEach(g => {
+                const btn = document.createElement('button');
+                btn.innerText = `${g.name} (${g.count})`;
+                btn.onclick = () => {
+                    this.hideCombatMenus();
+                    window.gameCombat.usePotion(g.instanceId);
+                };
+                this.elCombatItemsList.appendChild(btn);
+            });
+        }
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.className = 'danger';
+        cancelBtn.onclick = () => this.hideCombatMenus();
+        this.elCombatItemsList.appendChild(cancelBtn);
+
+        this.elCombatItemsMenu.classList.remove('hidden');
+    }
+
     showCombatScreen(monster) {
         document.querySelector('[data-target="screen-combat"]').click();
+        this.hideCombatMenus();
         this.elCombatLog.innerHTML = '';
         this.elCombatMonsterName.innerText = `Lvl ${monster.level} ${monster.name}`;
         
@@ -381,6 +476,7 @@ class UIManager {
         if (this.btnSkill) this.btnSkill.disabled = true;
         this.btnFlee.disabled = true;
         this.btnPotion.disabled = true;
+        this.hideCombatMenus();
         if (victory) {
             this.showToast('Vitória! Retornando ao mapa...');
         } else {
