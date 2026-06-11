@@ -26,6 +26,8 @@ class Player {
         
         this.hp = this.getMaxHp();
         this.mana = this.getMaxMana();
+
+        this.bestiary = [];
     }
 
     load(data) {
@@ -38,6 +40,7 @@ class Player {
         this.playerClass = data.playerClass || 'Nenhuma';
         this.hp = data.hp || this.getMaxHp();
         this.mana = data.mana || this.getMaxMana();
+        this.bestiary = data.bestiary || [];
     }
 
     save() {
@@ -49,7 +52,8 @@ class Player {
             statPoints: this.statPoints,
             playerClass: this.playerClass,
             hp: this.hp,
-            mana: this.mana
+            mana: this.mana,
+            bestiary: this.bestiary
         };
     }
 
@@ -133,6 +137,21 @@ class Player {
             this.playerClass = newClass;
             Engine.emit('playerUpdated', this);
             Engine.emit('systemLog', `Você se tornou um ${newClass}!`);
+        }
+    }
+
+    getSkill() {
+        switch (this.playerClass) {
+            case 'Caçador':
+                return { name: "Tiro Preciso", manaCost: 15, type: 'attack', multiplier: 1.5 };
+            case 'Exorcista':
+                return { name: "Cura Sagrada", manaCost: 20, type: 'heal', healAmount: 50 + this.attributes.int };
+            case 'Alquimista':
+                return { name: "Bomba Ácida", manaCost: 10, type: 'attack', multiplier: 1.2 };
+            case 'Bruxo':
+                return { name: "Dreno de Vida", manaCost: 25, type: 'drain', multiplier: 1.5 };
+            default:
+                return null;
         }
     }
 }

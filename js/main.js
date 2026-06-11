@@ -31,6 +31,13 @@ class Game {
         Engine.emit('equipmentUpdated', this.inventory.equipment);
         Engine.emit('questsUpdated', this.quests);
 
+        // Listen to combat events
+        Engine.on('questUpdate', (data) => {
+            if (data.type === 'kill') {
+                this.quests.processKillEvent(data.monsterId);
+            }
+        });
+
         // Auto-save loop
         setInterval(() => this.loop(), 1000);
         
