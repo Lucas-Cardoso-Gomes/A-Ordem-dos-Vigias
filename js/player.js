@@ -162,10 +162,12 @@ class Player {
 
     setClass(newClass) {
         const validClasses = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago'];
-        if (validClasses.includes(newClass)) {
-            this.playerClass = newClass;
+        const inputClass = newClass ? newClass.trim().toLowerCase() : '';
+        const match = validClasses.find(c => c.toLowerCase() === inputClass);
+        if (match) {
+            this.playerClass = match;
             Engine.emit('playerUpdated', this);
-            Engine.emit('systemLog', `Você se tornou um ${newClass}!`);
+            Engine.emit('systemLog', `Você se tornou um ${match}!`);
         }
     }
 
