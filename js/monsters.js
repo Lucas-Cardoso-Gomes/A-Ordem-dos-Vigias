@@ -72,7 +72,9 @@ const MonsterDatabase = {
             else if (monster.type.includes('Fera')) matId = 'm2'; // Couro
             else if (monster.id === 'mob7') matId = 'm6'; // Chifre Minotauro
             else if (monster.id === 'mob6' || monster.isBoss) matId = 'm5'; // Sangue Vamp
-            else if (monster.tier === 3) matId = 'm7'; // Essencia
+            else if (monster.tier === 3) {
+                matId = Engine.randomChance(50) ? 'm7' : (Engine.randomChance(50) ? 'm8' : 'm9'); // Essencia, Fragmento, ou Pó
+            }
             else if (monster.id === 'boss2') matId = 'm4'; // Escamas
 
             loot.items.push(ItemDatabase.getMaterial(matId));
@@ -94,7 +96,11 @@ const MonsterDatabase = {
 
         // Potion drop
         if (Engine.randomChance(20)) {
-            loot.items.push(ItemDatabase.getPotion('p1'));
+            if (monster.level >= 40) {
+                loot.items.push(ItemDatabase.getPotion(Engine.randomChance(50) ? 'p4' : 'p5'));
+            } else {
+                loot.items.push(ItemDatabase.getPotion(Engine.randomChance(50) ? 'p1' : 'p2'));
+            }
         }
 
         return loot;
