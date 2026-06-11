@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Ordem dos Vigias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <h1>A Ordem dos Vigias</h1>
+            <div class="player-summary">
+                <span id="header-level">Nível: 1</span> | 
+                <span id="header-hp">HP: 100/100</span> | 
+                <span id="header-mana">Mana: 50/50</span> | 
+                <span id="header-gold">Ouro: 0</span>
+            </div>
+            <nav id="main-nav">
+                <button data-target="screen-character" class="nav-btn active">Personagem</button>
+                <button data-target="screen-inventory" class="nav-btn">Inventário</button>
+                <button data-target="screen-map" class="nav-btn">Mapa</button>
+                <button data-target="screen-combat" class="nav-btn">Combate</button>
+                <button data-target="screen-contracts" class="nav-btn">Contratos</button>
+                <button data-target="screen-shop" class="nav-btn">Loja</button>
+                <button data-target="screen-bestiary" class="nav-btn">Bestiário</button>
+                <button data-target="screen-achievements" class="nav-btn">Conquistas</button>
+                <button data-target="screen-settings" class="nav-btn">Config.</button>
+            </nav>
+        </header>
+
+        <main id="screens">
+            <!-- Screen: Character -->
+            <section id="screen-character" class="screen active">
+                <h2>Personagem</h2>
+                <div class="character-info">
+                    <div class="stats-panel">
+                        <h3>Atributos</h3>
+                        <p>Nível: <span id="char-level">1</span></p>
+                        <p>XP: <span id="char-xp">0</span> / <span id="char-xp-needed">100</span></p>
+                        <p>Classe: <span id="char-class">Nenhuma</span></p>
+                        <p>Pontos de Atributo: <span id="char-points">0</span></p>
+                        
+                        <div class="attribute-list">
+                            <div class="attr-row"><span>Força: <span id="attr-str">10</span></span> <button class="btn-add-attr" data-attr="str">+</button></div>
+                            <div class="attr-row"><span>Agilidade: <span id="attr-agi">10</span></span> <button class="btn-add-attr" data-attr="agi">+</button></div>
+                            <div class="attr-row"><span>Inteligência: <span id="attr-int">10</span></span> <button class="btn-add-attr" data-attr="int">+</button></div>
+                            <div class="attr-row"><span>Defesa: <span id="attr-def">10</span></span> <button class="btn-add-attr" data-attr="def">+</button></div>
+                            <div class="attr-row"><span>Sorte: <span id="attr-luk">10</span></span> <button class="btn-add-attr" data-attr="luk">+</button></div>
+                        </div>
+                    </div>
+                    <div class="equipment-panel">
+                        <h3>Equipamento</h3>
+                        <div class="eq-slots">
+                            <div class="eq-slot" id="eq-head" data-slot="head">Cabeça</div>
+                            <div class="eq-slot" id="eq-chest" data-slot="chest">Peitoral</div>
+                            <div class="eq-slot" id="eq-hands" data-slot="hands">Luvas</div>
+                            <div class="eq-slot" id="eq-legs" data-slot="legs">Calças</div>
+                            <div class="eq-slot" id="eq-boots" data-slot="boots">Botas</div>
+                            <div class="eq-slot" id="eq-weaponMain" data-slot="weaponMain">Arma Principal</div>
+                            <div class="eq-slot" id="eq-weaponOff" data-slot="weaponOff">Secundária</div>
+                            <div class="eq-slot" id="eq-amulet" data-slot="amulet">Amuleto</div>
+                            <div class="eq-slot" id="eq-ring1" data-slot="ring1">Anel 1</div>
+                            <div class="eq-slot" id="eq-ring2" data-slot="ring2">Anel 2</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen: Inventory -->
+            <section id="screen-inventory" class="screen hidden">
+                <h2>Inventário (<span id="inv-count">0</span>/50)</h2>
+                <div class="inventory-controls">
+                    <select id="inv-filter">
+                        <option value="all">Todos</option>
+                        <option value="weapon">Armas</option>
+                        <option value="armor">Armaduras</option>
+                        <option value="potion">Poções</option>
+                        <option value="material">Materiais</option>
+                    </select>
+                </div>
+                <div class="inventory-grid" id="inventory-list">
+                    <!-- Items populated dynamically -->
+                </div>
+                
+                <div id="crafting-section" style="margin-top: 2rem;">
+                    <h3>Crafting</h3>
+                    <div id="crafting-recipes" class="recipe-list">
+                        <!-- Recipes dynamically populated -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen: Map -->
+            <section id="screen-map" class="screen hidden">
+                <h2>Mapa do Mundo</h2>
+                <div class="map-grid">
+                    <button class="map-location" data-loc="floresta">Floresta Sombria (Nível 1-10)</button>
+                    <button class="map-location" data-loc="cripta">Cripta Maldita (Nível 10-25)</button>
+                    <button class="map-location" data-loc="montanhas">Montanhas de Ferro (Nível 25-40)</button>
+                    <button class="map-location" data-loc="pantano">Pântano das Almas (Nível 40-60)</button>
+                    <button class="map-location" data-loc="fortaleza">Fortaleza Infernal (Nível 60-80)</button>
+                    <button class="map-location" data-loc="vale">Vale dos Dragões (Nível 80-100)</button>
+                </div>
+                <div class="location-details" id="location-details">
+                    <h3 id="loc-name">Selecione um local</h3>
+                    <button id="btn-explore" class="hidden">Explorar</button>
+                </div>
+            </section>
+
+            <!-- Screen: Combat -->
+            <section id="screen-combat" class="screen hidden">
+                <h2>Combate</h2>
+                <div class="combat-arena">
+                    <div class="combat-entity player-side">
+                        <h3>Você</h3>
+                        <div class="health-bar-container"><div class="health-bar" id="combat-player-hp-bar"></div></div>
+                        <p>HP: <span id="combat-player-hp">100</span> / <span id="combat-player-hp-max">100</span></p>
+                        <div class="status-effects" id="combat-player-status"></div>
+                    </div>
+                    <div class="combat-entity monster-side">
+                        <h3 id="combat-monster-name">Monstro</h3>
+                        <div class="health-bar-container"><div class="health-bar" id="combat-monster-hp-bar"></div></div>
+                        <p>HP: <span id="combat-monster-hp">50</span> / <span id="combat-monster-hp-max">50</span></p>
+                        <div class="status-effects" id="combat-monster-status"></div>
+                        <div class="monster-weaknesses" id="combat-monster-weaknesses"></div>
+                    </div>
+                </div>
+                <div class="combat-actions">
+                    <button id="btn-attack">Atacar</button>
+                    <button id="btn-skill">Habilidade</button>
+                    <button id="btn-potion">Poção</button>
+                    <button id="btn-flee">Fugir</button>
+                </div>
+                <div class="combat-log" id="combat-log">
+                    <!-- Logs go here -->
+                </div>
+            </section>
+
+            <!-- Screen: Contracts / Quests -->
+            <section id="screen-contracts" class="screen hidden">
+                <h2>Quadro de Contratos e Missões</h2>
+                <div class="quests-container">
+                    <h3>Missões Ativas</h3>
+                    <ul id="active-quests-list"></ul>
+                    
+                    <h3>Contratos Disponíveis</h3>
+                    <ul id="available-contracts-list"></ul>
+                </div>
+            </section>
+
+            <!-- Screen: Shop -->
+            <section id="screen-shop" class="screen hidden">
+                <h2>Mercador</h2>
+                <div class="shop-container">
+                    <div class="shop-items" id="shop-list">
+                        <!-- Shop items -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen: Bestiary -->
+            <section id="screen-bestiary" class="screen hidden">
+                <h2>Bestiário</h2>
+                <div class="bestiary-grid" id="bestiary-list">
+                    <!-- Known monsters -->
+                </div>
+                <div id="bestiary-details" class="hidden">
+                    <h3 id="best-name"></h3>
+                    <p>Habitat: <span id="best-habitat"></span></p>
+                    <p>Descrição: <span id="best-desc"></span></p>
+                    <p>Fraquezas: <span id="best-weak"></span></p>
+                    <p>Loot: <span id="best-loot"></span></p>
+                    <button id="btn-close-bestiary">Fechar</button>
+                </div>
+            </section>
+
+            <!-- Screen: Achievements -->
+            <section id="screen-achievements" class="screen hidden">
+                <h2>Conquistas</h2>
+                <ul id="achievements-list" class="achievements-list">
+                    <!-- Achievements -->
+                </ul>
+            </section>
+
+            <!-- Screen: Settings -->
+            <section id="screen-settings" class="screen hidden">
+                <h2>Configurações</h2>
+                <button id="btn-save">Salvar Jogo</button>
+                <button id="btn-load">Carregar Jogo</button>
+                <button id="btn-reset" class="danger">Resetar Progresso</button>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals / Tooltips -->
+    <div id="item-tooltip" class="tooltip hidden"></div>
+
+    <!-- Scripts -->
+    <script src="js/engine.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/monsters.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/crafting.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/quests.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

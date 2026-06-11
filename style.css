@@ -1,0 +1,312 @@
+:root {
+    --bg-dark: #121212;
+    --bg-panel: #1e1e1e;
+    --text-main: #e0e0e0;
+    --accent-gold: #d4af37;
+    --accent-red: #8b0000;
+    --border-color: #333;
+    
+    /* Rarities */
+    --rarity-common: #a0a0a0;
+    --rarity-uncommon: #2ecc71;
+    --rarity-rare: #3498db;
+    --rarity-epic: #9b59b6;
+    --rarity-legendary: #f1c40f;
+    --rarity-mythic: #e74c3c;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+#game-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    text-align: center;
+    border-bottom: 2px solid var(--accent-gold);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+h1 {
+    color: var(--accent-red);
+    font-family: 'Georgia', serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.player-summary {
+    font-weight: bold;
+    color: var(--accent-gold);
+    margin: 0.5rem 0;
+}
+
+#main-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+button {
+    background-color: var(--bg-panel);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.nav-btn.active {
+    background-color: var(--accent-red);
+    color: white;
+    border-color: var(--accent-gold);
+}
+
+button.danger {
+    background-color: #550000;
+}
+button.danger:hover {
+    background-color: #880000;
+}
+
+.screen {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.screen.active {
+    display: block;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Character Screen */
+.character-info {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.stats-panel, .equipment-panel {
+    flex: 1;
+    min-width: 300px;
+    background-color: var(--bg-panel);
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.attr-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.btn-add-attr {
+    padding: 0.2rem 0.5rem;
+}
+
+.eq-slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.eq-slot {
+    border: 1px dashed var(--border-color);
+    padding: 0.5rem;
+    text-align: center;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.eq-slot:hover {
+    border-color: var(--accent-gold);
+}
+
+/* Inventory */
+.inventory-controls {
+    margin-bottom: 1rem;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.5rem;
+}
+
+.inv-item {
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-panel);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    text-align: center;
+    position: relative;
+}
+
+.inv-item:hover {
+    border-color: var(--accent-gold);
+}
+
+.item-count {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 0.7rem;
+    background: rgba(0,0,0,0.7);
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+/* Item Rarities */
+.rarity-comum { border-bottom: 3px solid var(--rarity-common); }
+.rarity-incomum { border-bottom: 3px solid var(--rarity-uncommon); }
+.rarity-raro { border-bottom: 3px solid var(--rarity-rare); }
+.rarity-epico { border-bottom: 3px solid var(--rarity-epic); }
+.rarity-lendario { 
+    border-bottom: 3px solid var(--rarity-legendary); 
+    box-shadow: 0 0 5px var(--rarity-legendary);
+}
+.rarity-mitico { 
+    border-bottom: 3px solid var(--rarity-mythic);
+    box-shadow: 0 0 8px var(--rarity-mythic);
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    background-color: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--accent-gold);
+    padding: 1rem;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 250px;
+}
+
+/* Map */
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+.map-location {
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+/* Combat */
+.combat-arena {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    background: #0a0a0a;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+.combat-entity {
+    width: 45%;
+    text-align: center;
+}
+.health-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: #333;
+    border: 1px solid #111;
+    margin: 0.5rem 0;
+}
+.health-bar {
+    height: 100%;
+    background-color: var(--accent-red);
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+.combat-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.combat-log {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+}
+.log-player { color: var(--rarity-uncommon); }
+.log-monster { color: var(--rarity-mythic); }
+.log-system { color: var(--accent-gold); }
+
+/* Bestiary & Shop & Quests */
+.bestiary-grid, .shop-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.bestiary-card, .shop-card, .quest-card {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    cursor: pointer;
+}
+.bestiary-card:hover, .shop-card:hover {
+    border-color: var(--accent-gold);
+}
+
+.quest-card { margin-bottom: 1rem; }
+
+/* Responsive */
+@media (max-width: 600px) {
+    .character-info {
+        flex-direction: column;
+    }
+    .combat-arena {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    .combat-entity {
+        width: 100%;
+    }
+}
