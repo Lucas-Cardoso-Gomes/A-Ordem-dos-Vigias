@@ -40,6 +40,7 @@ class UIManager {
         Engine.on('questsUpdated', qs => this.renderQuests(qs));
         Engine.on('bestiaryUpdate', m => this.updateBestiary(m));
         Engine.on('combatAnimation', a => this.playCombatAnimation(a));
+        Engine.on('regionProgressUpdated', () => this.renderMap());
     }
 
     cacheDOM() {
@@ -139,6 +140,9 @@ class UIManager {
         this.btnSave = document.getElementById('btn-save');
         this.btnLoad = document.getElementById('btn-load');
         this.btnReset = document.getElementById('btn-reset');
+        
+        // Initial map render after cacheDOM
+        this.renderMap();
     }
 
     bindEvents() {
@@ -200,7 +204,11 @@ class UIManager {
 
         this.mapLocations.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const locId = e.target.getAttribute('data-loc');
+                if (e.currentTarget.classList.contains('disabled-region')) {
+                    Engine.emit('systemLog', 'Esta região ainda está bloqueada.');
+                    return;
+                }
+                const locId = e.currentTarget.getAttribute('data-loc');
                 const loc = MapSystem.getRegionDetails(locId);
                 if (loc) {
                     this.elLocName.innerHTML = `${loc.name} (Nível ${loc.minLvl}-${loc.maxLvl})<br><small>${loc.desc}</small>`;
@@ -208,7 +216,9 @@ class UIManager {
                     this.btnExplore.onclick = () => {
                         const event = MapSystem.explore(locId);
                         if (event) {
-                            if (event.type === 'combat') {
+                            if (event.type === 'concluido') {
+                                Engine.emit('systemLog', 'Área concluída!');
+                            } else if (event.type === 'combat') {
                                 window.gameCombat.startCombat(event.data);
                             } else if (event.type === 'armadilha') {
                                 const dano = Math.floor(window.gamePlayer.getMaxHp() * 0.1);
@@ -649,6 +659,40 @@ class UIManager {
         });
     }
 
+    renderMap() {
+        if (!this.mapLocations) return;
+        this.mapLocations.forEach(btn => {
+            const locId = btn.getAttribute('data-loc');
+            const loc = window.MapSystem.getRegionDetails(locId);
+            if (loc) {
+                const isUnlocked = window.MapSystem.unlockedRegions.includes(locId);
+                const progress = window.MapSystem.progress[locId] || 0;
+                
+                if (!isUnlocked) {
+                    btn.classList.add('disabled-region');
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                    btn.innerHTML = `???<br><small>Bloqueado</small>`;
+                } else {
+                    btn.classList.remove('disabled-region');
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    
+                    const maxBattles = loc.encounters ? loc.encounters.length : 0;
+                    let text = `${loc.name} (Nível ${loc.minLvl}-${loc.maxLvl})`;
+                    if (maxBattles > 0) {
+                        if (progress >= maxBattles) {
+                            text += ` [Concluído]`;
+                        } else {
+                            text += ` [${progress}/${maxBattles} Batalhas]`;
+                        }
+                    }
+                    btn.innerHTML = `${text}<br><small>${loc.desc}</small>`;
+                }
+            }
+        });
+    }
+
     renderCrafting(inventory, player) {
         this.elCraftingRecipes.innerHTML = '';
         CraftingSystem.recipes.forEach(r => {
@@ -724,7 +768,7 @@ class UIManager {
         this.elShopList.innerHTML = '';
         
         const playerLvl = window.gamePlayer ? window.gamePlayer.level : 1;
-
+        
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
             this.shopItems = [
@@ -736,7 +780,7 @@ class UIManager {
                 ItemDatabase.getMaterial('m1'),
                 ItemDatabase.getMaterial('m2'),
                 ItemDatabase.getMaterial('m8'),
-                ItemDatabase.generateItem(playerLvl, 'comum'),
+                ItemDatabase.generateItem(playerLvl, 'comum'), 
                 ItemDatabase.generateItem(playerLvl, 'incomum'),
                 ItemDatabase.generateItem(Math.min(playerLvl + 2, 60), 'incomum')
             ];

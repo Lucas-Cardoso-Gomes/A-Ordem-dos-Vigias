@@ -57,7 +57,9 @@ class Game {
         const state = {
             player: this.player.save(),
             inventory: this.inventory.save(),
-            quests: this.quests.save()
+            quests: this.quests.save(),
+            mapProgress: MapSystem.progress,
+            unlockedRegions: MapSystem.unlockedRegions
             // In a larger scale, we'd save bestiary, achievements, map unlocks, etc.
         };
         Engine.saveGame(state);
@@ -69,11 +71,20 @@ class Game {
             this.player.load(state.player);
             this.inventory.load(state.inventory);
             this.quests.load(state.quests);
+            if (state.mapProgress) {
+                MapSystem.progress = state.mapProgress;
+            } else {
+                MapSystem.progress = {};
+            }
+            if (state.unlockedRegions) {
+                MapSystem.unlockedRegions = state.unlockedRegions;
+            }
         } else {
             // New game initial items
             this.inventory.addItem(ItemDatabase.generateItem(1, 'comum')); // Give a starting item
             this.inventory.addItem(ItemDatabase.getPotion('p1'));
             this.quests.load(null); // Generates starting contracts
+            MapSystem.unlockedRegions = ['floresta', 'helgen']; // Default initial regions
         }
     }
 }

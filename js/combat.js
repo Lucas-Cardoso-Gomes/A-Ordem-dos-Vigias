@@ -269,6 +269,25 @@ class CombatSystem {
         Engine.emit('bestiaryUpdate', this.monster);
         Engine.emit('questUpdate', { type: 'kill', monsterId: this.monster.id, monsterType: this.monster.type });
 
+        if (this.monster.isCampaign && this.monster.regionId) {
+            const regionId = this.monster.regionId;
+            window.MapSystem.progress[regionId]++;
+            
+            const regionData = window.MapSystem.getRegionDetails(regionId);
+            if (regionData && window.MapSystem.progress[regionId] >= regionData.encounters.length) {
+                this.logSystem(`Você completou a região: ${regionData.name}!`);
+                if (regionData.next && !window.MapSystem.unlockedRegions.includes(regionData.next)) {
+                    window.MapSystem.unlockedRegions.push(regionData.next);
+                    const nextRegionData = window.MapSystem.getRegionDetails(regionData.next);
+                    if (nextRegionData) {
+                        this.logSystem(`Nova região desbloqueada: ${nextRegionData.name}!`);
+                    }
+                }
+            }
+            
+            Engine.emit('regionProgressUpdated', regionId);
+        }
+
         setTimeout(() => this.endCombat(true), 2000);
     }
 
