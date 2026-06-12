@@ -43,7 +43,7 @@ const MonsterDatabase = {
         const level = Math.max(regionLevelMin, Math.min(regionLevelMax, Engine.randomInt(base.minLvl, base.maxLvl)));
         
         // Scale stats by level diff
-        const scale = 1 + (level - base.minLvl) * 0.1;
+        const scale = Math.max(0.2, 1 + (level - base.minLvl) * 0.1);
 
         return {
             ...base,

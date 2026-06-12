@@ -451,7 +451,7 @@ class Player {
                         name: "Lança de Gelo",
                         manaCost: 30,
                         type: 'attack',
-                        multiplier: 2.2,
+                        multiplier: 2.5,
                         element: 'gelo',
                         reqLvl: 10
                     });

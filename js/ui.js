@@ -9,7 +9,7 @@ class UIManager {
         this.bindEvents();
         this.setupNavigation();
         this.renderShop();
-        
+
         // Subscribe to engine events
         Engine.on('playerUpdated', p => this.renderPlayer(p));
         Engine.on('inventoryUpdated', inv => {
@@ -40,7 +40,16 @@ class UIManager {
         Engine.on('questsUpdated', qs => this.renderQuests(qs));
         Engine.on('bestiaryUpdate', m => this.updateBestiary(m));
         Engine.on('combatAnimation', a => this.playCombatAnimation(a));
-        Engine.on('regionProgressUpdated', () => this.renderMap());
+        // Altere esta linha no seu constructor:
+        // Engine.on('regionProgressUpdated', () => this.renderMap());
+
+        // Para isto:
+        Engine.on('regionProgressUpdated', () => {
+            this.renderMap();
+            if (this.selectedLocId) {
+                this.renderRegionDetails(this.selectedLocId);
+            }
+        });
     }
 
     cacheDOM() {
@@ -101,7 +110,7 @@ class UIManager {
         this.elCombatMonsterHp = document.getElementById('combat-monster-hp');
         this.elCombatMonsterHpMax = document.getElementById('combat-monster-hp-max');
         this.elCombatMonsterWeaknesses = document.getElementById('combat-monster-weaknesses');
-        
+
         this.btnAttack = document.getElementById('btn-attack');
         this.btnSkill = document.getElementById('btn-skill');
         this.btnPotion = document.getElementById('btn-potion');
@@ -140,7 +149,7 @@ class UIManager {
         this.btnSave = document.getElementById('btn-save');
         this.btnLoad = document.getElementById('btn-load');
         this.btnReset = document.getElementById('btn-reset');
-        
+
         // Initial map render after cacheDOM
         this.renderMap();
     }
@@ -209,38 +218,10 @@ class UIManager {
                     return;
                 }
                 const locId = e.currentTarget.getAttribute('data-loc');
-                const loc = MapSystem.getRegionDetails(locId);
-                if (loc) {
-                    this.elLocName.innerHTML = `${loc.name} (Nível ${loc.minLvl}-${loc.maxLvl})<br><small>${loc.desc}</small>`;
-                    this.btnExplore.classList.remove('hidden');
-                    this.btnExplore.onclick = () => {
-                        const event = MapSystem.explore(locId);
-                        if (event) {
-                            if (event.type === 'concluido') {
-                                Engine.emit('systemLog', 'Área concluída!');
-                            } else if (event.type === 'combat') {
-                                window.gameCombat.startCombat(event.data);
-                            } else if (event.type === 'armadilha') {
-                                const dano = Math.floor(window.gamePlayer.getMaxHp() * 0.1);
-                                window.gamePlayer.hp -= dano;
-                                let msg = `Você caiu em uma armadilha e perdeu ${dano} HP!`;
-                                if (window.gamePlayer.hp <= 0) {
-                                    window.gamePlayer.hp = 1;
-                                    msg += ` Você quase morreu na armadilha! Retornando...`;
-                                }
-                                Engine.emit('playerUpdated', window.gamePlayer);
-                                Engine.emit('systemLog', msg);
-                            } else if (event.type === 'suprimentos') {
-                                const cura = Math.floor(window.gamePlayer.getMaxHp() * 0.2);
-                                const manaRestaurada = Math.floor(window.gamePlayer.getMaxMana() * 0.2);
-                                window.gamePlayer.heal(cura);
-                                window.gamePlayer.restoreMana(manaRestaurada);
-                                Engine.emit('playerUpdated', window.gamePlayer);
-                                Engine.emit('systemLog', `Você encontrou suprimentos! Restaurou ${cura} HP e ${manaRestaurada} Mana.`);
-                            }
-                        }
-                    };
-                }
+
+                // Salva a região que está aberta para atualizar no pós-combate
+                this.selectedLocId = locId;
+                this.renderRegionDetails(locId);
             });
         });
 
@@ -272,19 +253,9 @@ class UIManager {
             this.showToast('Jogo Carregado.');
         });
         this.btnReset.addEventListener('click', () => {
-            if(confirm('Tem certeza? Isso apagará todo o seu progresso.')) {
+            if (confirm('Tem certeza? Isso apagará todo o seu progresso.')) {
                 Engine.clearSave();
                 location.reload();
-            }
-        });
-
-        // Add class selection logic on level 5
-        this.elCharClass.addEventListener('click', () => {
-            if (window.gamePlayer.playerClass === 'Nenhuma' && window.gamePlayer.level >= 5) {
-                const cls = prompt('Escolha sua classe: Caçador, Exorcista, Alquimista, Bruxo ou Mago');
-                if (cls) {
-                    window.gamePlayer.setClass(cls);
-                }
             }
         });
 
@@ -300,7 +271,7 @@ class UIManager {
         this.navButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const target = e.target.getAttribute('data-target');
-                
+
                 if (window.gameCombat.inCombat && target !== 'screen-combat') {
                     this.showToast('Você não pode sair enquanto estiver em combate!');
                     return;
@@ -335,18 +306,37 @@ class UIManager {
         this.elCharLevel.innerText = p.level;
         this.elCharXp.innerText = p.xp;
         this.elCharXpNeeded.innerText = p.getXpNeeded();
-        
-        let classTxt = p.playerClass;
+
+        // Nova lógica de exibição de classe com botões de escolha
         if (p.level >= 5 && p.playerClass === 'Nenhuma') {
-            classTxt = 'Clique para escolher!';
-            this.elCharClass.style.cursor = 'pointer';
-            this.elCharClass.style.color = 'var(--accent-gold)';
+            this.elCharClass.innerHTML = ''; // Limpa o texto "Nenhuma"
+            this.elCharClass.style.display = 'inline-flex';
+            this.elCharClass.style.gap = '0.3rem';
+            this.elCharClass.style.flexWrap = 'wrap';
+            this.elCharClass.style.marginTop = '0.5rem';
+
+            const classesDisponiveis = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago'];
+
+            classesDisponiveis.forEach(cls => {
+                const btnClasse = document.createElement('button');
+                btnClasse.innerText = cls;
+                btnClasse.style.padding = '0.2rem 0.6rem';
+                btnClasse.style.fontSize = '0.8rem';
+
+                btnClasse.onclick = () => {
+                    window.gamePlayer.setClass(cls);
+                };
+
+                this.elCharClass.appendChild(btnClasse);
+            });
         } else {
+            // Se não tiver nível ou já tiver escolhido uma classe, exibe apenas o texto normal
+            this.elCharClass.innerHTML = p.playerClass;
+            this.elCharClass.style.display = 'inline';
             this.elCharClass.style.cursor = 'default';
-            this.elCharClass.style.color = '';
+            this.elCharClass.style.color = p.playerClass !== 'Nenhuma' ? 'var(--accent-gold)' : '';
         }
-        this.elCharClass.innerText = classTxt;
-        
+
         this.elCharPoints.innerText = p.statPoints;
 
         const attrStr = p.getTotalAttr('str');
@@ -383,7 +373,7 @@ class UIManager {
             div.className = `inv-item rarity-${item.rarity}`;
             div.style.position = 'relative';
             div.innerText = item.name.substring(0, 3) + '.';
-            
+
             if ((item.type === 'material' || item.type === 'potion') && item.count > 1) {
                 div.innerHTML += `<span class="item-count">x${item.count}</span>`;
             }
@@ -433,7 +423,7 @@ class UIManager {
         Object.keys(eq).forEach(slot => {
             const el = document.getElementById(`eq-${slot}`);
             if (!el) return;
-            
+
             if (eq[slot]) {
                 el.innerText = eq[slot].name;
                 el.className = `eq-slot rarity-${eq[slot].rarity}`;
@@ -459,10 +449,10 @@ class UIManager {
         if (item.weakness) html += `Elemento/Especial: ${item.weakness}<br>`;
         if (item.effect) html += `Efeito: Cura/Mana ${item.value}<br>`;
         if (item.reqLvl) html += `Nível Requerido: ${item.reqLvl}<br>`;
-        
+
         this.tooltip.innerHTML = html;
         this.tooltip.classList.remove('hidden');
-        
+
         // Position
         this.tooltip.style.left = (e.pageX + 10) + 'px';
         this.tooltip.style.top = (e.pageY + 10) + 'px';
@@ -557,13 +547,13 @@ class UIManager {
         this.hideCombatMenus();
         this.elCombatLog.innerHTML = '';
         this.elCombatMonsterName.innerText = `Lvl ${monster.level} ${monster.name}`;
-        
+
         if (monster.weakness.length > 0) {
             this.elCombatMonsterWeaknesses.innerText = `Fraquezas: ${monster.weakness.join(', ')}`;
         } else {
             this.elCombatMonsterWeaknesses.innerText = '';
         }
-        
+
         this.btnAttack.disabled = false;
         if (this.btnSkill) this.btnSkill.disabled = false;
         this.btnFlee.disabled = false;
@@ -623,7 +613,7 @@ class UIManager {
         toast.style.zIndex = '9999';
         toast.style.transition = 'opacity 0.5s';
         toast.innerText = msg;
-        
+
         document.body.appendChild(toast);
         setTimeout(() => {
             toast.style.opacity = '0';
@@ -667,7 +657,7 @@ class UIManager {
             if (loc) {
                 const isUnlocked = window.MapSystem.unlockedRegions.includes(locId);
                 const progress = window.MapSystem.progress[locId] || 0;
-                
+
                 if (!isUnlocked) {
                     btn.classList.add('disabled-region');
                     btn.style.opacity = '0.5';
@@ -677,7 +667,7 @@ class UIManager {
                     btn.classList.remove('disabled-region');
                     btn.style.opacity = '1';
                     btn.style.cursor = 'pointer';
-                    
+
                     const maxBattles = loc.encounters ? loc.encounters.length : 0;
                     let text = `${loc.name} (Nível ${loc.minLvl}-${loc.maxLvl})`;
                     if (maxBattles > 0) {
@@ -700,7 +690,7 @@ class UIManager {
             div.className = 'quest-card';
             let ings = r.ingredients.map(ing => `${ing.qty}x ${ing.name}`).join(', ');
             div.innerHTML = `<strong>${r.name}</strong> (Lvl ${r.reqLvl})<br>Ingredientes: ${ings}<br>`;
-            
+
             const btn = document.createElement('button');
             btn.innerText = 'Forjar';
             if (!CraftingSystem.canCraft(r.id, inventory) || player.level < r.reqLvl) {
@@ -766,9 +756,9 @@ class UIManager {
     renderShop() {
         if (!this.elShopList) return;
         this.elShopList.innerHTML = '';
-        
+
         const playerLvl = window.gamePlayer ? window.gamePlayer.level : 1;
-        
+
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
             this.shopItems = [
@@ -780,7 +770,7 @@ class UIManager {
                 ItemDatabase.getMaterial('m1'),
                 ItemDatabase.getMaterial('m2'),
                 ItemDatabase.getMaterial('m8'),
-                ItemDatabase.generateItem(playerLvl, 'comum'), 
+                ItemDatabase.generateItem(playerLvl, 'comum'),
                 ItemDatabase.generateItem(playerLvl, 'incomum'),
                 ItemDatabase.generateItem(Math.min(playerLvl + 2, 60), 'incomum')
             ];
@@ -792,7 +782,7 @@ class UIManager {
             div.innerHTML = `<strong>${item.name}</strong><br>
                              Tipo: ${item.type}<br>
                              Preço: ${item.gold || item.value || 10} Ouro<br>`;
-            
+
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
             btnBuy.onclick = () => {
@@ -837,7 +827,7 @@ class UIManager {
         window.gameInventory.items.forEach(item => {
             const div = document.createElement('div');
             div.className = `shop-card rarity-${item.rarity}`;
-            
+
             const sellPrice = item.sellValue || Math.floor((item.gold || item.value || 10) / 2) || 5;
 
             let desc = `<strong>${item.name}</strong><br>
@@ -847,7 +837,7 @@ class UIManager {
                 desc += `Quantidade: ${item.count}<br>`;
             }
             div.innerHTML = desc;
-            
+
             const btnSell = document.createElement('button');
             btnSell.innerText = 'Vender 1';
             btnSell.onclick = () => {
@@ -878,6 +868,120 @@ class UIManager {
 
             this.elShopList.appendChild(div);
         });
+    }
+    renderRegionDetails(locId) {
+        const loc = window.MapSystem.getRegionDetails(locId);
+        if (!loc) return;
+
+        const progress = window.MapSystem.progress[locId] || 0;
+        const maxBattles = loc.encounters ? loc.encounters.length : 0;
+        const percentage = maxBattles > 0 ? Math.min(100, (progress / maxBattles) * 100) : 0;
+
+        // Limpa a janela antiga para desenhar a nova estrutura
+        this.elLocDetails.innerHTML = '';
+
+        // Título e subdescrição do Mapa
+        const title = document.createElement('h3');
+        title.innerHTML = `${loc.name} (Nível ${loc.minLvl}-${loc.maxLvl})<br><small style="color: #aaa; font-weight: normal;">${loc.desc}</small>`;
+        this.elLocDetails.appendChild(title);
+
+        // Criação Dinâmica da Barra de Progresso
+        const progressContainer = document.createElement('div');
+        progressContainer.style.width = '100%';
+        progressContainer.style.backgroundColor = '#222';
+        progressContainer.style.border = '1px solid var(--border-color)';
+        progressContainer.style.margin = '1rem 0';
+        progressContainer.style.height = '22px';
+        progressContainer.style.position = 'relative';
+
+        const progressBar = document.createElement('div');
+        progressBar.style.width = `${percentage}%`;
+        progressBar.style.height = '100%';
+        progressBar.style.backgroundColor = 'var(--accent-gold)';
+        progressBar.style.transition = 'width 0.4s ease';
+
+        const progressText = document.createElement('span');
+        progressText.innerText = `Progresso do Mapa: ${progress}/${maxBattles} Fases (${Math.floor(percentage)}%)`;
+        progressText.style.position = 'absolute';
+        progressText.style.width = '100%';
+        progressText.style.textAlign = 'center';
+        progressText.style.top = '0';
+        progressText.style.fontSize = '0.8rem';
+        progressText.style.color = '#fff';
+        progressText.style.fontWeight = 'bold';
+        progressText.style.lineHeight = '22px';
+
+        progressContainer.appendChild(progressBar);
+        progressContainer.appendChild(progressText);
+        this.elLocDetails.appendChild(progressContainer);
+
+        // Grid com os 5 Combates Individuais
+        const battlesGrid = document.createElement('div');
+        battlesGrid.style.display = 'flex';
+        battlesGrid.style.gap = '0.5rem';
+        battlesGrid.style.flexWrap = 'wrap';
+        battlesGrid.style.marginTop = '1rem';
+
+        loc.encounters.forEach((mobId, idx) => {
+            const baseMob = window.MonsterDatabase.monsters.find(m => m.id === mobId);
+            const btnBattle = document.createElement('button');
+            btnBattle.style.flex = '1 1 calc(33% - 0.5rem)';
+            btnBattle.style.minWidth = '160px';
+
+            const isCompleted = idx < progress;
+            const isActiveCampaign = idx === progress;
+            const isLocked = idx > progress;
+
+            if (isLocked) {
+                btnBattle.innerText = `🔒 Batalha ${idx + 1}`;
+                btnBattle.disabled = true;
+                btnBattle.style.opacity = '0.4';
+                btnBattle.style.cursor = 'not-allowed';
+            } else {
+                const mobName = baseMob ? baseMob.name : 'Inimigo';
+
+                // Ícone visual para diferenciar se é replay ou avanço novo
+                if (isCompleted) {
+                    btnBattle.innerText = `🔄 Repetir ${idx + 1}: ${mobName}`;
+                    btnBattle.style.borderColor = 'var(--rarity-uncommon)';
+                } else if (isActiveCampaign) {
+                    btnBattle.innerText = `⚔️ Desafio ${idx + 1}: ${mobName}`;
+                    btnBattle.style.borderColor = 'var(--accent-red)';
+                }
+
+                // Animação de Caminhada com Emojis ao Clicar
+                btnBattle.onclick = () => {
+                    if (btnBattle.disabled) return;
+
+                    // Trava o botão temporariamente
+                    btnBattle.disabled = true;
+                    const originalText = btnBattle.innerText;
+
+                    const frames = ["🚶‍♂️", "🏃‍♂️", "🚶‍♂️", "🏃‍♂️"];
+                    let frameIdx = 0;
+
+                    const animInterval = setInterval(() => {
+                        frameIdx = (frameIdx + 1) % frames.length;
+                        btnBattle.innerText = `Viajando... ${frames[frameIdx]}`;
+                    }, 250);
+
+                    // Executa a transição para o combate após 1.2 segundos caminhando
+                    setTimeout(() => {
+                        clearInterval(animInterval);
+                        btnBattle.disabled = false;
+                        btnBattle.innerText = originalText;
+
+                        const event = window.MapSystem.explore(locId, idx);
+                        if (event && event.type === 'combat') {
+                            window.gameCombat.startCombat(event.data);
+                        }
+                    }, 1200);
+                };
+            }
+            battlesGrid.appendChild(btnBattle);
+        });
+
+        this.elLocDetails.appendChild(battlesGrid);
     }
 }
 

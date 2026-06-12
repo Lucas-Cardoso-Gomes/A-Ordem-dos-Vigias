@@ -27,7 +27,7 @@ const MapSystem = {
         return this.regions[id];
     },
 
-    explore(regionId) {
+    explore(regionId, battleIndex = null) {
         const region = this.regions[regionId];
         if (!region || !this.unlockedRegions.includes(regionId)) return null;
 
@@ -37,21 +37,25 @@ const MapSystem = {
             this.progress[regionId] = 0;
         }
         
-        if (this.progress[regionId] >= region.encounters.length) {
-            return { type: 'concluido' };
-        }
+        // Se nenhum índice foi passado, assume o progresso atual da campanha
+        let index = battleIndex !== null ? battleIndex : this.progress[regionId];
         
-        // Retrieve explicit encounter
-        const mobId = region.encounters[this.progress[regionId]];
+        // Failsafe caso o índice esteja fora do limite de encontros do mapa
+        if (index < 0 || index >= region.encounters.length) return null;
+        
+        const mobId = region.encounters[index];
         const baseMob = MonsterDatabase.monsters.find(m => m.id === mobId);
         
         if (!baseMob) {
-            return { type: 'concluido' }; // Failsafe
+            return null;
         }
         
-        // Scale monster to region bounds
+        // SÓ será considerado campanha se o jogador escolher a batalha exata do progresso atual
+        const isCampaign = index === this.progress[regionId];
+        
+        // Escalonamento seguro do monstro baseado no nível da região
         const level = Math.max(region.minLvl, Math.min(region.maxLvl, Engine.randomInt(baseMob.minLvl, baseMob.maxLvl)));
-        const scale = 1 + (level - baseMob.minLvl) * 0.1;
+        const scale = Math.max(0.2, 1 + (level - baseMob.minLvl) * 0.1);
         
         const monster = {
             ...baseMob,
@@ -62,7 +66,7 @@ const MapSystem = {
             dmg: Math.floor(baseMob.dmg * scale),
             xp: Math.floor(baseMob.xp * scale),
             gold: Math.floor(baseMob.gold * scale),
-            isCampaign: true,
+            isCampaign: isCampaign, // Vincula dinamicamente se avança progresso ou não
             regionId: regionId
         };
         
