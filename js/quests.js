@@ -82,14 +82,20 @@ class QuestSystem {
         return true;
     }
 
-    processKillEvent(monsterId) {
+    processKillEvent(monsterId, qty = 1) {
         let updated = false;
         for (let quest of this.activeQuests) {
             if (quest.type === 'kill' && quest.targetId === monsterId) {
                 if (quest.currentQty < quest.requiredQty) {
-                    quest.currentQty++;
+                    quest.currentQty += qty;
+                    
+                    // Garante que não ultrapasse o valor máximo da missão
+                    if (quest.currentQty > quest.requiredQty) {
+                        quest.currentQty = quest.requiredQty;
+                    }
+                    
                     updated = true;
-                    if (quest.currentQty >= quest.requiredQty) {
+                    if (quest.currentQty === quest.requiredQty) {
                         Engine.emit('systemLog', `Missão Concluída: ${quest.title}! Entregue na aba de Contratos.`);
                     }
                 }

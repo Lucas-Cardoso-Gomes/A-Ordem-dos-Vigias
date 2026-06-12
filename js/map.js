@@ -49,25 +49,26 @@ const MapSystem = {
         const level = Math.max(region.minLvl, Math.min(region.maxLvl, window.Engine.randomInt(baseMob.minLvl, baseMob.maxLvl)));
         const scale = Math.max(0.2, 1 + (level - baseMob.minLvl) * 0.1);
         
-        // NOVIDADE: Múltiplos inimigos! Se for mapa Bônus e não for o Boss, cria uma Horda de 2 a 5 monstros.
-        const hordeSize = (region.isBonus && !baseMob.isBoss) ? window.Engine.randomInt(2, 5) : 1;
+        // CORREÇÃO: Hordas agora aparecem em mapas normais (1 a 3) e mapas bônus (2 a 5)
+        let hordeSize = 1;
+        if (!baseMob.isBoss) {
+            hordeSize = region.isBonus ? window.Engine.randomInt(2, 5) : window.Engine.randomInt(1, 3);
+        }
         
         const monster = {
             ...baseMob,
-            // Altera o nome dinamicamente caso seja mais de 1 inimigo
             name: hordeSize > 1 ? `Horda de ${baseMob.name}s (x${hordeSize})` : baseMob.name,
             instanceId: 'mon_' + Date.now(),
             level: level,
-            // Multiplica os status pelo tamanho da horda (com uma leve redução para não dar 'Insta-Kill' no jogador)
             maxHp: Math.floor((baseMob.hp * scale) * (hordeSize * 0.8)),
             hp: Math.floor((baseMob.hp * scale) * (hordeSize * 0.8)),
             dmg: Math.floor((baseMob.dmg * scale) * (hordeSize * 0.7)),
-            // Recompensas escalam de acordo com o total de inimigos multiplicados
             xp: Math.floor(baseMob.xp * scale) * hordeSize,
             gold: Math.floor(baseMob.gold * scale) * hordeSize,
             isCampaign: isCampaign,
             regionId: regionId,
-            hordeSize: hordeSize
+            battleIndex: index, // Ajuda a destravar o próximo mapa
+            hordeSize: hordeSize  // Guarda a quantidade de monstros para a Missão
         };
         
         return { type: 'combat', data: monster };

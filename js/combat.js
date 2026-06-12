@@ -253,29 +253,37 @@ class CombatSystem {
 
     winCombat() {
         this.logSystem(`${this.monster.name} foi derrotado!`);
-
+        
         const loot = MonsterDatabase.getLoot(this.monster);
         this.player.gainXp(loot.xp);
         this.player.gainGold(loot.gold);
-
+        
         this.logSystem(`Ganhou ${loot.xp} XP e ${loot.gold} Ouro.`);
-
+        
         loot.items.forEach(item => {
-            if (this.inventory.addItem(item)) {
-                // Log is handled by inventory
-            }
+            this.inventory.addItem(item);
         });
 
         Engine.emit('bestiaryUpdate', this.monster);
-        Engine.emit('questUpdate', { type: 'kill', monsterId: this.monster.id, monsterType: this.monster.type });
+        
+        // CORREÇÃO: Informa o sistema de missões QUANTOS inimigos morreram na horda
+        Engine.emit('questUpdate', { type: 'kill', monsterId: this.monster.id, qty: this.monster.hordeSize || 1 });
 
-        if (this.monster.isCampaign && this.monster.regionId) {
+        if (this.monster.regionId) {
             const regionId = this.monster.regionId;
-            window.MapSystem.progress[regionId]++;
-
             const regionData = window.MapSystem.getRegionDetails(regionId);
-            if (regionData && window.MapSystem.progress[regionId] >= regionData.encounters.length) {
-                this.logSystem(`Você completou a região: ${regionData.name}!`);
+            
+            if (this.monster.isCampaign) {
+                window.MapSystem.progress[regionId]++;
+            }
+            
+            // CORREÇÃO DO BLOQUEIO: Destrava o mapa se derrotar o boss (última luta), mesmo no Replay
+            const isLastBattle = this.monster.battleIndex === (regionData.encounters.length - 1);
+            const isCompleted = window.MapSystem.progress[regionId] >= regionData.encounters.length;
+            
+            if (regionData && (isLastBattle || isCompleted)) {
+                if (this.monster.isCampaign) this.logSystem(`Você completou a região: ${regionData.name}!`);
+                
                 if (regionData.next && !window.MapSystem.unlockedRegions.includes(regionData.next)) {
                     window.MapSystem.unlockedRegions.push(regionData.next);
                     const nextRegionData = window.MapSystem.getRegionDetails(regionData.next);
@@ -284,7 +292,7 @@ class CombatSystem {
                     }
                 }
             }
-
+            
             Engine.emit('regionProgressUpdated', regionId);
         }
 
@@ -353,24 +361,48 @@ class CombatSystem {
         if (roll <= chance) {
             // Vitória na Simulação
             this.logSystem(`[Batalha Automática] Você derrotou ${monster.name}! Perdeu ${hpLoss} HP de cansaço.`);
-
+            
             const loot = MonsterDatabase.getLoot(monster);
             this.player.gainXp(loot.xp);
             this.player.gainGold(loot.gold);
             this.logSystem(`Recebeu ${loot.xp} XP e ${loot.gold} Ouro.`);
-
+            
             loot.items.forEach(item => this.inventory.addItem(item));
             Engine.emit('bestiaryUpdate', monster);
-            Engine.emit('questUpdate', { type: 'kill', monsterId: monster.id, monsterType: monster.type });
+            
+            // CORREÇÃO DA MISSÃO NA BATALHA RÁPIDA:
+            Engine.emit('questUpdate', { type: 'kill', monsterId: monster.id, qty: monster.hordeSize || 1 });
 
-            if (monster.isCampaign && monster.regionId) {
-                window.MapSystem.progress[monster.regionId]++;
-                Engine.emit('regionProgressUpdated', monster.regionId);
+            if (monster.regionId) {
+                const regionId = monster.regionId;
+                const regionData = window.MapSystem.getRegionDetails(regionId);
+                
+                if (monster.isCampaign) {
+                    window.MapSystem.progress[regionId]++;
+                }
+                
+                // CORREÇÃO DO BLOQUEIO NA BATALHA RÁPIDA:
+                const isLastBattle = monster.battleIndex === (regionData.encounters.length - 1);
+                const isCompleted = window.MapSystem.progress[regionId] >= regionData.encounters.length;
+                
+                if (regionData && (isLastBattle || isCompleted)) {
+                    if (monster.isCampaign) this.logSystem(`Você completou a região: ${regionData.name}!`);
+                    
+                    if (regionData.next && !window.MapSystem.unlockedRegions.includes(regionData.next)) {
+                        window.MapSystem.unlockedRegions.push(regionData.next);
+                        const nextRegionData = window.MapSystem.getRegionDetails(regionData.next);
+                        if (nextRegionData) {
+                            this.logSystem(`Nova região desbloqueada: ${nextRegionData.name}!`);
+                        }
+                    }
+                }
+                
+                Engine.emit('regionProgressUpdated', regionId);
             }
-
+            
             Engine.emit('playerUpdated', this.player);
             return true;
-        } else {
+        } else { //... (resto do código) else {
             // Derrota na Simulação
             this.logSystem(`[Batalha Automática] Você falhou ao tentar derrotar ${monster.name} e recuou perdendo ${hpLoss} HP.`);
             Engine.emit('playerUpdated', this.player);

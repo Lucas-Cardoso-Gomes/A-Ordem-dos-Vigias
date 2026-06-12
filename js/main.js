@@ -34,7 +34,7 @@ class Game {
         // Listen to combat events
         Engine.on('questUpdate', (data) => {
             if (data.type === 'kill') {
-                this.quests.processKillEvent(data.monsterId);
+                this.quests.processKillEvent(data.monsterId, data.qty);
             }
         });
 
