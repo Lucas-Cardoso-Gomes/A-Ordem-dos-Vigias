@@ -981,17 +981,20 @@ class UIManager {
                         const event = window.MapSystem.explore(locId, idx);
                         if (!event || event.type !== 'combat') return;
                         
-                        const monster = event.data;
-                        const winChance = window.gameCombat.estimateWinChance(monster);
+                        const monsters = event.data;
+                        const winChance = window.gameCombat.estimateWinChance(monsters);
+
+                        const isHorde = Array.isArray(monsters) && monsters.length > 1;
+                        const targetName = isHorde ? `grupo de inimigos (${monsters.length})` : (Array.isArray(monsters) ? monsters[0].name : monsters.name);
                         
-                        const msg = `Estimativa de Vitória: ${winChance}%\n\nO computador simulará o combate contra [${monster.name}]. Batalhas automáticas aceleradas geram cansaço e consumirão uma porção do seu HP, ganhando ou perdendo.\n\nDeseja iniciar a Batalha Automática?`;
+                        const msg = `Estimativa de Vitória: ${winChance}%\n\nO computador simulará o combate contra [${targetName}]. Batalhas automáticas aceleradas geram cansaço e consumirão uma porção do seu HP, ganhando ou perdendo.\n\nDeseja iniciar a Batalha Automática?`;
                         
                         if (confirm(msg)) {
-                            const result = window.gameCombat.autoResolveCombat(monster);
+                            const result = window.gameCombat.autoResolveCombat(monsters);
                             if (result) {
-                                this.showToast(`Vitória Simulada! Você derrotou o ${monster.name}. Verifique o chat de combate.`);
+                                this.showToast(`Vitória Simulada! Você derrotou ${targetName}. Verifique o chat de combate.`);
                             } else {
-                                this.showToast(`Derrota Simulada. O ${monster.name} foi forte demais.`);
+                                this.showToast(`Derrota Simulada. ${targetName} foi forte demais.`);
                             }
                         }
                     };
