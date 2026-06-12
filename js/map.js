@@ -13,8 +13,8 @@ const MapSystem = {
         'vale': { id: 'vale', name: 'Vale dos Dragões', minLvl: 80, maxLvl: 100, desc: 'O berço da Convergência. Criaturas míticas e Reis mortos-vivos espreitam aqui.', encounters: ['mob7', 'mob10', 'mob11', 'mob10', 'boss2'], next: null },
 
         // Mapas bonus
-        'helgen': { id: 'helgen', name: 'Masmorras de Helgen', minLvl: 1, maxLvl: 15, desc: 'Ruínas e masmorras sob a cidade destruída. Cuidado com bestas selvagens e aranhas.', encounters: ['mob1', 'mob4', 'mob2', 'mob4', 'boss1'], next: 'abismo_sombras', isBonus: true },
-        'abismo_sombras': { id: 'abismo_sombras', name: 'Abismo das Sombras Profundas', minLvl: 15, maxLvl: 30, desc: 'Caverna iluminada por cristais brilhantes onde perigosos ursos espreitam.', encounters: ['mob4', 'mob5', 'mob5', 'mob8', 'boss1'], next: 'antro_golgorgs', isBonus: true },
+        'helgen': { id: 'helgen', name: 'Masmorras de Helgen', minLvl: 1, maxLvl: 15, desc: 'Ruínas e masmorras sob a cidade destruída. Cuidado com bestas selvagens e aranhas.', encounters: ['mob1', 'mob3', 'mob2', 'mob4', 'boss1'], next: 'abismo_sombras', isBonus: true },
+        'abismo_sombras': { id: 'abismo_sombras', name: 'Abismo das Sombras Profundas', minLvl: 15, maxLvl: 30, desc: 'Caverna iluminada por cristais brilhantes onde perigosos ursos espreitam.', encounters: ['mob4', 'mob5', 'mob6', 'mob8', 'boss1'], next: 'antro_golgorgs', isBonus: true },
         'antro_golgorgs': { id: 'antro_golgorgs', name: 'Antro dos Golgorgs', minLvl: 30, maxLvl: 50, desc: 'Passagens tortuosas infestadas por pequenas e astutas criaturas.', encounters: ['mob1', 'mob5', 'mob7', 'mob9', 'boss2'], next: 'covil_orcs', isBonus: true },
         'covil_orcs': { id: 'covil_orcs', name: 'Covil dos Orcs', minLvl: 50, maxLvl: 80, desc: 'Acampamento subterrâneo e campo de treinamento de guerreiros orcs brutais.', encounters: ['mob7', 'mob7', 'mob10', 'mob11', 'boss2'], next: null, isBonus: true }
     },

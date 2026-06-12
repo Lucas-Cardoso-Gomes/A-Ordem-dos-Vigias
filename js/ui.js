@@ -310,7 +310,7 @@ class UIManager {
             this.elCharClass.style.flexWrap = 'wrap';
             this.elCharClass.style.marginTop = '0.5rem';
 
-            const classesDisponiveis = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago'];
+            const classesDisponiveis = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago', 'Guerreiro', 'Assassino', 'Paladino', 'Necromante'];
 
             classesDisponiveis.forEach(cls => {
                 const btnClasse = document.createElement('button');

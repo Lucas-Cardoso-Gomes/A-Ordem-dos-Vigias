@@ -152,43 +152,77 @@ class CombatSystem {
 
         if (skill.type === 'attack' || skill.type === 'drain') {
             let { min, max } = this.calculatePlayerDamage();
-            let dmg = Math.floor(Engine.randomInt(min, max) * skill.multiplier);
+            // Dano base bruto do jogador antes dos multiplicadores da skill
+            let baseDmg = Engine.randomInt(min, max);
 
-            let weaknessHit = false;
-            if (skill.element && target.weakness && target.weakness.includes(skill.element)) {
-                dmg *= 2;
-                weaknessHit = true;
+            // Verifica quem será atingido (Todos os vivos se for AoE, ou apenas o alvo atual se não for)
+            let targets = [];
+            if (skill.isAoE) {
+                targets = this.monsters.filter(m => m.hp > 0);
+            } else {
+                const t = this.getCurrentTarget();
+                if (t) targets.push(t);
             }
 
-            target.hp -= dmg;
+            if (targets.length === 0) return;
 
-            let logMsg = `Você usou ${skill.name} em ${target.name} e causou ${dmg} de dano.`;
-            if (weaknessHit) logMsg += " (Fraqueza explorada!)";
+            let totalHeal = 0;
+            let logMsg = `Você usou [${skill.name}]`;
+            if (skill.isAoE) logMsg += ` em todos os inimigos!`;
+
+            // Aplica o dano em cada alvo
+            targets.forEach(t => {
+                let dmg = Math.floor(baseDmg * skill.multiplier);
+                let weaknessHit = false;
+
+                if (skill.element && t.weakness && t.weakness.includes(skill.element)) {
+                    dmg *= 2;
+                    weaknessHit = true;
+                }
+
+                t.hp -= dmg;
+                if (skill.type === 'drain') {
+                    totalHeal += Math.floor(dmg / 2);
+                }
+
+                if (!skill.isAoE) {
+                    logMsg += ` em ${t.name} e causou ${dmg} de dano.`;
+                    if (weaknessHit) logMsg += " (Fraqueza!)";
+                } else {
+                    // Log individual limpo para habilidades em área
+                    this.logSystem(`-> ${t.name} recebeu ${dmg} de dano${weaknessHit ? ' (Fraqueza!)' : ''}.`);
+                }
+            });
 
             this.logPlayer(logMsg);
 
-            if (skill.type === 'drain') {
-                const heal = Math.floor(dmg / 2);
-                this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
-                this.logPlayer(`Você sugou ${heal} de vida.`);
+            if (totalHeal > 0) {
+                this.player.hp = Math.min(this.player.hp + totalHeal, this.player.getMaxHp());
+                this.logPlayer(`Você sugou um total de ${totalHeal} de vida.`);
             }
 
             Engine.emit('combatAnimation', { target: 'player', anim: 'attack' });
+            
             setTimeout(() => {
-                Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: target.instanceId });
+                // Anima e processa a morte de cada alvo atingido
+                targets.forEach(t => {
+                    Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: t.instanceId });
+                    if (t.hp <= 0) {
+                        t.hp = 0;
+                        this.processMonsterDeath(t);
+                    }
+                });
+
                 Engine.emit('combatUpdated', { player: this.player, monsters: this.monsters });
 
-                if (target.hp <= 0) {
-                    target.hp = 0;
-                    this.processMonsterDeath(target);
-                }
-
+                // Verifica se todos morreram após o golpe
                 if (this.monsters.every(m => m.hp <= 0)) {
                     this.winCombat();
                 } else {
                     setTimeout(() => this.monsterTurn(), 1000);
                 }
             }, 300);
+
         } else if (skill.type === 'heal') {
             const heal = skill.healAmount;
             this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
@@ -396,7 +430,7 @@ class CombatSystem {
         if (this.player.hp <= 0) this.player.hp = 1;
 
         if (roll <= chance) {
-            this.logSystem(`[Batalha Automática] Você derrotou o grupo de inimigos! Perdeu ${hpLoss} HP de cansaço.`);
+            this.logSystem(`[Batalha Automática] Você derrotou o grupo de inimigos! Perdeu ${hpLoss} HP na batalha.`);
             
             monsters.forEach(monster => {
                 const loot = MonsterDatabase.getLoot(monster);
