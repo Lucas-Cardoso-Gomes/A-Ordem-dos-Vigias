@@ -26,7 +26,14 @@ const ItemDatabase = {
         { id: 'w9', name: 'Tomo Sagrado', type: 'weapon', slot: 'weaponMain', minDmg: 10, maxDmg: 20, reqLvl: 20, weakness: 'luz sagrada', magic: true },
         { id: 'w10', name: 'Grimório Sombrio', type: 'weapon', slot: 'weaponMain', minDmg: 15, maxDmg: 25, reqLvl: 30, weakness: 'magia arcana', magic: true },
         { id: 'w11', name: 'Katana Sombria', type: 'weapon', slot: 'weaponMain', minDmg: 20, maxDmg: 35, reqLvl: 40, weakness: 'trevas' },
-        { id: 'w12', name: 'Martelo dos Deuses', type: 'weapon', slot: 'weaponMain', minDmg: 30, maxDmg: 50, reqLvl: 60, weakness: 'sagrado' }
+        { id: 'w12', name: 'Martelo dos Deuses', type: 'weapon', slot: 'weaponMain', minDmg: 30, maxDmg: 50, reqLvl: 60, weakness: 'sagrado' },
+
+        { id: 'wo1', name: 'Adaga Curta', type: 'weapon', slot: 'weaponOff', minDmg: 3, maxDmg: 6, reqLvl: 1 },
+        { id: 'wo2', name: 'Escudo de Madeira', type: 'weapon', slot: 'weaponOff', minDmg: 1, maxDmg: 2, def: 3, reqLvl: 3 },
+        { id: 'wo3', name: 'Adaga Envenenada', type: 'weapon', slot: 'weaponOff', minDmg: 5, maxDmg: 10, reqLvl: 10, weakness: 'veneno' },
+        { id: 'wo4', name: 'Orbe Mágico', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 5, reqLvl: 10, magic: true, stats: { mana: 20 } },
+        { id: 'wo5', name: 'Escudo de Ferro', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 4, def: 8, reqLvl: 15 },
+        { id: 'wo6', name: 'Tomo Menor', type: 'weapon', slot: 'weaponOff', minDmg: 4, maxDmg: 8, reqLvl: 15, magic: true, stats: { int: 5 } }
     ],
 
     armorBases: [

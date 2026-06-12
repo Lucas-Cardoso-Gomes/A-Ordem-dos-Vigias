@@ -76,6 +76,8 @@ class UIManager {
         this.elActionPanelName = document.getElementById('action-panel-name');
         this.elActionPanelDesc = document.getElementById('action-panel-desc');
         this.btnEquipItem = document.getElementById('btn-equip-item');
+        this.btnEquipItemMain = document.getElementById('btn-equip-item-main');
+        this.btnEquipItemOff = document.getElementById('btn-equip-item-off');
         this.btnUseItem = document.getElementById('btn-use-item');
 
         // Equipment slots
@@ -155,6 +157,24 @@ class UIManager {
             this.btnEquipItem.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
                     window.gameInventory.equip(this.selectedItemInstanceId);
+                    if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
+                }
+            });
+        }
+
+        if (this.btnEquipItemMain) {
+            this.btnEquipItemMain.addEventListener('click', () => {
+                if (this.selectedItemInstanceId) {
+                    window.gameInventory.equip(this.selectedItemInstanceId, 'weaponMain');
+                    if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
+                }
+            });
+        }
+
+        if (this.btnEquipItemOff) {
+            this.btnEquipItemOff.addEventListener('click', () => {
+                if (this.selectedItemInstanceId) {
+                    window.gameInventory.equip(this.selectedItemInstanceId, 'weaponOff');
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -375,9 +395,14 @@ class UIManager {
                     this.elActionPanelDesc.innerHTML = desc;
 
                     this.btnEquipItem.classList.add('hidden');
+                    if (this.btnEquipItemMain) this.btnEquipItemMain.classList.add('hidden');
+                    if (this.btnEquipItemOff) this.btnEquipItemOff.classList.add('hidden');
                     this.btnUseItem.classList.add('hidden');
 
-                    if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') {
+                    if (item.type === 'weapon') {
+                        if (this.btnEquipItemMain) this.btnEquipItemMain.classList.remove('hidden');
+                        if (this.btnEquipItemOff) this.btnEquipItemOff.classList.remove('hidden');
+                    } else if (item.type === 'armor' || item.type === 'accessory') {
                         this.btnEquipItem.classList.remove('hidden');
                     } else if (item.type === 'potion') {
                         this.btnUseItem.classList.remove('hidden');
@@ -698,21 +723,26 @@ class UIManager {
         if (!this.elShopList) return;
         this.elShopList.innerHTML = '';
         
-        // Define some basic shop items
-        const shopItems = [
-            ItemDatabase.getPotion('p1'),
-            ItemDatabase.getPotion('p2'),
-            ItemDatabase.getPotion('p3'),
-            ItemDatabase.getPotion('p4'),
-            ItemDatabase.getPotion('p5'),
-            ItemDatabase.getMaterial('m1'),
-            ItemDatabase.getMaterial('m2'),
-            ItemDatabase.getMaterial('m8'),
-            ItemDatabase.generateItem(5, 'comum'), // Arma/Armadura Aleatória Comum
-            ItemDatabase.generateItem(15, 'incomum') // Arma/Armadura Aleatória Incomum
-        ];
+        const playerLvl = window.gamePlayer ? window.gamePlayer.level : 1;
 
-        shopItems.forEach(item => {
+        if (!this.shopItems || this.shopLevel !== playerLvl) {
+            this.shopLevel = playerLvl;
+            this.shopItems = [
+                ItemDatabase.getPotion('p1'),
+                ItemDatabase.getPotion('p2'),
+                ItemDatabase.getPotion('p3'),
+                ItemDatabase.getPotion('p4'),
+                ItemDatabase.getPotion('p5'),
+                ItemDatabase.getMaterial('m1'),
+                ItemDatabase.getMaterial('m2'),
+                ItemDatabase.getMaterial('m8'),
+                ItemDatabase.generateItem(playerLvl, 'comum'),
+                ItemDatabase.generateItem(playerLvl, 'incomum'),
+                ItemDatabase.generateItem(Math.min(playerLvl + 2, 60), 'incomum')
+            ];
+        }
+
+        this.shopItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'shop-card';
             div.innerHTML = `<strong>${item.name}</strong><br>
@@ -724,7 +754,16 @@ class UIManager {
             btnBuy.onclick = () => {
                 const cost = item.gold || item.value || 10;
                 if (window.gamePlayer.gold >= cost) {
-                    const newItem = item.type === 'potion' ? ItemDatabase.getPotion(item.id) : ItemDatabase.getMaterial(item.id);
+                    let newItem;
+                    if (item.type === 'potion') {
+                        newItem = ItemDatabase.getPotion(item.id);
+                    } else if (item.type === 'material') {
+                        newItem = ItemDatabase.getMaterial(item.id);
+                    } else {
+                        // Deep clone equipment and generate a new instanceId
+                        newItem = JSON.parse(JSON.stringify(item));
+                        newItem.instanceId = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                    }
                     if (newItem && window.gameInventory.addItem(newItem)) {
                         window.gamePlayer.gold -= cost;
                         Engine.emit('playerUpdated', window.gamePlayer);
