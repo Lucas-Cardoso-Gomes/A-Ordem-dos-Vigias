@@ -101,15 +101,10 @@ class UIManager {
 
         // Combat
         this.elCombatPlayerSide = document.querySelector('.player-side');
-        this.elCombatMonsterSide = document.querySelector('.monster-side');
+        this.elCombatMonstersContainer = document.getElementById('combat-monsters-container');
         this.elCombatPlayerHpBar = document.getElementById('combat-player-hp-bar');
         this.elCombatPlayerHp = document.getElementById('combat-player-hp');
         this.elCombatPlayerHpMax = document.getElementById('combat-player-hp-max');
-        this.elCombatMonsterName = document.getElementById('combat-monster-name');
-        this.elCombatMonsterHpBar = document.getElementById('combat-monster-hp-bar');
-        this.elCombatMonsterHp = document.getElementById('combat-monster-hp');
-        this.elCombatMonsterHpMax = document.getElementById('combat-monster-hp-max');
-        this.elCombatMonsterWeaknesses = document.getElementById('combat-monster-weaknesses');
 
         this.btnAttack = document.getElementById('btn-attack');
         this.btnSkill = document.getElementById('btn-skill');
@@ -542,22 +537,50 @@ class UIManager {
         this.elCombatItemsMenu.classList.remove('hidden');
     }
 
-    showCombatScreen(monster) {
+    showCombatScreen(monsters) {
         document.querySelector('[data-target="screen-combat"]').click();
         this.hideCombatMenus();
         this.elCombatLog.innerHTML = '';
-        this.elCombatMonsterName.innerText = `Lvl ${monster.level} ${monster.name}`;
-
-        if (monster.weakness.length > 0) {
-            this.elCombatMonsterWeaknesses.innerText = `Fraquezas: ${monster.weakness.join(', ')}`;
-        } else {
-            this.elCombatMonsterWeaknesses.innerText = '';
-        }
+        this.renderCombatMonsters(monsters);
 
         this.btnAttack.disabled = false;
         if (this.btnSkill) this.btnSkill.disabled = false;
         this.btnFlee.disabled = false;
         this.btnPotion.disabled = false;
+    }
+
+    renderCombatMonsters(monsters) {
+        this.elCombatMonstersContainer.innerHTML = '';
+        const targetIndex = window.gameCombat ? window.gameCombat.targetIndex : 0;
+
+        monsters.forEach((monster, index) => {
+            const mPct = Math.max(0, (monster.hp / monster.maxHp) * 100);
+            const isDead = monster.hp <= 0;
+            const isTarget = index === targetIndex && !isDead;
+
+            const card = document.createElement('div');
+            card.className = `monster-card ${isTarget ? 'target' : ''} ${isDead ? 'dead' : ''}`;
+            card.id = `monster-card-${monster.instanceId}`;
+            card.onclick = () => {
+                if (!isDead && window.gameCombat) {
+                    window.gameCombat.setTarget(index);
+                }
+            };
+
+            let weaknessText = '';
+            if (monster.weakness && monster.weakness.length > 0) {
+                weaknessText = `<div class="monster-weaknesses" style="font-size:0.8em; color:var(--rarity-uncommon)">Fraquezas: ${monster.weakness.join(', ')}</div>`;
+            }
+
+            card.innerHTML = `
+                <h3 style="font-size:1.1em; margin-bottom:0.2rem">Lvl ${monster.level} ${monster.name}</h3>
+                <div class="health-bar-container"><div class="health-bar" style="width: ${mPct}%"></div></div>
+                <p style="margin-top:0.2rem">HP: <span>${monster.hp}</span> / <span>${monster.maxHp}</span></p>
+                ${weaknessText}
+            `;
+
+            this.elCombatMonstersContainer.appendChild(card);
+        });
     }
 
     hideCombatScreen(victory) {
@@ -578,18 +601,15 @@ class UIManager {
 
     renderCombatStats(data) {
         const p = data.player;
-        const m = data.monster;
+        const monsters = data.monsters;
 
         const pPct = Math.max(0, (p.hp / p.getMaxHp()) * 100);
         this.elCombatPlayerHpBar.style.width = `${pPct}%`;
         this.elCombatPlayerHp.innerText = p.hp;
         this.elCombatPlayerHpMax.innerText = p.getMaxHp();
 
-        if (m) {
-            const mPct = Math.max(0, (m.hp / m.maxHp) * 100);
-            this.elCombatMonsterHpBar.style.width = `${mPct}%`;
-            this.elCombatMonsterHp.innerText = m.hp;
-            this.elCombatMonsterHpMax.innerText = m.maxHp;
+        if (monsters) {
+            this.renderCombatMonsters(monsters);
         }
     }
 
@@ -742,7 +762,14 @@ class UIManager {
     }
 
     playCombatAnimation(data) {
-        let el = data.target === 'player' ? this.elCombatPlayerSide : this.elCombatMonsterSide;
+        let el;
+        if (data.target === 'player') {
+            el = this.elCombatPlayerSide;
+        } else {
+            if (data.monsterId) {
+                el = document.getElementById(`monster-card-${data.monsterId}`);
+            }
+        }
         if (!el) return;
 
         const animClass = data.anim === 'attack' ? 'anim-attack' : 'anim-damage';
