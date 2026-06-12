@@ -644,24 +644,44 @@ class UIManager {
         this.elCombatLog.scrollTop = this.elCombatLog.scrollHeight;
     }
 
-    showToast(msg) {
+showToast(msg) {
+        // Verifica se o orquestrador de notificações já existe, se não, cria um.
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.position = 'fixed';
+            container.style.bottom = '20px';
+            container.style.right = '20px';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column'; // Empilha uma em cima da outra
+            container.style.gap = '10px';             // Espaçamento entre as mensagens
+            container.style.zIndex = '9999';
+            container.style.pointerEvents = 'none';   // Não bloqueia os seus cliques no mapa
+            document.body.appendChild(container);
+        }
+
+        // Cria a notificação individual
         const toast = document.createElement('div');
-        toast.style.position = 'fixed';
-        toast.style.bottom = '20px';
-        toast.style.right = '20px';
         toast.style.backgroundColor = 'var(--accent-red)';
+        toast.style.border = '1px solid var(--accent-gold)';
         toast.style.color = 'white';
-        toast.style.padding = '1rem';
-        toast.style.borderRadius = '5px';
-        toast.style.zIndex = '9999';
-        toast.style.transition = 'opacity 0.5s';
+        toast.style.padding = '0.8rem 1.2rem';
+        toast.style.borderRadius = '4px';
+        toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        toast.style.boxShadow = '0 4px 8px rgba(0,0,0,0.5)';
+        toast.style.fontSize = '0.9rem';
         toast.innerText = msg;
 
-        document.body.appendChild(toast);
+        // Adiciona a nova mensagem ao final da pilha
+        container.appendChild(toast);
+
+        // Remove a notificação após 3.5 segundos com uma animação suave
         setTimeout(() => {
             toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 500);
-        }, 3000);
+            toast.style.transform = 'translateY(10px)'; // Desce levemente ao sumir
+            setTimeout(() => toast.remove(), 400);      // Aguarda a animação antes de deletar a div
+        }, 3500);
     }
 
     renderQuests(questSys) {
