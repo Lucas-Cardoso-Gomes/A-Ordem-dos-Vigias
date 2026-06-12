@@ -126,6 +126,7 @@ class UIManager {
 
         // Shop
         this.elShopList = document.getElementById('shop-list');
+        this.elShopFilter = document.getElementById('shop-filter');
 
         // Bestiary
         this.elBestiaryList = document.getElementById('bestiary-list');
@@ -191,7 +192,23 @@ class UIManager {
         if (this.btnUseItem) {
             this.btnUseItem.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.useItem(this.selectedItemInstanceId);
+                    const item = window.gameInventory.items.find(i => i.instanceId === this.selectedItemInstanceId);
+                    
+                    // Se for poção e o jogador tiver mais de uma, abre o assistente de quantidade
+                    if (item && item.type === 'potion' && item.count > 1) {
+                        const qtyStr = prompt(`Quantas poções de ${item.name} deseja tomar de uma vez? (No Inventário: ${item.count})`, '1');
+                        const qty = parseInt(qtyStr);
+                        if (!isNaN(qty) && qty > 0) {
+                            const toUse = Math.min(qty, item.count);
+                            for (let i = 0; i < toUse; i++) {
+                                window.gameInventory.useItem(this.selectedItemInstanceId);
+                            }
+                            this.showToast(`Você consumiu ${toUse}x ${item.name}!`);
+                        }
+                    } else {
+                        // Comportamento padrão para item único ou outros tipos de usáveis
+                        window.gameInventory.useItem(this.selectedItemInstanceId);
+                    }
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -258,6 +275,12 @@ class UIManager {
             this.btnCloseBestiary.addEventListener('click', () => {
                 this.elBestiaryDetails.classList.add('hidden');
                 this.elBestiaryList.classList.remove('hidden');
+            });
+        }
+        // Adicione junto aos outros escutadores de eventos
+        if (this.elShopFilter) {
+            this.elShopFilter.addEventListener('change', () => {
+                this.renderShop();
             });
         }
     }
@@ -785,6 +808,7 @@ class UIManager {
         this.elShopList.innerHTML = '';
 
         const playerLvl = window.gamePlayer ? window.gamePlayer.level : 1;
+        const currentFilter = this.elShopFilter ? this.elShopFilter.value : 'all';
 
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
@@ -803,32 +827,41 @@ class UIManager {
             ];
         }
 
-        this.shopItems.forEach(item => {
+        // 1. FILTRAGEM DOS ITENS DISPONÍVEIS PARA COMPRA
+        let filteredBuyItems = this.shopItems;
+        if (currentFilter !== 'all') {
+            filteredBuyItems = filteredBuyItems.filter(item => item.type === currentFilter);
+        }
+
+        filteredBuyItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'shop-card';
+            
+            // PREÇOS REFORMULADOS: Multiplicador de 3x aplicado sobre o custo base
+            const baseCost = item.gold || item.value || 10;
+            const increasedCost = Math.floor(baseCost * 3);
+
             div.innerHTML = `<strong>${item.name}</strong><br>
                              Tipo: ${item.type}<br>
-                             Preço: ${item.gold || item.value || 10} Ouro<br>`;
+                             Preço: ${increasedCost} Ouro<br>`;
 
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
             btnBuy.onclick = () => {
-                const cost = item.gold || item.value || 10;
-                if (window.gamePlayer.gold >= cost) {
+                if (window.gamePlayer.gold >= increasedCost) {
                     let newItem;
                     if (item.type === 'potion') {
                         newItem = ItemDatabase.getPotion(item.id);
                     } else if (item.type === 'material') {
                         newItem = ItemDatabase.getMaterial(item.id);
                     } else {
-                        // Deep clone equipment and generate a new instanceId
                         newItem = JSON.parse(JSON.stringify(item));
                         newItem.instanceId = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                     }
                     if (newItem && window.gameInventory.addItem(newItem)) {
-                        window.gamePlayer.gold -= cost;
+                        window.gamePlayer.gold -= increasedCost;
                         Engine.emit('playerUpdated', window.gamePlayer);
-                        Engine.emit('systemLog', `Você comprou ${item.name} por ${cost} Ouro.`);
+                        Engine.emit('systemLog', `Você comprou ${item.name} por ${increasedCost} Ouro.`);
                     }
                 } else {
                     Engine.emit('systemLog', 'Ouro insuficiente.');
@@ -838,7 +871,7 @@ class UIManager {
             this.elShopList.appendChild(div);
         });
 
-        // Add a separator for selling
+        // Divisor visual para a seção de Venda
         const hr = document.createElement('hr');
         hr.style.gridColumn = '1 / -1';
         hr.style.margin = '1rem 0';
@@ -851,7 +884,21 @@ class UIManager {
         sellTitle.style.color = 'var(--accent-gold)';
         this.elShopList.appendChild(sellTitle);
 
-        window.gameInventory.items.forEach(item => {
+        // 2. FILTRAGEM DOS ITENS DO INVENTÁRIO PARA VENDA
+        let itemsToSell = window.gameInventory.items;
+        if (currentFilter !== 'all') {
+            itemsToSell = itemsToSell.filter(item => item.type === currentFilter);
+        }
+
+        if (itemsToSell.length === 0) {
+            const noItemsMsg = document.createElement('p');
+            noItemsMsg.innerText = 'Nenhum item desta categoria no seu inventário.';
+            noItemsMsg.style.gridColumn = '1 / -1';
+            noItemsMsg.style.color = '#777';
+            this.elShopList.appendChild(noItemsMsg);
+        }
+
+        itemsToSell.forEach(item => {
             const div = document.createElement('div');
             div.className = `shop-card rarity-${item.rarity}`;
 

@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A Ordem dos Vigias</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="game-container">
         <header>
             <h1>A Ordem dos Vigias</h1>
             <div class="player-summary">
-                <span id="header-level">Nível: 1</span> | 
-                <span id="header-hp">HP: 100/100</span> | 
-                <span id="header-mana">Mana: 50/50</span> | 
+                <span id="header-level">Nível: 1</span> |
+                <span id="header-hp">HP: 100/100</span> |
+                <span id="header-mana">Mana: 50/50</span> |
                 <span id="header-gold">Ouro: 0</span>
             </div>
             <nav id="main-nav">
@@ -24,7 +26,6 @@
                 <button data-target="screen-contracts" class="nav-btn">Contratos</button>
                 <button data-target="screen-shop" class="nav-btn">Loja</button>
                 <button data-target="screen-bestiary" class="nav-btn">Bestiário</button>
-                <button data-target="screen-achievements" class="nav-btn">Conquistas</button>
                 <button data-target="screen-settings" class="nav-btn">Config.</button>
             </nav>
         </header>
@@ -40,13 +41,23 @@
                         <p>XP: <span id="char-xp">0</span> / <span id="char-xp-needed">100</span></p>
                         <p>Classe: <span id="char-class">Nenhuma</span></p>
                         <p>Pontos de Atributo: <span id="char-points">0</span></p>
-                        
+
                         <div class="attribute-list">
-                            <div class="attr-row" title="Aumenta HP máximo e dano de ataques físicos"><span>Força: <span id="attr-str">10</span></span> <button class="btn-add-attr" data-attr="str">+</button></div>
-                            <div class="attr-row" title="Aumenta chance de fuga e dano crítico"><span>Agilidade: <span id="attr-agi">10</span></span> <button class="btn-add-attr" data-attr="agi">+</button></div>
-                            <div class="attr-row" title="Aumenta Mana máxima e dano mágico"><span>Inteligência: <span id="attr-int">10</span></span> <button class="btn-add-attr" data-attr="int">+</button></div>
-                            <div class="attr-row" title="Aumenta HP máximo e redução de dano físico"><span>Defesa: <span id="attr-def">10</span></span> <button class="btn-add-attr" data-attr="def">+</button></div>
-                            <div class="attr-row" title="Aumenta chance de dano crítico"><span>Sorte: <span id="attr-luk">10</span></span> <button class="btn-add-attr" data-attr="luk">+</button></div>
+                            <div class="attr-row" title="Aumenta HP máximo e dano de ataques físicos"><span>Força: <span
+                                        id="attr-str">10</span></span> <button class="btn-add-attr"
+                                    data-attr="str">+</button></div>
+                            <div class="attr-row" title="Aumenta chance de fuga e dano crítico"><span>Agilidade: <span
+                                        id="attr-agi">10</span></span> <button class="btn-add-attr"
+                                    data-attr="agi">+</button></div>
+                            <div class="attr-row" title="Aumenta Mana máxima e dano mágico"><span>Inteligência: <span
+                                        id="attr-int">10</span></span> <button class="btn-add-attr"
+                                    data-attr="int">+</button></div>
+                            <div class="attr-row" title="Aumenta HP máximo e redução de dano físico"><span>Defesa: <span
+                                        id="attr-def">10</span></span> <button class="btn-add-attr"
+                                    data-attr="def">+</button></div>
+                            <div class="attr-row" title="Aumenta chance de dano crítico"><span>Sorte: <span
+                                        id="attr-luk">10</span></span> <button class="btn-add-attr"
+                                    data-attr="luk">+</button></div>
                         </div>
                     </div>
                     <div class="equipment-panel">
@@ -84,7 +95,8 @@
                         <!-- Items populated dynamically -->
                     </div>
 
-                    <div id="inventory-action-panel" class="hidden" style="flex: 1; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-panel); display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div id="inventory-action-panel" class="hidden"
+                        style="flex: 1; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-panel); display: flex; flex-direction: column; gap: 0.5rem;">
                         <h3 id="action-panel-name">Item Name</h3>
                         <p id="action-panel-desc" style="font-size: 0.9rem; flex-grow: 1;">Details here.</p>
                         <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
@@ -118,7 +130,8 @@
                 <h2>Mapas bonus</h2>
                 <div class="map-grid">
                     <button class="map-location" data-loc="helgen">Masmorras de Helgen (Nível 1-15)</button>
-                    <button class="map-location" data-loc="abismo_sombras">Abismo das Sombras Profundas (Nível 15-30)</button>
+                    <button class="map-location" data-loc="abismo_sombras">Abismo das Sombras Profundas (Nível
+                        15-30)</button>
                     <button class="map-location" data-loc="antro_golgorgs">Antro dos Golgorgs (Nível 30-50)</button>
                     <button class="map-location" data-loc="covil_orcs">Covil dos Orcs (Nível 50-80)</button>
                 </div>
@@ -134,7 +147,9 @@
                 <div class="combat-arena">
                     <div class="combat-entity player-side">
                         <h3>Você</h3>
-                        <div class="health-bar-container"><div class="health-bar" id="combat-player-hp-bar"></div></div>
+                        <div class="health-bar-container">
+                            <div class="health-bar" id="combat-player-hp-bar"></div>
+                        </div>
                         <p>HP: <span id="combat-player-hp">100</span> / <span id="combat-player-hp-max">100</span></p>
                         <div class="status-effects" id="combat-player-status"></div>
                     </div>
@@ -148,13 +163,19 @@
                     <button id="btn-potion">Itens</button>
                     <button id="btn-flee">Fugir</button>
                 </div>
-                <div id="combat-skills-menu" class="hidden" style="margin-bottom: 1rem; text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
+                <div id="combat-skills-menu" class="hidden"
+                    style="margin-bottom: 1rem; text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
                     <h4>Habilidades</h4>
-                    <div id="combat-skills-list" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;"></div>
+                    <div id="combat-skills-list"
+                        style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
+                    </div>
                 </div>
-                <div id="combat-items-menu" class="hidden" style="margin-bottom: 1rem; text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
+                <div id="combat-items-menu" class="hidden"
+                    style="margin-bottom: 1rem; text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
                     <h4>Itens</h4>
-                    <div id="combat-items-list" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;"></div>
+                    <div id="combat-items-list"
+                        style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
+                    </div>
                 </div>
                 <div class="combat-log" id="combat-log">
                     <!-- Logs go here -->
@@ -167,7 +188,7 @@
                 <div class="quests-container">
                     <h3>Missões Ativas</h3>
                     <ul id="active-quests-list"></ul>
-                    
+
                     <h3>Contratos Disponíveis</h3>
                     <ul id="available-contracts-list"></ul>
                 </div>
@@ -176,9 +197,21 @@
             <!-- Screen: Shop -->
             <section id="screen-shop" class="screen hidden">
                 <h2>Mercador</h2>
+
+                <div class="shop-controls" style="margin-bottom: 1rem; margin-top: 0.5rem;">
+                    <label for="shop-filter" style="font-size: 0.9rem; color: #aaa;">Filtrar artigos: </label>
+                    <select id="shop-filter"
+                        style="padding: 0.3rem 0.6rem; background: var(--bg-panel); color: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+                        <option value="all">Todos os Itens</option>
+                        <option value="weapon">Armas</option>
+                        <option value="armor">Armaduras</option>
+                        <option value="potion">Poções</option>
+                        <option value="material">Materiais</option>
+                    </select>
+                </div>
+
                 <div class="shop-container">
                     <div class="shop-items" id="shop-list">
-                        <!-- Shop items -->
                     </div>
                 </div>
             </section>
@@ -197,14 +230,6 @@
                     <p>Loot: <span id="best-loot"></span></p>
                     <button id="btn-close-bestiary">Fechar</button>
                 </div>
-            </section>
-
-            <!-- Screen: Achievements -->
-            <section id="screen-achievements" class="screen hidden">
-                <h2>Conquistas</h2>
-                <ul id="achievements-list" class="achievements-list">
-                    <!-- Achievements -->
-                </ul>
             </section>
 
             <!-- Screen: Settings -->
@@ -233,4 +258,5 @@
     <script src="js/ui.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>
