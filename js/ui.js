@@ -939,44 +939,70 @@ class UIManager {
                 btnBattle.style.cursor = 'not-allowed';
             } else {
                 const mobName = baseMob ? baseMob.name : 'Inimigo';
+                
+                // SE FOR MAPA BÔNUS, USA O SISTEMA DE BATALHA RÁPIDA (AUTO-RESOLVE)
+                if (loc.isBonus) {
+                    if (isCompleted) {
+                        btnBattle.innerText = `⚡ Auto (Repetir): ${mobName}`;
+                        btnBattle.style.borderColor = 'var(--rarity-rare)';
+                    } else if (isActiveCampaign) {
+                        btnBattle.innerText = `⚡ Auto (Avançar): ${mobName}`;
+                        btnBattle.style.borderColor = 'var(--rarity-legendary)';
+                    }
 
-                // Ícone visual para diferenciar se é replay ou avanço novo
-                if (isCompleted) {
-                    btnBattle.innerText = `🔄 Repetir ${idx + 1}: ${mobName}`;
-                    btnBattle.style.borderColor = 'var(--rarity-uncommon)';
-                } else if (isActiveCampaign) {
-                    btnBattle.innerText = `⚔️ Desafio ${idx + 1}: ${mobName}`;
-                    btnBattle.style.borderColor = 'var(--accent-red)';
-                }
-
-                // Animação de Caminhada com Emojis ao Clicar
-                btnBattle.onclick = () => {
-                    if (btnBattle.disabled) return;
-
-                    // Trava o botão temporariamente
-                    btnBattle.disabled = true;
-                    const originalText = btnBattle.innerText;
-
-                    const frames = ["🚶‍♂️", "🏃‍♂️", "🚶‍♂️", "🏃‍♂️"];
-                    let frameIdx = 0;
-
-                    const animInterval = setInterval(() => {
-                        frameIdx = (frameIdx + 1) % frames.length;
-                        btnBattle.innerText = `Viajando... ${frames[frameIdx]}`;
-                    }, 250);
-
-                    // Executa a transição para o combate após 1.2 segundos caminhando
-                    setTimeout(() => {
-                        clearInterval(animInterval);
-                        btnBattle.disabled = false;
-                        btnBattle.innerText = originalText;
-
+                    btnBattle.onclick = () => {
                         const event = window.MapSystem.explore(locId, idx);
-                        if (event && event.type === 'combat') {
-                            window.gameCombat.startCombat(event.data);
+                        if (!event || event.type !== 'combat') return;
+                        
+                        const monster = event.data;
+                        const winChance = window.gameCombat.estimateWinChance(monster);
+                        
+                        const msg = `Estimativa de Vitória: ${winChance}%\n\nO computador simulará o combate contra [${monster.name}]. Batalhas automáticas aceleradas geram cansaço e consumirão uma porção do seu HP, ganhando ou perdendo.\n\nDeseja iniciar a Batalha Automática?`;
+                        
+                        if (confirm(msg)) {
+                            const result = window.gameCombat.autoResolveCombat(monster);
+                            if (result) {
+                                this.showToast(`Vitória Simulada! Você derrotou o ${monster.name}. Verifique o chat de combate.`);
+                            } else {
+                                this.showToast(`Derrota Simulada. O ${monster.name} foi forte demais.`);
+                            }
                         }
-                    }, 1200);
-                };
+                    };
+                } 
+                // SE FOR MAPA NORMAL, USA A ANIMAÇÃO E COMBATE CLÁSSICO
+                else {
+                    if (isCompleted) {
+                        btnBattle.innerText = `🔄 Repetir ${idx + 1}: ${mobName}`;
+                        btnBattle.style.borderColor = 'var(--rarity-uncommon)';
+                    } else if (isActiveCampaign) {
+                        btnBattle.innerText = `⚔️ Desafio ${idx + 1}: ${mobName}`;
+                        btnBattle.style.borderColor = 'var(--accent-red)';
+                    }
+
+                    btnBattle.onclick = () => {
+                        if (btnBattle.disabled) return;
+                        btnBattle.disabled = true;
+                        const originalText = btnBattle.innerText;
+                        
+                        const frames = ["🚶‍♂️", "🏃‍♂️", "🚶‍♂️", "🏃‍♂️"];
+                        let frameIdx = 0;
+                        const animInterval = setInterval(() => {
+                            frameIdx = (frameIdx + 1) % frames.length;
+                            btnBattle.innerText = `Viajando... ${frames[frameIdx]}`;
+                        }, 250);
+
+                        setTimeout(() => {
+                            clearInterval(animInterval);
+                            btnBattle.disabled = false;
+                            btnBattle.innerText = originalText;
+
+                            const event = window.MapSystem.explore(locId, idx);
+                            if (event && event.type === 'combat') {
+                                window.gameCombat.startCombat(event.data);
+                            }
+                        }, 1200);
+                    };
+                }
             }
             battlesGrid.appendChild(btnBattle);
         });

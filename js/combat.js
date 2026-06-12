@@ -9,7 +9,7 @@ class CombatSystem {
         this.inventory = inventory;
         this.monster = null;
         this.inCombat = false;
-        
+
         this.playerStatus = [];
         this.monsterStatus = [];
         this.isPlayerTurn = true;
@@ -21,7 +21,7 @@ class CombatSystem {
         this.playerStatus = [];
         this.monsterStatus = [];
         this.isPlayerTurn = true;
-        
+
         Engine.emit('combatStarted', this.monster);
         Engine.emit('turnStarted', null);
         this.logSystem(`Você encontrou um ${monster.name} (Nível ${monster.level})!`);
@@ -51,7 +51,7 @@ class CombatSystem {
         // Calculate Damage
         let { min, max, weaknessMods } = this.calculatePlayerDamage();
         let dmg = Engine.randomInt(min, max);
-        
+
         // Critical Hit (based on Luk and Agi)
         const critChance = 5 + (this.player.getTotalAttr('luk') * 0.2) + (this.player.getTotalAttr('agi') * 0.1);
         let isCrit = false;
@@ -69,7 +69,7 @@ class CombatSystem {
                 hitWeakness = true;
             }
         }
-        
+
         // Class Bonus
         if (this.player.playerClass === 'Caçador' && !this.inventory.equipment.weaponMain?.magic) {
             dmg = Math.floor(dmg * 1.2);
@@ -82,11 +82,11 @@ class CombatSystem {
         dmg = Math.floor(dmg * weaknessMultiplier);
 
         this.monster.hp -= dmg;
-        
+
         let msg = `Você atacou e causou ${dmg} de dano.`;
         if (isCrit) msg = `Acerto Crítico! ` + msg;
         if (hitWeakness) msg += ` (Fraqueza explorada!)`;
-        
+
         this.logPlayer(msg);
         Engine.emit('combatAnimation', { target: 'player', anim: 'attack' });
         setTimeout(() => {
@@ -129,7 +129,7 @@ class CombatSystem {
         if (skill.type === 'attack' || skill.type === 'drain') {
             let { min, max } = this.calculatePlayerDamage();
             let dmg = Math.floor(Engine.randomInt(min, max) * skill.multiplier);
-            
+
             let weaknessHit = false;
             if (skill.element && this.monster.weakness && this.monster.weakness.includes(skill.element)) {
                 dmg *= 2; // Double damage for elemental weakness
@@ -142,7 +142,7 @@ class CombatSystem {
             if (weaknessHit) logMsg += " (Fraqueza explorada!)";
 
             this.logPlayer(logMsg);
-            
+
             if (skill.type === 'drain') {
                 const heal = Math.floor(dmg / 2);
                 this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
@@ -170,10 +170,10 @@ class CombatSystem {
             const heal = skill.healAmount;
             this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
             this.logPlayer(`Você usou ${skill.name} e curou ${heal} de vida.`);
-            
+
             Engine.emit('combatAnimation', { target: 'player', anim: 'damage' }); // Reusing damage anim for a subtle flash
             Engine.emit('combatUpdated', { player: this.player, monster: this.monster });
-            
+
             setTimeout(() => {
                 this.monsterTurn();
             }, 1000);
@@ -194,7 +194,7 @@ class CombatSystem {
         if (dmg < 1) dmg = 1;
 
         this.logMonster(`${this.monster.name} atacou e causou ${dmg} de dano.`);
-        
+
         Engine.emit('combatAnimation', { target: 'monster', anim: 'attack' });
         setTimeout(() => {
             this.player.hp -= dmg;
@@ -233,7 +233,7 @@ class CombatSystem {
             min += mainWeapon.minDmg || 0;
             max += mainWeapon.maxDmg || 0;
             if (mainWeapon.weakness) weaknessMods.push(mainWeapon.weakness);
-            
+
             // Int scaling for magic weapons
             if (mainWeapon.magic) {
                 min += Math.floor(this.player.getTotalAttr('int') * 0.8);
@@ -253,13 +253,13 @@ class CombatSystem {
 
     winCombat() {
         this.logSystem(`${this.monster.name} foi derrotado!`);
-        
+
         const loot = MonsterDatabase.getLoot(this.monster);
         this.player.gainXp(loot.xp);
         this.player.gainGold(loot.gold);
-        
+
         this.logSystem(`Ganhou ${loot.xp} XP e ${loot.gold} Ouro.`);
-        
+
         loot.items.forEach(item => {
             if (this.inventory.addItem(item)) {
                 // Log is handled by inventory
@@ -272,7 +272,7 @@ class CombatSystem {
         if (this.monster.isCampaign && this.monster.regionId) {
             const regionId = this.monster.regionId;
             window.MapSystem.progress[regionId]++;
-            
+
             const regionData = window.MapSystem.getRegionDetails(regionId);
             if (regionData && window.MapSystem.progress[regionId] >= regionData.encounters.length) {
                 this.logSystem(`Você completou a região: ${regionData.name}!`);
@@ -284,7 +284,7 @@ class CombatSystem {
                     }
                 }
             }
-            
+
             Engine.emit('regionProgressUpdated', regionId);
         }
 
@@ -306,7 +306,7 @@ class CombatSystem {
 
     usePotion(itemInstanceId) {
         if (!this.inCombat || !this.isPlayerTurn) return;
-        
+
         if (this.inventory.useItem(itemInstanceId)) {
             this.isPlayerTurn = false;
             Engine.emit('turnEnded', null);
@@ -318,6 +318,65 @@ class CombatSystem {
     logPlayer(msg) { Engine.emit('combatLog', { msg, type: 'log-player' }); }
     logMonster(msg) { Engine.emit('combatLog', { msg, type: 'log-monster' }); }
     logSystem(msg) { Engine.emit('combatLog', { msg, type: 'log-system' }); }
+
+    estimateWinChance(monster) {
+        // Estima o poder do Jogador (HP + Dano Médio + Defesa)
+        let { min, max } = this.calculatePlayerDamage();
+        let avgDmg = (min + max) / 2;
+        let defense = this.player.getTotalAttr('def');
+        Object.values(this.inventory.equipment).forEach(item => {
+            if (item && item.def) defense += item.def;
+        });
+
+        let playerPower = this.player.getMaxHp() + (avgDmg * 5) + (defense * 3);
+
+        // Estima o poder do Monstro
+        let monsterPower = monster.maxHp + (monster.dmg * 5);
+
+        // Calcula a proporção (1:1 = 50% de chance)
+        let ratio = playerPower / monsterPower;
+        let chance = Math.floor(ratio * 50);
+
+        // Limita a chance entre 5% (nunca é 0) e 95% (sempre há risco)
+        return Math.max(5, Math.min(95, chance));
+    }
+
+    autoResolveCombat(monster) {
+        const chance = this.estimateWinChance(monster);
+        const roll = Math.random() * 100;
+
+        // "Taxa de cansaço": Auto-batalha sempre consome um pouco de HP (10% a 30% do HP máximo)
+        const hpLoss = Math.floor(this.player.getMaxHp() * (0.1 + (Math.random() * 0.2)));
+        this.player.hp -= hpLoss;
+        if (this.player.hp <= 0) this.player.hp = 1; // Sobrevive por pouco
+
+        if (roll <= chance) {
+            // Vitória na Simulação
+            this.logSystem(`[Batalha Automática] Você derrotou ${monster.name}! Perdeu ${hpLoss} HP de cansaço.`);
+
+            const loot = MonsterDatabase.getLoot(monster);
+            this.player.gainXp(loot.xp);
+            this.player.gainGold(loot.gold);
+            this.logSystem(`Recebeu ${loot.xp} XP e ${loot.gold} Ouro.`);
+
+            loot.items.forEach(item => this.inventory.addItem(item));
+            Engine.emit('bestiaryUpdate', monster);
+            Engine.emit('questUpdate', { type: 'kill', monsterId: monster.id, monsterType: monster.type });
+
+            if (monster.isCampaign && monster.regionId) {
+                window.MapSystem.progress[monster.regionId]++;
+                Engine.emit('regionProgressUpdated', monster.regionId);
+            }
+
+            Engine.emit('playerUpdated', this.player);
+            return true;
+        } else {
+            // Derrota na Simulação
+            this.logSystem(`[Batalha Automática] Você falhou ao tentar derrotar ${monster.name} e recuou perdendo ${hpLoss} HP.`);
+            Engine.emit('playerUpdated', this.player);
+            return false;
+        }
+    }
 }
 
 window.CombatSystem = CombatSystem;
