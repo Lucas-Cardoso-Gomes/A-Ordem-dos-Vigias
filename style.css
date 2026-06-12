@@ -274,10 +274,42 @@ button.danger:hover {
     padding: 2rem;
     border: 1px solid var(--border-color);
 }
+
 .combat-entity {
     width: 45%;
     text-align: center;
 }
+
+.monsters-container {
+    width: 50%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.monster-card {
+    background-color: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    padding: 1rem;
+    width: calc(50% - 0.5rem);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 1;
+}
+
+.monster-card.target {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.monster-card.dead {
+    opacity: 0.3;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+
 .health-bar-container {
     width: 100%;
     height: 20px;
@@ -340,6 +372,12 @@ button.danger:hover {
         gap: 2rem;
     }
     .combat-entity {
+        width: 100%;
+    }
+    .monsters-container {
+        width: 100%;
+    }
+    .monster-card {
         width: 100%;
     }
 }

@@ -55,23 +55,26 @@ const MapSystem = {
             hordeSize = region.isBonus ? window.Engine.randomInt(2, 5) : window.Engine.randomInt(1, 3);
         }
         
-        const monster = {
-            ...baseMob,
-            name: hordeSize > 1 ? `Horda de ${baseMob.name}s (x${hordeSize})` : baseMob.name,
-            instanceId: 'mon_' + Date.now(),
-            level: level,
-            maxHp: Math.floor((baseMob.hp * scale) * (hordeSize * 0.8)),
-            hp: Math.floor((baseMob.hp * scale) * (hordeSize * 0.8)),
-            dmg: Math.floor((baseMob.dmg * scale) * (hordeSize * 0.7)),
-            xp: Math.floor(baseMob.xp * scale) * hordeSize,
-            gold: Math.floor(baseMob.gold * scale) * hordeSize,
-            isCampaign: isCampaign,
-            regionId: regionId,
-            battleIndex: index, // Ajuda a destravar o próximo mapa
-            hordeSize: hordeSize  // Guarda a quantidade de monstros para a Missão
-        };
+        const monsters = [];
+        for (let i = 0; i < hordeSize; i++) {
+            monsters.push({
+                ...baseMob,
+                name: hordeSize > 1 ? `${baseMob.name} ${String.fromCharCode(65 + i)}` : baseMob.name, // A, B, C etc
+                instanceId: 'mon_' + Date.now() + '_' + i,
+                level: level,
+                maxHp: Math.floor(baseMob.hp * scale),
+                hp: Math.floor(baseMob.hp * scale),
+                dmg: Math.floor(baseMob.dmg * scale),
+                xp: Math.floor(baseMob.xp * scale),
+                gold: Math.floor(baseMob.gold * scale),
+                isCampaign: isCampaign,
+                regionId: regionId,
+                battleIndex: index, // Ajuda a destravar o próximo mapa
+                hordeSize: hordeSize // Passamos para manter compatibilidade com missões antigas
+            });
+        }
         
-        return { type: 'combat', data: monster };
+        return { type: 'combat', data: monsters };
     }
 };
 
