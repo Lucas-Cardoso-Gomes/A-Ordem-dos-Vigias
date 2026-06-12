@@ -743,6 +743,59 @@ class UIManager {
             div.appendChild(btn);
             this.elCraftingRecipes.appendChild(div);
         });
+        // --- INÍCIO DO SISTEMA DE REFINAMENTO ---
+        const hr = document.createElement('hr');
+        hr.style.margin = '2rem 0 1rem 0';
+        hr.style.borderColor = 'var(--border-color)';
+        this.elCraftingRecipes.appendChild(hr);
+
+        const upgTitle = document.createElement('h3');
+        upgTitle.innerText = '🛠️ Refinar Equipamentos';
+        upgTitle.style.color = 'var(--rarity-epic)';
+        this.elCraftingRecipes.appendChild(upgTitle);
+
+        const upgItems = inventory.items.filter(i => i.type === 'weapon' || i.type === 'armor');
+        if (upgItems.length === 0) {
+            const noI = document.createElement('p');
+            noI.innerText = 'Não tens equipamento na mochila para refinar. (Desequipa um item primeiro)';
+            this.elCraftingRecipes.appendChild(noI);
+        }
+
+        upgItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `quest-card rarity-${item.rarity}`;
+            
+            const currentLevel = parseInt((item.name.match(/\+(\d+)/) || [0, 0])[1]);
+            const nextLevel = currentLevel + 1;
+            const costGold = 100 * nextLevel;
+            const matReq = { id: 'm1', qty: nextLevel, name: 'Minério de Ferro' }; // Pede Ferro
+
+            div.innerHTML = `<strong>${item.name} ➔ Nível +${nextLevel}</strong><br>Custo: ${costGold} Ouro e ${matReq.qty}x ${matReq.name}<br>`;
+
+            const btn = document.createElement('button');
+            btn.innerText = 'Refinar';
+            
+            const hasMat = inventory.items.find(i => i.id === matReq.id && i.count >= matReq.qty);
+            if (player.gold < costGold || !hasMat) btn.disabled = true;
+
+            btn.onclick = () => {
+                player.gold -= costGold;
+                const matItem = inventory.items.find(i => i.id === matReq.id);
+                inventory.removeItem(matItem.instanceId, matReq.qty);
+
+                item.name = item.name.includes('+') ? item.name.replace(/\+\d+/, `+${nextLevel}`) : `${item.name} +1`;
+                if (item.minDmg) item.minDmg = Math.floor(item.minDmg * 1.20);
+                if (item.maxDmg) item.maxDmg = Math.floor(item.maxDmg * 1.20);
+                if (item.def) item.def = Math.floor(item.def * 1.20);
+                if (item.value) item.value = Math.floor(item.value * 1.5);
+                
+                Engine.emit('systemLog', `Sucesso! O item foi refinado para +${nextLevel}!`);
+                Engine.emit('inventoryUpdated', inventory);
+                Engine.emit('playerUpdated', player);
+            };
+            div.appendChild(btn);
+            this.elCraftingRecipes.appendChild(div);
+        });
     }
 
     updateBestiary(monster) {
@@ -786,21 +839,28 @@ class UIManager {
 
     playCombatAnimation(data) {
         let el;
-        if (data.target === 'player') {
-            el = this.elCombatPlayerSide;
-        } else {
-            if (data.monsterId) {
-                el = document.getElementById(`monster-card-${data.monsterId}`);
-            }
-        }
+        if (data.target === 'player') el = this.elCombatPlayerSide;
+        else if (data.monsterId) el = document.getElementById(`monster-card-${data.monsterId}`);
         if (!el) return;
 
         const animClass = data.anim === 'attack' ? 'anim-attack' : 'anim-damage';
         el.classList.add(animClass);
 
-        setTimeout(() => {
-            el.classList.remove(animClass);
-        }, 500); // Wait long enough for animation to finish
+        // Gera o texto flutuante de dano/cura
+        if (data.dmg !== undefined) {
+            const ft = document.createElement('div');
+            ft.className = 'floating-text';
+            ft.innerText = data.isHeal ? `+${data.dmg}` : `-${data.dmg}`;
+            ft.style.color = data.isHeal ? '#00ff00' : (data.isCrit ? '#ffaa00' : '#ff4444');
+            if (data.isCrit) ft.style.fontSize = '2.2rem'; // Crítico é maior!
+            
+            ft.style.left = '50%';
+            ft.style.top = '20%';
+            el.appendChild(ft);
+            setTimeout(() => ft.remove(), 1000);
+        }
+
+        setTimeout(() => el.classList.remove(animClass), 500);
     }
 
     renderShop() {
@@ -943,6 +1003,36 @@ class UIManager {
             this.elShopList.appendChild(div);
         });
     }
+
+handleMapEvent(ev) {
+        let msg = `${ev.title}\n\n${ev.desc}\n`;
+        if (ev.gold > 0) { msg += `\n💰 +${ev.gold} Ouro`; window.gamePlayer.gainGold(ev.gold); }
+        if (ev.hp > 0) { msg += `\n❤️ +${ev.hp} HP`; window.gamePlayer.heal(ev.hp); }
+        if (ev.hp < 0) { 
+            const dmg = Math.abs(ev.hp); 
+            msg += `\n🩸 -${dmg} HP`; 
+            window.gamePlayer.hp -= dmg; 
+            if(window.gamePlayer.hp <= 0) window.gamePlayer.hp = 1; 
+        }
+        alert(msg);
+        
+        if (ev.isCampaign) {
+            window.MapSystem.progress[ev.regionId]++;
+            const regionData = window.MapSystem.getRegionDetails(ev.regionId);
+            const isLastBattle = ev.battleIndex === (regionData.encounters.length - 1);
+            const isCompleted = window.MapSystem.progress[ev.regionId] >= regionData.encounters.length;
+            
+            if (regionData && (isLastBattle || isCompleted)) {
+                if (regionData.next && !window.MapSystem.unlockedRegions.includes(regionData.next)) {
+                    window.MapSystem.unlockedRegions.push(regionData.next);
+                    Engine.emit('systemLog', `Nova região desbloqueada: ${window.MapSystem.getRegionDetails(regionData.next).name}!`);
+                }
+            }
+            Engine.emit('regionProgressUpdated', ev.regionId);
+        }
+        Engine.emit('playerUpdated', window.gamePlayer);
+    }
+
     renderRegionDetails(locId) {
         const loc = window.MapSystem.getRegionDetails(locId);
         if (!loc) return;
@@ -1026,23 +1116,22 @@ class UIManager {
 
                     btnBattle.onclick = () => {
                         const event = window.MapSystem.explore(locId, idx);
+                        if (event && event.type === 'event') {
+                            this.handleMapEvent(event.data);
+                            return; // Para aqui, foi um evento e não combate!
+                        }
                         if (!event || event.type !== 'combat') return;
                         
-                        const monsters = event.data;
-                        const winChance = window.gameCombat.estimateWinChance(monsters);
-
-                        const isHorde = Array.isArray(monsters) && monsters.length > 1;
-                        const targetName = isHorde ? `grupo de inimigos (${monsters.length})` : (Array.isArray(monsters) ? monsters[0].name : monsters.name);
-                        
-                        const msg = `Estimativa de Vitória: ${winChance}%\n\nO computador simulará o combate contra [${targetName}]. Batalhas automáticas aceleradas geram cansaço e consumirão uma porção do seu HP, ganhando ou perdendo.\n\nDeseja iniciar a Batalha Automática?`;
-                        
-                        if (confirm(msg)) {
-                            const result = window.gameCombat.autoResolveCombat(monsters);
-                            if (result) {
-                                this.showToast(`Vitória Simulada! Você derrotou ${targetName}. Verifique o chat de combate.`);
-                            } else {
-                                this.showToast(`Derrota Simulada. ${targetName} foi forte demais.`);
+                        // Lógica de simulação ou iniciar combate (mantém o que você já tinha)
+                        // Para o mapa Bônus:
+                        if (loc.isBonus) {
+                            const monsters = event.data;
+                            const winChance = window.gameCombat.estimateWinChance(monsters);
+                            if (confirm(`Estimativa: ${winChance}%\nDeseja iniciar Batalha Automática?`)) {
+                                window.gameCombat.autoResolveCombat(monsters);
                             }
+                        } else {
+                            window.gameCombat.startCombat(event.data);
                         }
                     };
                 } 

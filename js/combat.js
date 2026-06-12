@@ -110,7 +110,7 @@ class CombatSystem {
         if (hitWeakness) msg += ` (Fraqueza explorada!)`;
 
         this.logPlayer(msg);
-        Engine.emit('combatAnimation', { target: 'player', anim: 'attack' });
+        Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: target.instanceId, dmg: dmg, isCrit: isCrit });
 
         setTimeout(() => {
             Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: target.instanceId });
@@ -170,6 +170,9 @@ class CombatSystem {
             let logMsg = `Você usou [${skill.name}]`;
             if (skill.isAoE) logMsg += ` em todos os inimigos!`;
 
+            // Precisamos guardar o dano exato que cada monstro sofreu para a animação flutuante
+            let damageDealt = {};
+
             // Aplica o dano em cada alvo
             targets.forEach(t => {
                 let dmg = Math.floor(baseDmg * skill.multiplier);
@@ -181,6 +184,8 @@ class CombatSystem {
                 }
 
                 t.hp -= dmg;
+                damageDealt[t.instanceId] = dmg; // Guarda o dano para usar no setTimeout
+
                 if (skill.type === 'drain') {
                     totalHeal += Math.floor(dmg / 2);
                 }
@@ -203,10 +208,18 @@ class CombatSystem {
 
             Engine.emit('combatAnimation', { target: 'player', anim: 'attack' });
             
+            // Se houve cura por dreno, exibe o número verde no jogador
+            if (totalHeal > 0) {
+                Engine.emit('combatAnimation', { target: 'player', anim: 'damage', dmg: totalHeal, isHeal: true });
+            }
+
             setTimeout(() => {
                 // Anima e processa a morte de cada alvo atingido
                 targets.forEach(t => {
-                    Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: t.instanceId });
+                    const dmgTaken = damageDealt[t.instanceId];
+                    // Emite a animação com o dano para o texto flutuante vermelho no monstro
+                    Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: t.instanceId, dmg: dmgTaken });
+                    
                     if (t.hp <= 0) {
                         t.hp = 0;
                         this.processMonsterDeath(t);
@@ -228,7 +241,8 @@ class CombatSystem {
             this.player.hp = Math.min(this.player.hp + heal, this.player.getMaxHp());
             this.logPlayer(`Você usou ${skill.name} e curou ${heal} de vida.`);
 
-            Engine.emit('combatAnimation', { target: 'player', anim: 'damage' });
+            // Animação de cura com texto verde a subir no jogador
+            Engine.emit('combatAnimation', { target: 'player', anim: 'damage', dmg: heal, isHeal: true });
             Engine.emit('combatUpdated', { player: this.player, monsters: this.monsters });
 
             setTimeout(() => {
@@ -273,26 +287,42 @@ class CombatSystem {
 
         const processAttack = (index) => {
             if (index >= livingMonsters.length || this.player.hp <= 0) {
-                if (this.player.hp <= 0) {
-                    this.loseCombat();
-                } else {
-                    this.isPlayerTurn = true;
-                    Engine.emit('turnStarted', null);
-                }
+                if (this.player.hp <= 0) this.loseCombat();
+                else { this.isPlayerTurn = true; Engine.emit('turnStarted', null); }
                 return;
             }
 
             const attacker = livingMonsters[index];
-            let dmg = attacker.dmg - Math.floor(defense * 0.5);
-            if (dmg < 1) dmg = 1;
+            let dmg = 0;
 
-            this.logMonster(`${attacker.name} atacou e causou ${dmg} de dano.`);
+            // IA DO CHEFÃO: 30% de hipótese de usar um Ataque Especial
+            if (attacker.isBoss && Math.random() < 0.3) {
+                if (attacker.id === 'boss1') { 
+                    // Mecânica do Rei Vampiro: Dreno
+                    dmg = Math.floor(attacker.dmg * 1.2) - Math.floor(defense * 0.3); // Ignora 70% de def
+                    if (dmg < 1) dmg = 1;
+                    const heal = Math.floor(dmg * 0.8);
+                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + heal);
+                    this.logMonster(`⚠️ ${attacker.name} usou [Dreno Sombrio] causando ${dmg} de dano e curando ${heal} HP!`);
+                    Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: attacker.instanceId, dmg: heal, isHeal: true });
+                } else { 
+                    // Mecânica de Dragões/Minotauros: Esmagamento Maciço
+                    dmg = Math.floor(attacker.dmg * 1.8) - Math.floor(defense * 0.1); // Ignora 90% de def e bate quase a dobrar
+                    if (dmg < 1) dmg = 1;
+                    this.logMonster(`🔥 ${attacker.name} usou [Golpe Devastador] obliterando a sua defesa por ${dmg} de dano!`);
+                }
+            } else {
+                // Ataque Normal
+                dmg = attacker.dmg - Math.floor(defense * 0.5);
+                if (dmg < 1) dmg = 1;
+                this.logMonster(`${attacker.name} atacou e causou ${dmg} de dano.`);
+            }
 
             Engine.emit('combatAnimation', { target: 'monster', anim: 'attack', monsterId: attacker.instanceId });
 
             setTimeout(() => {
                 this.player.hp -= dmg;
-                Engine.emit('combatAnimation', { target: 'player', anim: 'damage' });
+                Engine.emit('combatAnimation', { target: 'player', anim: 'damage', dmg: dmg });
                 Engine.emit('combatUpdated', { player: this.player, monsters: this.monsters });
                 Engine.emit('playerUpdated', this.player);
 
@@ -300,7 +330,7 @@ class CombatSystem {
                     this.player.hp = 0;
                     this.loseCombat();
                 } else {
-                    setTimeout(() => processAttack(index + 1), 600); // Wait bit before next monster attacks
+                    setTimeout(() => processAttack(index + 1), 600);
                 }
             }, 300);
         };

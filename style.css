@@ -381,3 +381,20 @@ button.danger:hover {
         width: 100%;
     }
 }
+
+/* SISTEMA DE DANO FLUTUANTE */
+.floating-text {
+    position: absolute;
+    font-weight: 900;
+    font-size: 1.5rem;
+    animation: floatUp 1s ease-out forwards;
+    pointer-events: none;
+    z-index: 100;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+@keyframes floatUp {
+    0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
+    10% { transform: translate(-50%, -10px) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50px) scale(1); }
+}
+.player-side, .monster-card { position: relative; }

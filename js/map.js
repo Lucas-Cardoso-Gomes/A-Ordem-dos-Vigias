@@ -46,10 +46,21 @@ const MapSystem = {
         if (!baseMob) return null;
 
         const isCampaign = index === this.progress[regionId];
+
+        // EVENTOS DINÂMICOS: 15% de chance se não for um Chefão
+        if (!baseMob.isBoss && Math.random() < 0.15) {
+            const events = [
+                { title: 'Baú Escondido', desc: 'Encontraste um baú antigo esquecido pelas sombras!', gold: window.Engine.randomInt(50, 200), hp: 0 },
+                { title: 'Armadilha Goblin', desc: 'Pisaste numa armadilha de espinhos cravada no chão!', gold: 0, hp: -30 },
+                { title: 'Fonte Cristalina', desc: 'Bebeste de uma fonte mágica e sentiste a tua energia voltar.', gold: 0, hp: 100 }
+            ];
+            const ev = events[Math.floor(Math.random() * events.length)];
+            return { type: 'event', data: { ...ev, isCampaign, regionId, battleIndex: index } };
+        }
+
         const level = Math.max(region.minLvl, Math.min(region.maxLvl, window.Engine.randomInt(baseMob.minLvl, baseMob.maxLvl)));
         const scale = Math.max(0.2, 1 + (level - baseMob.minLvl) * 0.1);
 
-        // CORREÇÃO: Hordas agora aparecem em mapas normais (1 a 3) e mapas bônus (2 a 5)
         let hordeSize = 1;
         if (!baseMob.isBoss) {
             hordeSize = window.Engine.randomInt(1, 10);
@@ -59,7 +70,7 @@ const MapSystem = {
         for (let i = 0; i < hordeSize; i++) {
             monsters.push({
                 ...baseMob,
-                name: hordeSize > 1 ? `${baseMob.name} ${String.fromCharCode(65 + i)}` : baseMob.name, // A, B, C etc
+                name: hordeSize > 1 ? `${baseMob.name} ${String.fromCharCode(65 + i)}` : baseMob.name,
                 instanceId: 'mon_' + Date.now() + '_' + i,
                 level: level,
                 maxHp: Math.floor(baseMob.hp * scale),
@@ -69,8 +80,8 @@ const MapSystem = {
                 gold: Math.floor(baseMob.gold * scale),
                 isCampaign: isCampaign,
                 regionId: regionId,
-                battleIndex: index, // Ajuda a destravar o próximo mapa
-                hordeSize: hordeSize // Passamos para manter compatibilidade com missões antigas
+                battleIndex: index,
+                hordeSize: hordeSize
             });
         }
 
