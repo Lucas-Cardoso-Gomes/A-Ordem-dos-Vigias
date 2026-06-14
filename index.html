@@ -235,9 +235,22 @@
             <!-- Screen: Settings -->
             <section id="screen-settings" class="screen hidden">
                 <h2>Configurações</h2>
-                <button id="btn-save">Salvar Jogo</button>
-                <button id="btn-load">Carregar Jogo</button>
-                <button id="btn-reset" class="danger">Resetar Progresso</button>
+                <div style="margin-bottom: 1rem;">
+                    <button id="btn-save">Salvar Jogo</button>
+                    <button id="btn-load">Carregar Jogo</button>
+                    <button id="btn-reset" class="danger">Resetar Progresso</button>
+                </div>
+
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                    <h3>Exportar / Importar Save</h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Cuidado: Copie o texto inteiro do seu save e guarde em um local seguro.</p>
+                    <textarea id="save-data-textarea" style="width: 100%; height: 100px; background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.5rem; margin-bottom: 0.5rem;"></textarea>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="btn-export-save">Exportar Save</button>
+                        <button id="btn-import-save">Importar Save</button>
+                        <button id="btn-copy-save" class="hidden">Copiar para a Área de Transferência</button>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
@@ -249,7 +262,9 @@
     <script src="js/engine.js"></script>
     <script src="js/items.js"></script>
     <script src="js/monsters.js"></script>
+    <script src="js/skills.js"></script>
     <script src="js/player.js"></script>
+    <script src="js/ui/combatUI.js"></script>
     <script src="js/inventory.js"></script>
     <script src="js/crafting.js"></script>
     <script src="js/map.js"></script>
