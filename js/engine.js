@@ -51,6 +51,30 @@ const Engine = {
         localStorage.removeItem('a_ordem_dos_vigias_save');
         this.emit('systemLog', 'Progresso resetado.');
     },
+
+    exportSave() {
+        try {
+            const serializedState = localStorage.getItem('a_ordem_dos_vigias_save');
+            if (serializedState === null) return null;
+            return btoa(unescape(encodeURIComponent(serializedState)));
+        } catch (e) {
+            console.error("Failed to export game", e);
+            return null;
+        }
+    },
+
+    importSave(base64Str) {
+        try {
+            const serializedState = decodeURIComponent(escape(atob(base64Str)));
+            // Quick test to ensure it's valid JSON
+            JSON.parse(serializedState);
+            localStorage.setItem('a_ordem_dos_vigias_save', serializedState);
+            return true;
+        } catch (e) {
+            console.error("Failed to import game", e);
+            return false;
+        }
+    },
     
     // RNG Utilities
     randomInt(min, max) {

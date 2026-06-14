@@ -294,22 +294,45 @@ class CombatSystem {
 
             const attacker = livingMonsters[index];
             let dmg = 0;
+            let actionType = 'attack'; // attack, special, defend
 
-            // IA DO CHEFÃO: 30% de hipótese de usar um Ataque Especial
-            if (attacker.isBoss && Math.random() < 0.3) {
-                if (attacker.id === 'boss1') { 
-                    // Mecânica do Rei Vampiro: Dreno
-                    dmg = Math.floor(attacker.dmg * 1.2) - Math.floor(defense * 0.3); // Ignora 70% de def
+            // Basic AI Decision Making
+            const rand = Math.random();
+            if (attacker.isBoss) {
+                if (rand < 0.3) actionType = 'special';
+            } else if (attacker.tier >= 2) {
+                if (rand < 0.15) actionType = 'defend'; // 15% chance to defend
+                else if (rand < 0.35) actionType = 'special'; // 20% chance for a minor special attack
+            }
+
+            if (actionType === 'defend') {
+                // Monstro se defende, ganha "defesa" temporária (simulado curando um pouco de HP para simplificar)
+                const heal = Math.floor(attacker.maxHp * 0.1);
+                attacker.hp = Math.min(attacker.maxHp, attacker.hp + heal);
+                this.logMonster(`🛡️ ${attacker.name} assumiu uma postura defensiva (Curou ${heal} HP)!`);
+                Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: attacker.instanceId, dmg: heal, isHeal: true });
+
+                setTimeout(() => processAttack(index + 1), 600);
+                return;
+            }
+
+            if (actionType === 'special') {
+                if (attacker.isBoss && attacker.id === 'boss1') {
+                    dmg = Math.floor(attacker.dmg * 1.2) - Math.floor(defense * 0.3);
                     if (dmg < 1) dmg = 1;
                     const heal = Math.floor(dmg * 0.8);
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + heal);
                     this.logMonster(`⚠️ ${attacker.name} usou [Dreno Sombrio] causando ${dmg} de dano e curando ${heal} HP!`);
                     Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: attacker.instanceId, dmg: heal, isHeal: true });
-                } else { 
-                    // Mecânica de Dragões/Minotauros: Esmagamento Maciço
-                    dmg = Math.floor(attacker.dmg * 1.8) - Math.floor(defense * 0.1); // Ignora 90% de def e bate quase a dobrar
+                } else if (attacker.isBoss) {
+                    dmg = Math.floor(attacker.dmg * 1.8) - Math.floor(defense * 0.1);
                     if (dmg < 1) dmg = 1;
                     this.logMonster(`🔥 ${attacker.name} usou [Golpe Devastador] obliterando a sua defesa por ${dmg} de dano!`);
+                } else {
+                    // Minor special for tier 2/3
+                    dmg = Math.floor(attacker.dmg * 1.3) - Math.floor(defense * 0.4);
+                    if (dmg < 1) dmg = 1;
+                    this.logMonster(`⚔️ ${attacker.name} usou [Ataque Feroz] causando ${dmg} de dano!`);
                 }
             } else {
                 // Ataque Normal
@@ -368,11 +391,11 @@ class CombatSystem {
     winCombat() {
         this.logSystem(`Você venceu o combate!`);
         
-        // Progressão da região só acontece se TODOS morreram
-        // Pegamos o info do primeiro monstro, pois todos são da mesma região e index
-        const repMonster = this.monsters[0];
+        // Progressão da região acontece se o combate fazia parte de uma região do mapa
+        // Procuramos o monstro representativo que tenha os dados da região (caso outros tenham sido invocados sem regionId)
+        const repMonster = this.monsters.find(m => m.regionId);
 
-        if (repMonster.regionId) {
+        if (repMonster && repMonster.regionId) {
             const regionId = repMonster.regionId;
             const regionData = window.MapSystem.getRegionDetails(regionId);
             
