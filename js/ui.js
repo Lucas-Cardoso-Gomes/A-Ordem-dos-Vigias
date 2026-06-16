@@ -350,9 +350,9 @@ class UIManager {
 
     renderPartySelectors(party) {
         if (!this.elInvPartySelector) return;
-
+        
         const optionsHTML = party.map((p, idx) => `<option value="${idx}">${p.name} (Nv. ${p.level})</option>`).join('');
-
+        
         this.elInvPartySelector.innerHTML = optionsHTML;
         this.elInvPartySelector.value = this.selectedPartyIndex;
 
@@ -364,13 +364,13 @@ class UIManager {
     renderHeader() {
         const party = window.gameParty;
         if (!party) return;
-
+        
         const avgLevel = Math.floor(party.reduce((sum, p) => sum + p.level, 0) / party.length);
         const totalHp = party.reduce((sum, p) => sum + p.hp, 0);
         const maxHp = party.reduce((sum, p) => sum + p.getMaxHp(), 0);
         const totalMana = party.reduce((sum, p) => sum + p.mana, 0);
         const maxMana = party.reduce((sum, p) => sum + p.getMaxMana(), 0);
-
+        
         this.elHeaderLevel.innerText = `Nível Médio: ${avgLevel}`;
         this.elHeaderHp.innerText = `Grupo HP: ${totalHp}/${maxHp}`;
         this.elHeaderMana.innerText = `Grupo Mana: ${totalMana}/${maxMana}`;
@@ -390,20 +390,20 @@ class UIManager {
         const container = document.getElementById('character-list');
         if (!container) return;
         container.innerHTML = '';
-
+        
         window.gameParty.forEach((p, idx) => {
             const card = document.createElement('div');
             card.style.background = 'var(--bg-panel)';
             card.style.border = '1px solid var(--border-color)';
             card.style.padding = '1rem';
             card.style.borderRadius = '4px';
-
+            
             // Renomear button is built per character card
             const titleHtml = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
                 <h3 style="margin: 0;">${p.name}</h3>
                 <button class="btn-rename" data-idx="${idx}" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">Renomear</button>
             </div>`;
-
+            
             const statsHtml = `
                 <p style="margin: 0.2rem 0;"><strong>Nível:</strong> ${p.level}</p>
                 <p style="margin: 0.2rem 0;"><strong>HP:</strong> ${p.hp} / ${p.getMaxHp()}</p>
@@ -421,9 +421,9 @@ class UIManager {
                     <div style="display: flex; justify-content: space-between;"><span>Sorte: ${p.attributes.luk} (${p.getTotalAttr('luk')})</span> <button class="btn-add-attr" data-attr="luk" data-idx="${idx}" style="display: ${p.statPoints > 0 ? 'inline-block' : 'none'}; padding: 0 5px;">+</button></div>
                 </div>
             `;
-
+            
             card.innerHTML = titleHtml + statsHtml;
-
+            
             // Re-bind Rename
             const btnRename = card.querySelector('.btn-rename');
             btnRename.addEventListener('click', () => {
@@ -461,7 +461,7 @@ class UIManager {
                     btnArea.appendChild(btnClasse);
                 });
             }
-
+            
             container.appendChild(card);
         });
     }
@@ -495,7 +495,7 @@ class UIManager {
 
         const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
         const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
-
+        
         items.sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
             if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
@@ -514,7 +514,7 @@ class UIManager {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
             div.style.position = 'relative';
-
+            
             const emoji = typeEmojis[item.type] || '📦';
             div.innerHTML = `<span style="font-size: 1.5rem;">${emoji}</span>`;
 
@@ -823,18 +823,18 @@ showToast(msg) {
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
             this.shopItems = [];
-
+            
             // Random Gear
             for (let i = 0; i < 6; i++) {
                 this.shopItems.push(ItemDatabase.generateItem(playerLvl + Math.floor(Math.random() * 5)));
             }
-
+            
             // Random Potions
             for (let i = 0; i < 4; i++) {
                 const pot = ItemDatabase.potions[Math.floor(Math.random() * ItemDatabase.potions.length)];
                 this.shopItems.push(ItemDatabase.getPotion(pot.id));
             }
-
+            
             // Random Materials
             for (let i = 0; i < 4; i++) {
                 const mat = ItemDatabase.materials[Math.floor(Math.random() * ItemDatabase.materials.length)];
@@ -850,7 +850,7 @@ showToast(msg) {
         if (currentFilter !== 'all') {
             filteredBuyItems = filteredBuyItems.filter(item => item.type === currentFilter);
         }
-
+        
         filteredBuyItems.sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
             if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
@@ -876,7 +876,7 @@ showToast(msg) {
             descHtml += this.getItemDescription(item);
             descHtml += `<hr style="margin: 0.5rem 0; border-color: var(--border-color);">`;
             descHtml += `Preço: <strong>${increasedCost} Ouro</strong><br><br>`;
-
+            
             div.innerHTML = descHtml;
 
             const btnBuy = document.createElement('button');
@@ -904,7 +904,7 @@ showToast(msg) {
             div.appendChild(btnBuy);
             buySection.appendChild(div);
         });
-
+        
         this.elShopList.appendChild(buySection);
 
         // Divisor visual para a seção de Venda
@@ -926,7 +926,7 @@ showToast(msg) {
         if (currentFilter !== 'all') {
             itemsToSell = itemsToSell.filter(item => item.type === currentFilter);
         }
-
+        
         itemsToSell.sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
             if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
@@ -958,7 +958,7 @@ showToast(msg) {
             desc += this.getItemDescription(item);
             desc += `<hr style="margin: 0.5rem 0; border-color: var(--border-color);">`;
             desc += `Venda: <strong>${sellPrice} Ouro</strong>${item.count > 1 ? ' (cada)' : ''}<br><br>`;
-
+            
             div.innerHTML = desc;
 
             const btnSell = document.createElement('button');
@@ -989,22 +989,22 @@ showToast(msg) {
 
             sellSection.appendChild(div);
         });
-
+        
         this.elShopList.appendChild(sellSection);
     }
 
 handleMapEvent(ev) {
         let msg = `${ev.title}\n\n${ev.desc}\n`;
         if (ev.gold > 0) { msg += `\n💰 +${ev.gold} Ouro`; window.gameParty[0].gainGold(ev.gold); }
-        if (ev.hp > 0) {
-            msg += `\n❤️ +${ev.hp} HP`;
-            window.gameParty.forEach(p => p.heal(ev.hp));
+        if (ev.hp > 0) { 
+            msg += `\n❤️ +${ev.hp} HP`; 
+            window.gameParty.forEach(p => p.heal(ev.hp)); 
         }
         if (ev.hp < 0) { 
             const dmg = Math.abs(ev.hp); 
-            msg += `\n🩸 -${dmg} HP (Todos os Membros)`;
+            msg += `\n🩸 -${dmg} HP (Todos os Membros)`; 
             window.gameParty.forEach(p => {
-                p.hp -= dmg;
+                p.hp -= dmg; 
                 if(p.hp <= 0) p.hp = 1;
             });
         }
