@@ -14,6 +14,33 @@ class CombatSystem {
         this.initiativeOrder = []; // Static list built once per battle
         this.turnQueue = []; // Dynamic list that depletes and refills from initiativeOrder
         this.currentTurnEntity = null;
+
+        // Grid Dimensions
+        this.gridWidth = 25;
+        this.gridHeight = 10;
+        
+        // State for Turn Movement
+        this.hasMovedThisTurn = false;
+        this.movementRemaining = 0;
+        this.isSelectingMove = false;
+        this.isSelectingTarget = false; // For ranged attacks/skills
+        this.selectedSkill = null;
+    }
+
+    setupGridPositions() {
+        // Place players on the left side (x: 0 or 1, spread y)
+        this.party.forEach((p, idx) => {
+            p.gridX = idx % 2 === 0 ? 0 : 1;
+            p.gridY = 2 + (idx * 2);
+            if (p.gridY >= this.gridHeight) p.gridY = this.gridHeight - 1;
+        });
+
+        // Place monsters on the right side (x: 23 or 24, spread y)
+        this.monsters.forEach((m, idx) => {
+            m.gridX = idx % 2 === 0 ? 24 : 23;
+            m.gridY = 1 + (idx * 2);
+            if (m.gridY >= this.gridHeight) m.gridY = this.gridHeight - 1;
+        });
     }
 
     startCombat(monstersArray) {
@@ -21,6 +48,9 @@ class CombatSystem {
         this.targetIndex = 0;
         this.inCombat = true;
         
+        // Setup initial grid positions
+        this.setupGridPositions();
+
         // Revive players with 1 HP if they entered combat dead (optional gameplay rule, let's keep it forgiving)
         this.party.forEach(p => {
             if (p.hp <= 0) p.hp = 1;
@@ -101,19 +131,87 @@ class CombatSystem {
         }
 
         this.currentTurnEntity = this.turnQueue.shift();
+        this.hasMovedThisTurn = false;
+        this.isSelectingMove = false;
+        this.isSelectingTarget = false;
+        this.selectedSkill = null;
 
         Engine.emit('turnQueueUpdated', this.turnQueue);
         Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
 
         if (this.currentTurnEntity.type === 'player') {
             const p = this.party[this.currentTurnEntity.index];
-            this.logSystem(`Turno de ${p.name}.`);
+            this.movementRemaining = 5 + Math.floor(p.getTotalAttr('agi') / 10);
+            this.logSystem(`Turno de ${p.name}. Movimento: ${this.movementRemaining} blocos.`);
             Engine.emit('turnStarted', this.currentTurnEntity.index);
         } else {
             const m = this.monsters[this.currentTurnEntity.index];
+            this.movementRemaining = 5 + Math.floor((5 + Math.floor(m.level / 2)) / 10); // Base monster agi logic
             Engine.emit('turnEnded', null);
             setTimeout(() => this.monsterAttack(m), 1000);
         }
+    }
+
+    startMoveSelection() {
+        if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
+        if (this.movementRemaining <= 0) {
+            this.logSystem('Sem movimento restante.');
+            return;
+        }
+        this.isSelectingMove = true;
+        this.isSelectingTarget = false;
+        Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+    }
+
+    cancelGridSelection() {
+        this.isSelectingMove = false;
+        this.isSelectingTarget = false;
+        this.selectedSkill = null;
+        Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+    }
+
+    moveEntityTo(x, y) {
+        if (!this.inCombat) return;
+
+        let entity;
+        if (this.currentTurnEntity.type === 'player') {
+            entity = this.party[this.currentTurnEntity.index];
+        } else {
+            entity = this.monsters[this.currentTurnEntity.index];
+        }
+
+        const dist = Math.abs(entity.gridX - x) + Math.abs(entity.gridY - y);
+        
+        if (dist > this.movementRemaining) {
+            if (this.currentTurnEntity.type === 'player') {
+                this.logSystem(`Alcance insuficiente. Distância: ${dist}, Movimento restante: ${this.movementRemaining}`);
+            }
+            return false;
+        }
+
+        // Check if cell is occupied
+        const isOccupiedByPlayer = this.party.some(p => p.hp > 0 && p.gridX === x && p.gridY === y);
+        const isOccupiedByMonster = this.monsters.some(m => m.hp > 0 && m.gridX === x && m.gridY === y);
+
+        if (isOccupiedByPlayer || isOccupiedByMonster) {
+            if (this.currentTurnEntity.type === 'player') {
+                this.logSystem('Célula já ocupada.');
+            }
+            return false;
+        }
+
+        entity.gridX = x;
+        entity.gridY = y;
+        this.movementRemaining -= dist;
+        this.hasMovedThisTurn = true;
+        
+        if (this.currentTurnEntity.type === 'player') {
+            this.logSystem(`${entity.name} moveu-se para (${x}, ${y}). Movimento restante: ${this.movementRemaining}`);
+            this.isSelectingMove = false;
+            Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+        }
+        
+        return true;
     }
 
     getCurrentTarget() {
@@ -147,6 +245,10 @@ class CombatSystem {
         }
     }
 
+    getDistance(e1, e2) {
+        return Math.abs(e1.gridX - e2.gridX) + Math.abs(e1.gridY - e2.gridY);
+    }
+
     playerAttack() {
         if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
         const p = this.party[this.currentTurnEntity.index];
@@ -154,6 +256,24 @@ class CombatSystem {
         const target = this.getCurrentTarget();
         if (!target) return;
 
+        // Check Range
+        let attackRange = 1; // Default melee
+        if (p.equipment?.weaponMain) {
+            const wType = p.equipment.weaponMain.type;
+            if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
+                attackRange = 5;
+            }
+        }
+        
+        const dist = this.getDistance(p, target);
+        if (dist > attackRange) {
+            this.logSystem(`${p.name} tentou atacar, mas o alvo está fora de alcance (${dist} > ${attackRange}).`);
+            this.isSelectingTarget = false;
+            Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+            return;
+        }
+
+        this.isSelectingTarget = false;
         Engine.emit('turnEnded', null);
 
         let { min, max, weaknessMods } = this.calculatePlayerDamage(p);
@@ -217,15 +337,30 @@ class CombatSystem {
 
         if (p.mana < skill.manaCost) {
             this.logSystem(`${p.name} tem mana insuficiente. Requer ${skill.manaCost} Mana.`);
+            this.isSelectingTarget = false;
+            Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
             return;
         }
 
+        const skillRange = skill.range || 4; // default range for skills if not specified
+        const target = this.getCurrentTarget();
+
+        if ((skill.type === 'attack' || skill.type === 'drain') && target) {
+            const dist = this.getDistance(p, target);
+            if (dist > skillRange) {
+                this.logSystem(`${p.name} tentou usar habilidade, mas o alvo está fora de alcance (${dist} > ${skillRange}).`);
+                this.isSelectingTarget = false;
+                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                return;
+            }
+        }
+
+        this.isSelectingTarget = false;
         Engine.emit('turnEnded', null);
         p.mana -= skill.manaCost;
         Engine.emit('playerUpdated', p);
 
         if (skill.type === 'attack' || skill.type === 'drain') {
-            const target = this.getCurrentTarget();
             if (!target && !skill.isAoE) {
                 this.nextTurn();
                 return;
@@ -236,7 +371,9 @@ class CombatSystem {
 
             let targets = [];
             if (skill.isAoE) {
-                targets = this.monsters.filter(m => m.hp > 0);
+                // Determine AoE radius
+                const radius = skill.aoeRadius || 2;
+                targets = this.monsters.filter(m => m.hp > 0 && this.getDistance(target, m) <= radius);
             } else {
                 const t = this.getCurrentTarget();
                 if (t) targets.push(t);
@@ -246,7 +383,7 @@ class CombatSystem {
 
             let totalHeal = 0;
             let logMsg = `${p.name} usou [${skill.name}]`;
-            if (skill.isAoE) logMsg += ` em todos os inimigos!`;
+            if (skill.isAoE) logMsg += ` em área!`;
 
             let damageDealt = {};
 
@@ -340,15 +477,62 @@ class CombatSystem {
     monsterAttack(attacker) {
         if (!this.inCombat) return;
 
-        // Choose a random living party member
         const livingPlayers = this.party.filter(p => p.hp > 0);
         if (livingPlayers.length === 0) {
             this.loseCombat();
             return;
         }
 
-        const targetP = livingPlayers[Math.floor(Math.random() * livingPlayers.length)];
+        // Find the closest player
+        let targetP = null;
+        let minDist = Infinity;
+        livingPlayers.forEach(p => {
+            const dist = this.getDistance(attacker, p);
+            if (dist < minDist) {
+                minDist = dist;
+                targetP = p;
+            }
+        });
+
         const targetPIndex = this.party.indexOf(targetP);
+        const attackRange = 1; // Assuming melee for basic monsters
+
+        if (minDist > attackRange) {
+            // Move towards player
+            const steps = Math.min(this.movementRemaining, minDist - attackRange);
+            if (steps > 0) {
+                const dx = Math.sign(targetP.gridX - attacker.gridX);
+                const dy = Math.sign(targetP.gridY - attacker.gridY);
+                
+                let moveX = attacker.gridX;
+                let moveY = attacker.gridY;
+                
+                for(let i = 0; i < steps; i++) {
+                     if (moveX !== targetP.gridX) moveX += dx;
+                     else if (moveY !== targetP.gridY) moveY += dy;
+                }
+
+                // Make sure we don't overlap someone
+                const isOccupied = this.party.some(p => p.hp > 0 && p.gridX === moveX && p.gridY === moveY) || 
+                                   this.monsters.some(m => m !== attacker && m.hp > 0 && m.gridX === moveX && m.gridY === moveY);
+                
+                if (!isOccupied) {
+                     attacker.gridX = moveX;
+                     attacker.gridY = moveY;
+                     this.logSystem(`${attacker.name} moveu-se em direção a ${targetP.name}.`);
+                     Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                }
+            }
+
+            // Recalculate distance after move
+            minDist = this.getDistance(attacker, targetP);
+        }
+
+        if (minDist > attackRange) {
+             this.logMonster(`${attacker.name} está muito longe de ${targetP.name} e encerra o turno.`);
+             setTimeout(() => this.nextTurn(), 600);
+             return;
+        }
 
         let defense = targetP.getTotalAttr('def');
         Object.values(targetP.equipment).forEach(item => {

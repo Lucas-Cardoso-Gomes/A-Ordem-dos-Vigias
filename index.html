@@ -155,20 +155,28 @@
 
                     <!-- Center: Arena & Actions -->
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto;">
-                        <div class="combat-arena" style="flex: 1;">
-                            <div class="combat-entity player-side" id="combat-party-container" style="display: flex; flex-direction: column; gap: 1rem;">
-                                <!-- Player cards will be injected here via UI manager -->
+                        <div class="combat-arena" style="flex: 1; flex-direction: column;">
+                            <div id="combat-canvas-container" style="width: 100%; display: flex; justify-content: center; margin-bottom: 1rem;">
+                                <canvas id="combat-grid-canvas" width="750" height="300" style="background: #2a2a2a; border: 2px solid var(--border-color);"></canvas>
                             </div>
-                            <div class="monsters-container" id="combat-monsters-container">
-                                <!-- Monster cards will be injected here via UI manager -->
+                            <div style="display: flex; width: 100%; justify-content: space-between;">
+                                <div class="combat-entity player-side" id="combat-party-container" style="display: flex; flex-direction: column; gap: 1rem; flex: 1;">
+                                    <!-- Player cards will be injected here via UI manager -->
+                                </div>
+                                <div class="monsters-container" id="combat-monsters-container" style="flex: 1; justify-content: flex-end;">
+                                    <!-- Monster cards will be injected here via UI manager -->
+                                </div>
                             </div>
                         </div>
-                        <div class="combat-actions" style="margin-top: 0;">
-                            <button id="btn-attack">Atacar</button>
+                        <div class="combat-actions" style="margin-top: 0; position: relative;">
+                            <button id="btn-move" title="Movimento: selecione o espaço no grid">Mover</button>
+                            <button id="btn-attack" title="Ataque: selecione o alvo no grid">Atacar</button>
                             <button id="btn-skill">Habilidades</button>
                             <button id="btn-potion">Itens</button>
+                            <button id="btn-end-turn" style="background-color: var(--rarity-epic);">Fim de Turno</button>
                             <button id="btn-flee">Fugir</button>
                         </div>
+                        <div id="combat-instruction" style="text-align: center; color: var(--rarity-legendary); font-weight: bold; padding: 0.5rem; display: none;"></div>
                         <div id="combat-skills-menu" class="hidden"
                             style="text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel);">
                             <h4>Habilidades</h4>

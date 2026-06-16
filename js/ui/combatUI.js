@@ -9,12 +9,17 @@ class CombatUIManager {
         this.elCombatPartyContainer = document.getElementById('combat-party-container');
         this.elCombatMonstersContainer = document.getElementById('combat-monsters-container');
         this.elCombatTurnQueueList = document.getElementById('combat-turn-queue-list');
+        this.elCombatCanvas = document.getElementById('combat-grid-canvas');
+        if (this.elCombatCanvas) this.ctx = this.elCombatCanvas.getContext('2d');
 
+        this.btnMove = document.getElementById('btn-move');
         this.btnAttack = document.getElementById('btn-attack');
         this.btnSkill = document.getElementById('btn-skill');
         this.btnPotion = document.getElementById('btn-potion');
         this.btnFlee = document.getElementById('btn-flee');
+        this.btnEndTurn = document.getElementById('btn-end-turn');
         this.elCombatLog = document.getElementById('combat-log');
+        this.elCombatInstruction = document.getElementById('combat-instruction');
 
         this.elCombatSkillsMenu = document.getElementById('combat-skills-menu');
         this.elCombatSkillsList = document.getElementById('combat-skills-list');
@@ -23,16 +28,39 @@ class CombatUIManager {
     }
 
     bindEvents() {
+        if (this.btnMove) {
+            this.btnMove.addEventListener('click', () => {
+                this.hideCombatMenus();
+                window.gameCombat.startMoveSelection();
+            });
+        }
+
+        if (this.btnEndTurn) {
+            this.btnEndTurn.addEventListener('click', () => {
+                this.hideCombatMenus();
+                window.gameCombat.nextTurn();
+            });
+        }
+
         this.btnAttack.addEventListener('click', () => {
             this.hideCombatMenus();
-            window.gameCombat.playerAttack();
+            window.gameCombat.isSelectingMove = false;
+            window.gameCombat.isSelectingTarget = true;
+            window.gameCombat.selectedSkill = null; // null means basic attack
+            Engine.emit('combatUpdated', { party: window.gameCombat.party, monsters: window.gameCombat.monsters });
         });
 
         if (this.btnSkill) {
             this.btnSkill.addEventListener('click', () => {
                 this.hideCombatMenus();
+                window.gameCombat.cancelGridSelection();
                 this.showCombatSkillsMenu();
             });
+        }
+
+        if (this.elCombatCanvas) {
+            this.elCombatCanvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+            this.elCombatCanvas.addEventListener('mousemove', (e) => this.handleCanvasMouseMove(e));
         }
 
         this.btnFlee.addEventListener('click', () => {
@@ -42,8 +70,55 @@ class CombatUIManager {
 
         this.btnPotion.addEventListener('click', () => {
             this.hideCombatMenus();
+            window.gameCombat.cancelGridSelection();
             this.showCombatItemsMenu();
         });
+    }
+
+    handleCanvasClick(e) {
+        if (!window.gameCombat || !window.gameCombat.inCombat) return;
+
+        const rect = this.elCombatCanvas.getBoundingClientRect();
+        const scaleX = this.elCombatCanvas.width / rect.width;
+        const scaleY = this.elCombatCanvas.height / rect.height;
+
+        const x = Math.floor(((e.clientX - rect.left) * scaleX) / (this.elCombatCanvas.width / window.gameCombat.gridWidth));
+        const y = Math.floor(((e.clientY - rect.top) * scaleY) / (this.elCombatCanvas.height / window.gameCombat.gridHeight));
+
+        if (window.gameCombat.isSelectingMove) {
+            window.gameCombat.moveEntityTo(x, y);
+        } else if (window.gameCombat.isSelectingTarget) {
+            // Se for ataque físico ou drain, clica no monstro
+            // Se for AoE (sem alvo específico necessário além de uma coordenada), pode clicar em qualquer lugar ou num monstro base
+            const targetIndex = window.gameCombat.monsters.findIndex(m => m.hp > 0 && m.gridX === x && m.gridY === y);
+            if (targetIndex !== -1) {
+                window.gameCombat.setTarget(targetIndex);
+                if (window.gameCombat.selectedSkill) {
+                    window.gameCombat.playerSkill(window.gameCombat.selectedSkill);
+                } else {
+                    window.gameCombat.playerAttack();
+                }
+            } else if (window.gameCombat.selectedSkill && window.gameCombat.selectedSkill.isAoE) {
+                 // For AoE we can set a dummy target to coordinates or just find nearest to clicked point if needed, 
+                 // but right now it is based on target monster. Let's keep it simple for now and require targeting a monster for AoE center
+                 Engine.emit('combatLog', { msg: 'Selecione um inimigo como alvo para a área.', type: 'log-system' });
+            } else {
+                Engine.emit('combatLog', { msg: 'Nenhum alvo válido selecionado no mapa.', type: 'log-system' });
+            }
+        }
+    }
+
+    handleCanvasMouseMove(e) {
+        if (!window.gameCombat || !window.gameCombat.inCombat) return;
+
+        const rect = this.elCombatCanvas.getBoundingClientRect();
+        const scaleX = this.elCombatCanvas.width / rect.width;
+        const scaleY = this.elCombatCanvas.height / rect.height;
+
+        this.hoverX = Math.floor(((e.clientX - rect.left) * scaleX) / (this.elCombatCanvas.width / window.gameCombat.gridWidth));
+        this.hoverY = Math.floor(((e.clientY - rect.top) * scaleY) / (this.elCombatCanvas.height / window.gameCombat.gridHeight));
+
+        this.drawGrid(); // Redraw with hover effect
     }
 
     hideCombatMenus() {
@@ -73,7 +148,10 @@ class CombatUIManager {
                     if (skill.type === 'heal' && window.gameParty.length > 1) {
                         this.showPartyTargetMenu(skill);
                     } else {
-                        window.gameCombat.playerSkill(skill);
+                        window.gameCombat.isSelectingMove = false;
+                        window.gameCombat.isSelectingTarget = true;
+                        window.gameCombat.selectedSkill = skill;
+                        Engine.emit('combatUpdated', { party: window.gameCombat.party, monsters: window.gameCombat.monsters });
                     }
                 };
                 this.elCombatSkillsList.appendChild(btn);
@@ -170,8 +248,13 @@ class CombatUIManager {
             card.className = `monster-card ${isTarget ? 'target' : ''} ${isDead ? 'dead' : ''}`;
             card.id = `monster-card-${monster.instanceId}`;
             card.onclick = () => {
-                if (!isDead && window.gameCombat) {
+                if (!isDead && window.gameCombat && window.gameCombat.isSelectingTarget) {
                     window.gameCombat.setTarget(index);
+                    if (window.gameCombat.selectedSkill) {
+                        window.gameCombat.playerSkill(window.gameCombat.selectedSkill);
+                    } else {
+                        window.gameCombat.playerAttack();
+                    }
                 }
             };
 
@@ -207,11 +290,140 @@ class CombatUIManager {
         }, 2000);
     }
 
+    updateInstruction() {
+        if (!this.elCombatInstruction || !window.gameCombat || !window.gameCombat.inCombat) return;
+        
+        if (window.gameCombat.isSelectingMove) {
+            this.elCombatInstruction.innerText = `Selecione no grid para mover (Movimento restante: ${window.gameCombat.movementRemaining})`;
+            this.elCombatInstruction.style.display = 'block';
+        } else if (window.gameCombat.isSelectingTarget) {
+            if (window.gameCombat.selectedSkill) {
+                this.elCombatInstruction.innerText = `Selecione um alvo no grid para usar ${window.gameCombat.selectedSkill.name}`;
+            } else {
+                this.elCombatInstruction.innerText = `Selecione um alvo no grid para Atacar`;
+            }
+            this.elCombatInstruction.style.display = 'block';
+        } else {
+            this.elCombatInstruction.style.display = 'none';
+        }
+    }
+
+    drawGrid() {
+        if (!this.ctx || !window.gameCombat || !window.gameCombat.inCombat) return;
+
+        this.updateInstruction();
+
+        const gw = window.gameCombat.gridWidth;
+        const gh = window.gameCombat.gridHeight;
+        const cellW = this.elCombatCanvas.width / gw;
+        const cellH = this.elCombatCanvas.height / gh;
+
+        this.ctx.clearRect(0, 0, this.elCombatCanvas.width, this.elCombatCanvas.height);
+
+        // Draw grid lines
+        this.ctx.strokeStyle = '#444';
+        this.ctx.lineWidth = 1;
+        for (let x = 0; x <= gw; x++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x * cellW, 0);
+            this.ctx.lineTo(x * cellW, this.elCombatCanvas.height);
+            this.ctx.stroke();
+        }
+        for (let y = 0; y <= gh; y++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y * cellH);
+            this.ctx.lineTo(this.elCombatCanvas.width, y * cellH);
+            this.ctx.stroke();
+        }
+
+        // Draw movement range highlight
+        if (window.gameCombat.isSelectingMove && window.gameCombat.currentTurnEntity && window.gameCombat.currentTurnEntity.type === 'player') {
+            const p = window.gameParty[window.gameCombat.currentTurnEntity.index];
+            this.ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+            for (let x = 0; x < gw; x++) {
+                for (let y = 0; y < gh; y++) {
+                    const dist = Math.abs(p.gridX - x) + Math.abs(p.gridY - y);
+                    if (dist <= window.gameCombat.movementRemaining) {
+                        this.ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                    }
+                }
+            }
+        } else if (window.gameCombat.isSelectingTarget && window.gameCombat.currentTurnEntity && window.gameCombat.currentTurnEntity.type === 'player') {
+            const p = window.gameParty[window.gameCombat.currentTurnEntity.index];
+            let attackRange = 1; // Default melee
+            if (window.gameCombat.selectedSkill) {
+                attackRange = window.gameCombat.selectedSkill.range || 4;
+            } else if (p.equipment?.weaponMain) {
+                const wType = p.equipment.weaponMain.type;
+                if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
+                    attackRange = 5;
+                }
+            }
+
+            this.ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            for (let x = 0; x < gw; x++) {
+                for (let y = 0; y < gh; y++) {
+                    const dist = Math.abs(p.gridX - x) + Math.abs(p.gridY - y);
+                    if (dist <= attackRange) {
+                        this.ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                    }
+                }
+            }
+        }
+
+        // Draw Hover
+        if (this.hoverX !== undefined && this.hoverY !== undefined && this.hoverX >= 0 && this.hoverX < gw && this.hoverY >= 0 && this.hoverY < gh) {
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.fillRect(this.hoverX * cellW, this.hoverY * cellH, cellW, cellH);
+        }
+
+        // Draw Entities
+        const drawEntity = (entity, color, label, isTurn) => {
+            if (entity.hp <= 0) return;
+            const cx = entity.gridX * cellW + cellW / 2;
+            const cy = entity.gridY * cellH + cellH / 2;
+            const r = Math.min(cellW, cellH) * 0.4;
+
+            if (isTurn) {
+                this.ctx.fillStyle = 'rgba(255, 215, 0, 0.5)'; // Gold highlight for active turn
+                this.ctx.beginPath();
+                this.ctx.arc(cx, cy, r * 1.5, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            this.ctx.fillStyle = color;
+            this.ctx.beginPath();
+            this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#fff';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = '10px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(label, cx, cy);
+        };
+
+        window.gameCombat.party.forEach((p, idx) => {
+            const isTurn = window.gameCombat.currentTurnEntity?.type === 'player' && window.gameCombat.currentTurnEntity.index === idx;
+            drawEntity(p, '#1d4ed8', p.name.substring(0, 2), isTurn);
+        });
+
+        window.gameCombat.monsters.forEach((m, idx) => {
+            const isTurn = window.gameCombat.currentTurnEntity?.type === 'monster' && window.gameCombat.currentTurnEntity.index === idx;
+            drawEntity(m, '#991b1b', m.name.substring(0, 2), isTurn);
+        });
+    }
+
     renderCombatStats(data) {
         const party = data.party || window.gameParty;
         const monsters = data.monsters;
 
         this.elCombatPartyContainer.innerHTML = '';
+        
+        this.drawGrid();
         
         let turnIndex = null;
         if (window.gameCombat && window.gameCombat.currentTurnEntity && window.gameCombat.currentTurnEntity.type === 'player') {
