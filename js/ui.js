@@ -5,6 +5,7 @@
 
 class UIManager {
     constructor() {
+        this.selectedPartyIndex = 0;
         this.cacheDOM();
         this.bindEvents();
         this.setupNavigation();
@@ -17,15 +18,25 @@ class UIManager {
         this.renderShop();
 
         // Subscribe to engine events
-        Engine.on('playerUpdated', p => this.renderPlayer(p));
+        Engine.on('partyUpdated', party => this.renderPartySelectors(party));
+        Engine.on('playerUpdated', p => {
+            if (window.gameParty[this.selectedPartyIndex] === p) {
+                this.renderPlayer(p);
+            }
+            this.renderHeader();
+        });
         Engine.on('inventoryUpdated', inv => {
-            const currentFilter = this.elInvFilter ? this.elInvFilter.value : 'all';
+            const currentFilter = this.currentInvFilter || 'all';
             this.renderInventory(inv, currentFilter);
             if (this.elShopList && !this.elShopList.parentElement.parentElement.classList.contains('hidden')) {
                 this.renderShop();
             }
         });
-        Engine.on('equipmentUpdated', eq => this.renderEquipment(eq));
+        Engine.on('equipmentUpdated', eq => {
+            if (window.gameParty[this.selectedPartyIndex] && window.gameParty[this.selectedPartyIndex].equipment === eq) {
+                this.renderEquipment(eq);
+            }
+        });
 
         // Delegate combat events
         if (this.combatUI) {
@@ -67,6 +78,11 @@ class UIManager {
         this.elHeaderMana = document.getElementById('header-mana');
         this.elHeaderGold = document.getElementById('header-gold');
 
+        // Party Selection
+        this.elCharPartySelector = document.getElementById('char-party-selector');
+        this.elInvPartySelector = document.getElementById('inv-party-selector');
+        this.btnAddMember = document.getElementById('btn-add-member');
+
         // Nav
         this.navButtons = document.querySelectorAll('.nav-btn');
         this.screens = document.querySelectorAll('.screen');
@@ -89,7 +105,7 @@ class UIManager {
         // Inventory
         this.elInvCount = document.getElementById('inv-count');
         this.elInvList = document.getElementById('inventory-list');
-        this.elInvFilter = document.getElementById('inv-filter');
+        this.invTabBtns = document.querySelectorAll('.inv-tab-btn');
         this.elInvActionPanel = document.getElementById('inventory-action-panel');
         this.elActionPanelName = document.getElementById('action-panel-name');
         this.elActionPanelDesc = document.getElementById('action-panel-desc');
@@ -116,7 +132,7 @@ class UIManager {
 
         // Shop
         this.elShopList = document.getElementById('shop-list');
-        this.elShopFilter = document.getElementById('shop-filter');
+        this.shopTabBtns = document.querySelectorAll('.shop-tab-btn');
 
         // Bestiary
         this.elBestiaryList = document.getElementById('bestiary-list');
@@ -148,18 +164,50 @@ class UIManager {
         this.btnAttrs.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const attr = e.target.getAttribute('data-attr');
-                window.gamePlayer.addAttribute(attr);
+                window.gameParty[this.selectedPartyIndex].addAttribute(attr);
             });
         });
 
-        this.elInvFilter.addEventListener('change', (e) => {
-            this.renderInventory(window.gameInventory, e.target.value);
+        if (this.btnAddMember) {
+            this.btnAddMember.addEventListener('click', () => {
+                const name = prompt("Nome do novo membro:");
+                if (name) {
+                    window.game.addPartyMember(name, 'Guerreiro');
+                }
+            });
+        }
+
+        if (this.elCharPartySelector) {
+            this.elCharPartySelector.addEventListener('change', (e) => {
+                this.selectedPartyIndex = parseInt(e.target.value);
+                if (this.elInvPartySelector) this.elInvPartySelector.value = this.selectedPartyIndex;
+                this.renderPlayer(window.gameParty[this.selectedPartyIndex]);
+                this.renderEquipment(window.gameParty[this.selectedPartyIndex].equipment);
+            });
+        }
+
+        if (this.elInvPartySelector) {
+            this.elInvPartySelector.addEventListener('change', (e) => {
+                this.selectedPartyIndex = parseInt(e.target.value);
+                if (this.elCharPartySelector) this.elCharPartySelector.value = this.selectedPartyIndex;
+                this.renderPlayer(window.gameParty[this.selectedPartyIndex]);
+                this.renderEquipment(window.gameParty[this.selectedPartyIndex].equipment);
+            });
+        }
+
+        this.invTabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.invTabBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentInvFilter = e.target.getAttribute('data-filter');
+                this.renderInventory(window.gameInventory, this.currentInvFilter);
+            });
         });
 
         if (this.btnEquipItem) {
             this.btnEquipItem.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.equip(this.selectedItemInstanceId);
+                    window.gameInventory.equip(this.selectedItemInstanceId, this.selectedPartyIndex);
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -168,7 +216,7 @@ class UIManager {
         if (this.btnEquipItemMain) {
             this.btnEquipItemMain.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.equip(this.selectedItemInstanceId, 'weaponMain');
+                    window.gameInventory.equip(this.selectedItemInstanceId, this.selectedPartyIndex, 'weaponMain');
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -177,7 +225,7 @@ class UIManager {
         if (this.btnEquipItemOff) {
             this.btnEquipItemOff.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.equip(this.selectedItemInstanceId, 'weaponOff');
+                    window.gameInventory.equip(this.selectedItemInstanceId, this.selectedPartyIndex, 'weaponOff');
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -195,13 +243,13 @@ class UIManager {
                         if (!isNaN(qty) && qty > 0) {
                             const toUse = Math.min(qty, item.count);
                             for (let i = 0; i < toUse; i++) {
-                                window.gameInventory.useItem(this.selectedItemInstanceId);
+                                window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex);
                             }
                             this.showToast(`Você consumiu ${toUse}x ${item.name}!`);
                         }
                     } else {
                         // Comportamento padrão para item único ou outros tipos de usáveis
-                        window.gameInventory.useItem(this.selectedItemInstanceId);
+                        window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex);
                     }
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
@@ -211,7 +259,7 @@ class UIManager {
         this.eqSlots.forEach(slot => {
             slot.addEventListener('click', (e) => {
                 const slotId = e.currentTarget.getAttribute('data-slot');
-                window.gameInventory.unequip(slotId);
+                window.gameInventory.unequip(slotId, this.selectedPartyIndex);
             });
             slot.addEventListener('mouseenter', (e) => this.showEquipmentTooltip(e, slot));
             slot.addEventListener('mouseleave', () => this.hideTooltip());
@@ -250,11 +298,14 @@ class UIManager {
             });
         }
         // Adicione junto aos outros escutadores de eventos
-        if (this.elShopFilter) {
-            this.elShopFilter.addEventListener('change', () => {
+        this.shopTabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.shopTabBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentShopFilter = e.target.getAttribute('data-filter');
                 this.renderShop();
             });
-        }
+        });
 
         if (this.btnExportSave) {
             this.btnExportSave.addEventListener('click', () => {
@@ -328,12 +379,43 @@ class UIManager {
         });
     }
 
+    renderPartySelectors(party) {
+        if (!this.elCharPartySelector || !this.elInvPartySelector) return;
+
+        const optionsHTML = party.map((p, idx) => `<option value="${idx}">${p.name} (Nv. ${p.level})</option>`).join('');
+        this.elCharPartySelector.innerHTML = optionsHTML;
+        this.elCharPartySelector.value = this.selectedPartyIndex;
+
+        this.elInvPartySelector.innerHTML = optionsHTML;
+        this.elInvPartySelector.value = this.selectedPartyIndex;
+
+        if (this.btnAddMember) {
+            this.btnAddMember.style.display = party.length < 4 ? 'inline-block' : 'none';
+        }
+    }
+
+    renderHeader() {
+        const party = window.gameParty;
+        if (!party) return;
+
+        const avgLevel = Math.floor(party.reduce((sum, p) => sum + p.level, 0) / party.length);
+        const totalHp = party.reduce((sum, p) => sum + p.hp, 0);
+        const maxHp = party.reduce((sum, p) => sum + p.getMaxHp(), 0);
+        const totalMana = party.reduce((sum, p) => sum + p.mana, 0);
+        const maxMana = party.reduce((sum, p) => sum + p.getMaxMana(), 0);
+
+        this.elHeaderLevel.innerText = `Nível Médio: ${avgLevel}`;
+        this.elHeaderHp.innerText = `Grupo HP: ${totalHp}/${maxHp}`;
+        this.elHeaderMana.innerText = `Grupo Mana: ${totalMana}/${maxMana}`;
+        // Gold goes to game state, but we sum it up if it exists per player, though gold should really be global.
+        // If player 0 has it, let's just use player 0's gold for display.
+        const totalGold = window.gameParty[0].gold || 0;
+        this.elHeaderGold.innerText = `Ouro: ${totalGold}`;
+    }
+
     renderPlayer(p) {
         this.renderBestiary();
-        this.elHeaderLevel.innerText = `Nível: ${p.level}`;
-        this.elHeaderHp.innerText = `HP: ${p.hp}/${p.getMaxHp()}`;
-        this.elHeaderMana.innerText = `Mana: ${p.mana}/${p.getMaxMana()}`;
-        this.elHeaderGold.innerText = `Ouro: ${p.gold}`;
+        this.renderHeader();
 
         this.elCharLevel.innerText = p.level;
         this.elCharXp.innerText = p.xp;
@@ -356,7 +438,7 @@ class UIManager {
                 btnClasse.style.fontSize = '0.8rem';
 
                 btnClasse.onclick = () => {
-                    window.gamePlayer.setClass(cls);
+                    window.gameParty[this.selectedPartyIndex].setClass(cls);
                 };
 
                 this.elCharClass.appendChild(btnClasse);
@@ -515,7 +597,7 @@ class UIManager {
 
     showEquipmentTooltip(e, slotEl) {
         const slotId = slotEl.getAttribute('data-slot');
-        const item = window.gameInventory.equipment[slotId];
+        const item = window.gameParty[this.selectedPartyIndex].equipment[slotId];
         if (item) {
             this.showItemTooltip(e, item);
         }
@@ -742,8 +824,8 @@ showToast(msg) {
         if (!this.elShopList) return;
         this.elShopList.innerHTML = '';
 
-        const playerLvl = window.gamePlayer ? window.gamePlayer.level : 1;
-        const currentFilter = this.elShopFilter ? this.elShopFilter.value : 'all';
+        const playerLvl = window.gameParty[0] ? window.gameParty[0].level : 1;
+        const currentFilter = this.currentShopFilter || 'all';
 
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
@@ -807,7 +889,7 @@ showToast(msg) {
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
             btnBuy.onclick = () => {
-                if (window.gamePlayer.gold >= increasedCost) {
+                if ((window.gameParty[0].gold || 0) >= increasedCost) {
                     let newItem;
                     if (item.type === 'potion') {
                         newItem = ItemDatabase.getPotion(item.id);
@@ -818,8 +900,8 @@ showToast(msg) {
                         newItem.instanceId = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                     }
                     if (newItem && window.gameInventory.addItem(newItem)) {
-                        window.gamePlayer.gold -= increasedCost;
-                        Engine.emit('playerUpdated', window.gamePlayer);
+                        window.gameParty[0].gold -= increasedCost;
+                        Engine.emit('playerUpdated', window.gameParty[0]);
                         Engine.emit('systemLog', `Você comprou ${item.name} por ${increasedCost} Ouro.`);
                     }
                 } else {
@@ -891,8 +973,7 @@ showToast(msg) {
             btnSell.onclick = () => {
                 const removedItem = window.gameInventory.removeItem(item.instanceId, 1);
                 if (removedItem) {
-                    window.gamePlayer.gold += sellPrice;
-                    Engine.emit('playerUpdated', window.gamePlayer);
+                    window.gameParty[0].gainGold(sellPrice);
                     Engine.emit('systemLog', `Você vendeu 1x ${item.name} por ${sellPrice} Ouro.`);
                 }
             };
@@ -906,8 +987,7 @@ showToast(msg) {
                     const totalGold = sellPrice * totalSells;
                     const removedItem = window.gameInventory.removeItem(item.instanceId, totalSells);
                     if (removedItem) {
-                        window.gamePlayer.gold += totalGold;
-                        Engine.emit('playerUpdated', window.gamePlayer);
+                        window.gameParty[0].gainGold(totalGold);
                         Engine.emit('systemLog', `Você vendeu ${totalSells}x ${item.name} por ${totalGold} Ouro.`);
                     }
                 };
@@ -922,13 +1002,18 @@ showToast(msg) {
 
 handleMapEvent(ev) {
         let msg = `${ev.title}\n\n${ev.desc}\n`;
-        if (ev.gold > 0) { msg += `\n💰 +${ev.gold} Ouro`; window.gamePlayer.gainGold(ev.gold); }
-        if (ev.hp > 0) { msg += `\n❤️ +${ev.hp} HP`; window.gamePlayer.heal(ev.hp); }
+        if (ev.gold > 0) { msg += `\n💰 +${ev.gold} Ouro`; window.gameParty[0].gainGold(ev.gold); }
+        if (ev.hp > 0) {
+            msg += `\n❤️ +${ev.hp} HP`;
+            window.gameParty.forEach(p => p.heal(ev.hp));
+        }
         if (ev.hp < 0) { 
             const dmg = Math.abs(ev.hp); 
-            msg += `\n🩸 -${dmg} HP`; 
-            window.gamePlayer.hp -= dmg; 
-            if(window.gamePlayer.hp <= 0) window.gamePlayer.hp = 1; 
+            msg += `\n🩸 -${dmg} HP (Todos os Membros)`;
+            window.gameParty.forEach(p => {
+                p.hp -= dmg;
+                if(p.hp <= 0) p.hp = 1;
+            });
         }
         alert(msg);
         
