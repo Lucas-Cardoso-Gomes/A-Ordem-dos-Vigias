@@ -30,6 +30,7 @@ class Game {
         Engine.emit('inventoryUpdated', this.inventory);
         Engine.emit('equipmentUpdated', this.inventory.equipment);
         Engine.emit('questsUpdated', this.quests);
+        Engine.emit('regionProgressUpdated');
 
         // Listen to combat events
         Engine.on('questUpdate', (data) => {

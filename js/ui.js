@@ -391,20 +391,57 @@ class UIManager {
         });
     }
 
+    getItemDescription(item) {
+        let desc = `<em>Raridade: ${item.rarity || 'comum'}</em><br>Tipo: ${item.type}<br>`;
+        if (item.count > 1) desc += `Quantidade: ${item.count}<br>`;
+        if (item.minDmg) desc += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
+        if (item.def) desc += `Defesa: ${item.def}<br>`;
+        if (item.stats) {
+            let statsStrs = [];
+            for (let [k,v] of Object.entries(item.stats)) {
+                statsStrs.push(`${k.toUpperCase()}: +${v}`);
+            }
+            if (statsStrs.length > 0) desc += `Atributos: ${statsStrs.join(', ')}<br>`;
+        }
+        if (item.weakness) desc += `Elemento/Especial: ${item.weakness}<br>`;
+        if (item.effect) desc += `Efeito: Cura/Mana ${item.value}<br>`;
+        if (item.reqLvl) desc += `Nível Requerido: ${item.reqLvl}<br>`;
+        return desc;
+    }
+
     renderInventory(inv, filter = 'all') {
         this.elInvCount.innerText = inv.items.length;
         this.elInvList.innerHTML = '';
 
-        let items = inv.items;
+        let items = [...inv.items];
         if (filter !== 'all') {
             items = items.filter(i => i.type === filter);
         }
+
+        const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
+        const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
+
+        items.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        const typeEmojis = {
+            'weapon': '⚔️',
+            'armor': '🛡️',
+            'accessory': '💍',
+            'potion': '🧪',
+            'material': '💎'
+        };
 
         items.forEach(item => {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
             div.style.position = 'relative';
-            div.innerText = item.name.substring(0, 3) + '.';
+
+            const emoji = typeEmojis[item.type] || '📦';
+            div.innerHTML = `<span style="font-size: 1.5rem;">${emoji}</span>`;
 
             if ((item.type === 'material' || item.type === 'potion') && item.count > 1) {
                 div.innerHTML += `<span class="item-count">x${item.count}</span>`;
@@ -416,15 +453,7 @@ class UIManager {
                     this.elInvActionPanel.classList.remove('hidden');
                     this.elActionPanelName.innerText = item.name;
 
-                    let desc = `<em>Raridade: ${item.rarity}</em><br>Tipo: ${item.type}<br>`;
-                    if (item.count) desc += `Quantidade: ${item.count}<br>`;
-                    if (item.minDmg) desc += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
-                    if (item.def) desc += `Defesa: ${item.def}<br>`;
-                    if (item.weakness) desc += `Elemento/Especial: ${item.weakness}<br>`;
-                    if (item.effect) desc += `Efeito: Cura/Mana ${item.value}<br>`;
-                    if (item.reqLvl) desc += `Nível Requerido: ${item.reqLvl}<br>`;
-
-                    this.elActionPanelDesc.innerHTML = desc;
+                    this.elActionPanelDesc.innerHTML = this.getItemDescription(item);
 
                     this.btnEquipItem.classList.add('hidden');
                     if (this.btnEquipItemMain) this.btnEquipItemMain.classList.add('hidden');
@@ -474,13 +503,7 @@ class UIManager {
 
     showItemTooltip(e, item) {
         let html = `<strong>${item.name}</strong><br>`;
-        html += `<em>Raridade: ${item.rarity}</em><br>`;
-        html += `Tipo: ${item.type}<br>`;
-        if (item.minDmg) html += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
-        if (item.def) html += `Defesa: ${item.def}<br>`;
-        if (item.weakness) html += `Elemento/Especial: ${item.weakness}<br>`;
-        if (item.effect) html += `Efeito: Cura/Mana ${item.value}<br>`;
-        if (item.reqLvl) html += `Nível Requerido: ${item.reqLvl}<br>`;
+        html += this.getItemDescription(item);
 
         this.tooltip.innerHTML = html;
         this.tooltip.classList.remove('hidden');
@@ -724,26 +747,47 @@ showToast(msg) {
 
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
-            this.shopItems = [
-                ItemDatabase.getPotion('p1'),
-                ItemDatabase.getPotion('p2'),
-                ItemDatabase.getPotion('p3'),
-                ItemDatabase.getPotion('p4'),
-                ItemDatabase.getPotion('p5'),
-                ItemDatabase.getMaterial('m1'),
-                ItemDatabase.getMaterial('m2'),
-                ItemDatabase.getMaterial('m8'),
-                ItemDatabase.generateItem(playerLvl, 'comum'),
-                ItemDatabase.generateItem(playerLvl, 'incomum'),
-                ItemDatabase.generateItem(Math.min(playerLvl + 2, 60), 'incomum')
-            ];
+            this.shopItems = [];
+
+            // Random Gear
+            for (let i = 0; i < 6; i++) {
+                this.shopItems.push(ItemDatabase.generateItem(playerLvl + Math.floor(Math.random() * 5)));
+            }
+
+            // Random Potions
+            for (let i = 0; i < 4; i++) {
+                const pot = ItemDatabase.potions[Math.floor(Math.random() * ItemDatabase.potions.length)];
+                this.shopItems.push(ItemDatabase.getPotion(pot.id));
+            }
+
+            // Random Materials
+            for (let i = 0; i < 4; i++) {
+                const mat = ItemDatabase.materials[Math.floor(Math.random() * ItemDatabase.materials.length)];
+                this.shopItems.push(ItemDatabase.getMaterial(mat.id));
+            }
         }
 
+        const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
+        const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
+
         // 1. FILTRAGEM DOS ITENS DISPONÍVEIS PARA COMPRA
-        let filteredBuyItems = this.shopItems;
+        let filteredBuyItems = [...this.shopItems];
         if (currentFilter !== 'all') {
             filteredBuyItems = filteredBuyItems.filter(item => item.type === currentFilter);
         }
+
+        filteredBuyItems.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        // Wrapper for Buy Section
+        const buySection = document.createElement('div');
+        buySection.className = 'shop-buy-section shop-items';
+        buySection.style.display = 'grid';
+        buySection.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        buySection.style.gap = '1rem';
 
         filteredBuyItems.forEach(item => {
             const div = document.createElement('div');
@@ -753,9 +797,12 @@ showToast(msg) {
             const baseCost = item.gold || item.value || 10;
             const increasedCost = Math.floor(baseCost * 3);
 
-            div.innerHTML = `<strong>${item.name}</strong><br>
-                             Tipo: ${item.type}<br>
-                             Preço: ${increasedCost} Ouro<br>`;
+            let descHtml = `<strong>${item.name}</strong><br>`;
+            descHtml += this.getItemDescription(item);
+            descHtml += `<hr style="margin: 0.5rem 0; border-color: var(--border-color);">`;
+            descHtml += `Preço: <strong>${increasedCost} Ouro</strong><br><br>`;
+
+            div.innerHTML = descHtml;
 
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
@@ -780,13 +827,15 @@ showToast(msg) {
                 }
             };
             div.appendChild(btnBuy);
-            this.elShopList.appendChild(div);
+            buySection.appendChild(div);
         });
+
+        this.elShopList.appendChild(buySection);
 
         // Divisor visual para a seção de Venda
         const hr = document.createElement('hr');
         hr.style.gridColumn = '1 / -1';
-        hr.style.margin = '1rem 0';
+        hr.style.margin = '2rem 0 1rem 0';
         hr.style.borderColor = 'var(--border-color)';
         this.elShopList.appendChild(hr);
 
@@ -794,20 +843,34 @@ showToast(msg) {
         sellTitle.innerText = 'Vender seus itens';
         sellTitle.style.gridColumn = '1 / -1';
         sellTitle.style.color = 'var(--accent-gold)';
+        sellTitle.style.marginBottom = '1rem';
         this.elShopList.appendChild(sellTitle);
 
         // 2. FILTRAGEM DOS ITENS DO INVENTÁRIO PARA VENDA
-        let itemsToSell = window.gameInventory.items;
+        let itemsToSell = [...window.gameInventory.items];
         if (currentFilter !== 'all') {
             itemsToSell = itemsToSell.filter(item => item.type === currentFilter);
         }
+
+        itemsToSell.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        // Wrapper for Sell Section
+        const sellSection = document.createElement('div');
+        sellSection.className = 'shop-sell-section shop-items';
+        sellSection.style.display = 'grid';
+        sellSection.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        sellSection.style.gap = '1rem';
 
         if (itemsToSell.length === 0) {
             const noItemsMsg = document.createElement('p');
             noItemsMsg.innerText = 'Nenhum item desta categoria no seu inventário.';
             noItemsMsg.style.gridColumn = '1 / -1';
             noItemsMsg.style.color = '#777';
-            this.elShopList.appendChild(noItemsMsg);
+            sellSection.appendChild(noItemsMsg);
         }
 
         itemsToSell.forEach(item => {
@@ -816,12 +879,11 @@ showToast(msg) {
 
             const sellPrice = item.sellValue || Math.floor((item.gold || item.value || 10) / 2) || 5;
 
-            let desc = `<strong>${item.name}</strong><br>
-                        Tipo: ${item.type}<br>
-                        Venda: ${sellPrice} Ouro${item.count > 1 ? ' (cada)' : ''}<br>`;
-            if (item.count > 1) {
-                desc += `Quantidade: ${item.count}<br>`;
-            }
+            let desc = `<strong>${item.name}</strong><br>`;
+            desc += this.getItemDescription(item);
+            desc += `<hr style="margin: 0.5rem 0; border-color: var(--border-color);">`;
+            desc += `Venda: <strong>${sellPrice} Ouro</strong>${item.count > 1 ? ' (cada)' : ''}<br><br>`;
+
             div.innerHTML = desc;
 
             const btnSell = document.createElement('button');
@@ -852,8 +914,10 @@ showToast(msg) {
                 div.appendChild(btnSellAll);
             }
 
-            this.elShopList.appendChild(div);
+            sellSection.appendChild(div);
         });
+
+        this.elShopList.appendChild(sellSection);
     }
 
 handleMapEvent(ev) {
