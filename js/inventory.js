@@ -4,23 +4,9 @@
  */
 
 class Inventory {
-    constructor(player) {
-        this.player = player;
+    constructor() {
         this.items = [];
-        this.capacity = 50;
-        
-        this.equipment = {
-            head: null,
-            chest: null,
-            hands: null,
-            legs: null,
-            boots: null,
-            weaponMain: null,
-            weaponOff: null,
-            amulet: null,
-            ring1: null,
-            ring2: null
-        };
+        this.capacity = 100; // Increased capacity for a party
     }
 
     load(data) {
@@ -45,16 +31,20 @@ class Inventory {
             }
         });
 
-        this.capacity = data.capacity || 50;
-        this.equipment = data.equipment || this.equipment;
+        this.capacity = data.capacity || 100;
+
+        // Em caso de save antigo, migramos o equipment para o player 0
+        if (data.equipment && window.gameParty && window.gameParty[0]) {
+             window.gameParty[0].equipment = data.equipment;
+        }
+
         this.updatePlayerStats();
     }
 
     save() {
         return {
             items: this.items,
-            capacity: this.capacity,
-            equipment: this.equipment
+            capacity: this.capacity
         };
     }
 
@@ -100,7 +90,10 @@ class Inventory {
         return null;
     }
 
-    equip(instanceId, slotOverride = null) {
+    equip(instanceId, playerIndex = 0, slotOverride = null) {
+        const player = window.gameParty[playerIndex];
+        if (!player) return false;
+
         const index = this.items.findIndex(i => i.instanceId === instanceId);
         if (index === -1) return false;
 
@@ -110,52 +103,56 @@ class Inventory {
             return false;
         }
         
-        if (item.reqLvl > this.player.level) {
+        if (item.reqLvl > player.level) {
             Engine.emit('systemLog', `Nível insuficiente. Requer nível ${item.reqLvl}.`);
             return false;
         }
 
         let slot = slotOverride || item.slot;
         
-        if (slot === 'ring1' && this.equipment.ring1 && !this.equipment.ring2) {
+        if (slot === 'ring1' && player.equipment.ring1 && !player.equipment.ring2) {
             slot = 'ring2';
         }
 
         // Un-equip current item in slot
-        if (this.equipment[slot]) {
-            this.items.push(this.equipment[slot]);
+        if (player.equipment[slot]) {
+            this.items.push(player.equipment[slot]);
         }
 
-        this.equipment[slot] = item;
+        player.equipment[slot] = item;
         this.items.splice(index, 1);
         
-        this.updatePlayerStats();
+        this.updatePlayerStats(playerIndex);
         Engine.emit('inventoryUpdated', this);
-        Engine.emit('equipmentUpdated', this.equipment);
-        Engine.emit('systemLog', `Equipado: ${item.name}`);
+        Engine.emit('equipmentUpdated', player.equipment);
+        Engine.emit('systemLog', `${player.name} equipou: ${item.name}`);
         return true;
     }
 
-    unequip(slot) {
-        if (!this.equipment[slot]) return false;
+    unequip(slot, playerIndex = 0) {
+        const player = window.gameParty[playerIndex];
+        if (!player || !player.equipment[slot]) return false;
         
         if (this.items.length >= this.capacity) {
             Engine.emit('systemLog', 'Inventário cheio! Não foi possível desequipar.');
             return false;
         }
 
-        const item = this.equipment[slot];
-        this.equipment[slot] = null;
+        const item = player.equipment[slot];
+        player.equipment[slot] = null;
         this.items.push(item);
         
-        this.updatePlayerStats();
+        this.updatePlayerStats(playerIndex);
         Engine.emit('inventoryUpdated', this);
-        Engine.emit('equipmentUpdated', this.equipment);
-        Engine.emit('systemLog', `Desequipado: ${item.name}`);
+        Engine.emit('equipmentUpdated', player.equipment);
+        Engine.emit('systemLog', `${player.name} desequipou: ${item.name}`);
         return true;
     }
 
-    useItem(instanceId) {
+    useItem(instanceId, playerIndex = 0) {
+        const player = window.gameParty[playerIndex];
+        if (!player) return false;
+
         const index = this.items.findIndex(i => i.instanceId === instanceId);
         if (index === -1) return false;
 
@@ -170,11 +167,11 @@ class Inventory {
         }
 
         if (item.effect === 'heal') {
-            this.player.heal(item.value);
-            Engine.emit('systemLog', `Você usou ${item.name} e curou ${item.value} HP.`);
+            player.heal(item.value);
+            Engine.emit('systemLog', `Você usou ${item.name} em ${player.name} e curou ${item.value} HP.`);
         } else if (item.effect === 'mana') {
-            this.player.restoreMana(item.value);
-            Engine.emit('systemLog', `Você usou ${item.name} e restaurou ${item.value} Mana.`);
+            player.restoreMana(item.value);
+            Engine.emit('systemLog', `Você usou ${item.name} em ${player.name} e restaurou ${item.value} Mana.`);
         }
         
         if (item.count > 1) {
@@ -184,15 +181,15 @@ class Inventory {
         }
 
         Engine.emit('inventoryUpdated', this);
-        Engine.emit('playerUpdated', this.player);
+        Engine.emit('playerUpdated', player);
         return true;
     }
 
-    updatePlayerStats() {
-        // Recalculate any passive bonuses from equipment here if needed.
-        // For now, base stats are from player.js, equipment adds on top during combat.
-        // We trigger an update just in case UI needs to refresh total stats.
-        Engine.emit('playerUpdated', this.player);
+    updatePlayerStats(playerIndex = 0) {
+        const player = window.gameParty[playerIndex];
+        if (player) {
+            Engine.emit('playerUpdated', player);
+        }
     }
     
     countItem(id) {

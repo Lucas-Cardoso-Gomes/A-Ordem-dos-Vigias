@@ -5,6 +5,7 @@
 
 class UIManager {
     constructor() {
+        this.selectedPartyIndex = 0;
         this.cacheDOM();
         this.bindEvents();
         this.setupNavigation();
@@ -17,18 +18,29 @@ class UIManager {
         this.renderShop();
 
         // Subscribe to engine events
-        Engine.on('playerUpdated', p => this.renderPlayer(p));
+        Engine.on('partyUpdated', party => this.renderPartySelectors(party));
+        Engine.on('playerUpdated', p => {
+            if (window.gameParty[this.selectedPartyIndex] === p) {
+                this.renderPlayer(p);
+            }
+            this.renderHeader();
+        });
         Engine.on('inventoryUpdated', inv => {
-            const currentFilter = this.elInvFilter ? this.elInvFilter.value : 'all';
+            const currentFilter = this.currentInvFilter || 'all';
             this.renderInventory(inv, currentFilter);
             if (this.elShopList && !this.elShopList.parentElement.parentElement.classList.contains('hidden')) {
                 this.renderShop();
             }
         });
-        Engine.on('equipmentUpdated', eq => this.renderEquipment(eq));
+        Engine.on('equipmentUpdated', eq => {
+            if (window.gameParty[this.selectedPartyIndex] && window.gameParty[this.selectedPartyIndex].equipment === eq) {
+                this.renderEquipment(eq);
+            }
+        });
 
         // Delegate combat events
         if (this.combatUI) {
+            Engine.on('turnQueueUpdated', q => this.combatUI.renderTurnQueue(q));
             Engine.on('combatUpdated', c => this.combatUI.renderCombatStats(c));
             Engine.on('combatLog', log => this.combatUI.appendCombatLog(log));
             Engine.on('combatStarted', m => this.combatUI.showCombatScreen(m));
@@ -67,12 +79,22 @@ class UIManager {
         this.elHeaderMana = document.getElementById('header-mana');
         this.elHeaderGold = document.getElementById('header-gold');
 
+        // Party Selection
+        this.elCharPartySelector = document.getElementById('char-party-selector');
+        this.elInvPartySelector = document.getElementById('inv-party-selector');
+        this.btnAddMember = document.getElementById('btn-add-member');
+        this.btnRenameMember = document.getElementById('btn-rename-member');
+
         // Nav
         this.navButtons = document.querySelectorAll('.nav-btn');
         this.screens = document.querySelectorAll('.screen');
 
         // Character
         this.elCharLevel = document.getElementById('char-level');
+        this.elCharHp = document.getElementById('char-hp');
+        this.elCharHpMax = document.getElementById('char-hp-max');
+        this.elCharMana = document.getElementById('char-mana');
+        this.elCharManaMax = document.getElementById('char-mana-max');
         this.elCharXp = document.getElementById('char-xp');
         this.elCharXpNeeded = document.getElementById('char-xp-needed');
         this.elCharClass = document.getElementById('char-class');
@@ -89,7 +111,7 @@ class UIManager {
         // Inventory
         this.elInvCount = document.getElementById('inv-count');
         this.elInvList = document.getElementById('inventory-list');
-        this.elInvFilter = document.getElementById('inv-filter');
+        this.invTabBtns = document.querySelectorAll('.inv-tab-btn');
         this.elInvActionPanel = document.getElementById('inventory-action-panel');
         this.elActionPanelName = document.getElementById('action-panel-name');
         this.elActionPanelDesc = document.getElementById('action-panel-desc');
@@ -116,7 +138,7 @@ class UIManager {
 
         // Shop
         this.elShopList = document.getElementById('shop-list');
-        this.elShopFilter = document.getElementById('shop-filter');
+        this.shopTabBtns = document.querySelectorAll('.shop-tab-btn');
 
         // Bestiary
         this.elBestiaryList = document.getElementById('bestiary-list');
@@ -148,18 +170,64 @@ class UIManager {
         this.btnAttrs.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const attr = e.target.getAttribute('data-attr');
-                window.gamePlayer.addAttribute(attr);
+                window.gameParty[this.selectedPartyIndex].addAttribute(attr);
             });
         });
 
-        this.elInvFilter.addEventListener('change', (e) => {
-            this.renderInventory(window.gameInventory, e.target.value);
+        if (this.btnAddMember) {
+            this.btnAddMember.addEventListener('click', () => {
+                const name = prompt("Nome do novo membro:");
+                if (name) {
+                    const mainClass = window.gameParty[0].playerClass !== 'Nenhuma' ? window.gameParty[0].playerClass : 'Guerreiro';
+                    window.game.addPartyMember(name, mainClass);
+                }
+            });
+        }
+
+        if (this.btnRenameMember) {
+            this.btnRenameMember.addEventListener('click', () => {
+                const p = window.gameParty[this.selectedPartyIndex];
+                if (!p) return;
+                const newName = prompt("Digite o novo nome:", p.name);
+                if (newName && newName.trim().length > 0) {
+                    p.name = newName.trim();
+                    Engine.emit('partyUpdated', window.gameParty);
+                    Engine.emit('playerUpdated', p);
+                }
+            });
+        }
+
+        if (this.elCharPartySelector) {
+            this.elCharPartySelector.addEventListener('change', (e) => {
+                this.selectedPartyIndex = parseInt(e.target.value);
+                if (this.elInvPartySelector) this.elInvPartySelector.value = this.selectedPartyIndex;
+                this.renderPlayer(window.gameParty[this.selectedPartyIndex]);
+                this.renderEquipment(window.gameParty[this.selectedPartyIndex].equipment);
+            });
+        }
+
+        if (this.elInvPartySelector) {
+            this.elInvPartySelector.addEventListener('change', (e) => {
+                this.selectedPartyIndex = parseInt(e.target.value);
+                if (this.elCharPartySelector) this.elCharPartySelector.value = this.selectedPartyIndex;
+                this.renderPlayer(window.gameParty[this.selectedPartyIndex]);
+                this.renderEquipment(window.gameParty[this.selectedPartyIndex].equipment);
+            });
+        }
+
+        this.invTabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.invTabBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentInvFilter = e.target.getAttribute('data-filter');
+                this.renderInventory(window.gameInventory, this.currentInvFilter);
+            });
         });
 
         if (this.btnEquipItem) {
             this.btnEquipItem.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.equip(this.selectedItemInstanceId);
+                    window.gameInventory.equip(this.selectedItemInstanceId, this.selectedPartyIndex);
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -168,7 +236,7 @@ class UIManager {
         if (this.btnEquipItemMain) {
             this.btnEquipItemMain.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.equip(this.selectedItemInstanceId, 'weaponMain');
+                    window.gameInventory.equip(this.selectedItemInstanceId, this.selectedPartyIndex, 'weaponMain');
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -177,7 +245,7 @@ class UIManager {
         if (this.btnEquipItemOff) {
             this.btnEquipItemOff.addEventListener('click', () => {
                 if (this.selectedItemInstanceId) {
-                    window.gameInventory.equip(this.selectedItemInstanceId, 'weaponOff');
+                    window.gameInventory.equip(this.selectedItemInstanceId, this.selectedPartyIndex, 'weaponOff');
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
             });
@@ -195,13 +263,13 @@ class UIManager {
                         if (!isNaN(qty) && qty > 0) {
                             const toUse = Math.min(qty, item.count);
                             for (let i = 0; i < toUse; i++) {
-                                window.gameInventory.useItem(this.selectedItemInstanceId);
+                                window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex);
                             }
                             this.showToast(`Você consumiu ${toUse}x ${item.name}!`);
                         }
                     } else {
                         // Comportamento padrão para item único ou outros tipos de usáveis
-                        window.gameInventory.useItem(this.selectedItemInstanceId);
+                        window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex);
                     }
                     if (this.elInvActionPanel) this.elInvActionPanel.classList.add('hidden');
                 }
@@ -211,7 +279,7 @@ class UIManager {
         this.eqSlots.forEach(slot => {
             slot.addEventListener('click', (e) => {
                 const slotId = e.currentTarget.getAttribute('data-slot');
-                window.gameInventory.unequip(slotId);
+                window.gameInventory.unequip(slotId, this.selectedPartyIndex);
             });
             slot.addEventListener('mouseenter', (e) => this.showEquipmentTooltip(e, slot));
             slot.addEventListener('mouseleave', () => this.hideTooltip());
@@ -250,11 +318,14 @@ class UIManager {
             });
         }
         // Adicione junto aos outros escutadores de eventos
-        if (this.elShopFilter) {
-            this.elShopFilter.addEventListener('change', () => {
+        this.shopTabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.shopTabBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentShopFilter = e.target.getAttribute('data-filter');
                 this.renderShop();
             });
-        }
+        });
 
         if (this.btnExportSave) {
             this.btnExportSave.addEventListener('click', () => {
@@ -328,14 +399,49 @@ class UIManager {
         });
     }
 
+    renderPartySelectors(party) {
+        if (!this.elCharPartySelector || !this.elInvPartySelector) return;
+
+        const optionsHTML = party.map((p, idx) => `<option value="${idx}">${p.name} (Nv. ${p.level})</option>`).join('');
+        this.elCharPartySelector.innerHTML = optionsHTML;
+        this.elCharPartySelector.value = this.selectedPartyIndex;
+
+        this.elInvPartySelector.innerHTML = optionsHTML;
+        this.elInvPartySelector.value = this.selectedPartyIndex;
+
+        if (this.btnAddMember) {
+            this.btnAddMember.style.display = party.length < 4 ? 'inline-block' : 'none';
+        }
+    }
+
+    renderHeader() {
+        const party = window.gameParty;
+        if (!party) return;
+
+        const avgLevel = Math.floor(party.reduce((sum, p) => sum + p.level, 0) / party.length);
+        const totalHp = party.reduce((sum, p) => sum + p.hp, 0);
+        const maxHp = party.reduce((sum, p) => sum + p.getMaxHp(), 0);
+        const totalMana = party.reduce((sum, p) => sum + p.mana, 0);
+        const maxMana = party.reduce((sum, p) => sum + p.getMaxMana(), 0);
+
+        this.elHeaderLevel.innerText = `Nível Médio: ${avgLevel}`;
+        this.elHeaderHp.innerText = `Grupo HP: ${totalHp}/${maxHp}`;
+        this.elHeaderMana.innerText = `Grupo Mana: ${totalMana}/${maxMana}`;
+        // Gold goes to game state, but we sum it up if it exists per player, though gold should really be global.
+        // If player 0 has it, let's just use player 0's gold for display.
+        const totalGold = window.gameParty[0].gold || 0;
+        this.elHeaderGold.innerText = `Ouro: ${totalGold}`;
+    }
+
     renderPlayer(p) {
         this.renderBestiary();
-        this.elHeaderLevel.innerText = `Nível: ${p.level}`;
-        this.elHeaderHp.innerText = `HP: ${p.hp}/${p.getMaxHp()}`;
-        this.elHeaderMana.innerText = `Mana: ${p.mana}/${p.getMaxMana()}`;
-        this.elHeaderGold.innerText = `Ouro: ${p.gold}`;
+        this.renderHeader();
 
         this.elCharLevel.innerText = p.level;
+        if (this.elCharHp) this.elCharHp.innerText = p.hp;
+        if (this.elCharHpMax) this.elCharHpMax.innerText = p.getMaxHp();
+        if (this.elCharMana) this.elCharMana.innerText = p.mana;
+        if (this.elCharManaMax) this.elCharManaMax.innerText = p.getMaxMana();
         this.elCharXp.innerText = p.xp;
         this.elCharXpNeeded.innerText = p.getXpNeeded();
 
@@ -356,7 +462,7 @@ class UIManager {
                 btnClasse.style.fontSize = '0.8rem';
 
                 btnClasse.onclick = () => {
-                    window.gamePlayer.setClass(cls);
+                    window.gameParty[this.selectedPartyIndex].setClass(cls);
                 };
 
                 this.elCharClass.appendChild(btnClasse);
@@ -391,20 +497,57 @@ class UIManager {
         });
     }
 
+    getItemDescription(item) {
+        let desc = `<em>Raridade: ${item.rarity || 'comum'}</em><br>Tipo: ${item.type}<br>`;
+        if (item.count > 1) desc += `Quantidade: ${item.count}<br>`;
+        if (item.minDmg) desc += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
+        if (item.def) desc += `Defesa: ${item.def}<br>`;
+        if (item.stats) {
+            let statsStrs = [];
+            for (let [k,v] of Object.entries(item.stats)) {
+                statsStrs.push(`${k.toUpperCase()}: +${v}`);
+            }
+            if (statsStrs.length > 0) desc += `Atributos: ${statsStrs.join(', ')}<br>`;
+        }
+        if (item.weakness) desc += `Elemento/Especial: ${item.weakness}<br>`;
+        if (item.effect) desc += `Efeito: Cura/Mana ${item.value}<br>`;
+        if (item.reqLvl) desc += `Nível Requerido: ${item.reqLvl}<br>`;
+        return desc;
+    }
+
     renderInventory(inv, filter = 'all') {
         this.elInvCount.innerText = inv.items.length;
         this.elInvList.innerHTML = '';
 
-        let items = inv.items;
+        let items = [...inv.items];
         if (filter !== 'all') {
             items = items.filter(i => i.type === filter);
         }
+
+        const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
+        const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
+
+        items.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        const typeEmojis = {
+            'weapon': '⚔️',
+            'armor': '🛡️',
+            'accessory': '💍',
+            'potion': '🧪',
+            'material': '💎'
+        };
 
         items.forEach(item => {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
             div.style.position = 'relative';
-            div.innerText = item.name.substring(0, 3) + '.';
+
+            const emoji = typeEmojis[item.type] || '📦';
+            div.innerHTML = `<span style="font-size: 1.5rem;">${emoji}</span>`;
 
             if ((item.type === 'material' || item.type === 'potion') && item.count > 1) {
                 div.innerHTML += `<span class="item-count">x${item.count}</span>`;
@@ -416,15 +559,7 @@ class UIManager {
                     this.elInvActionPanel.classList.remove('hidden');
                     this.elActionPanelName.innerText = item.name;
 
-                    let desc = `<em>Raridade: ${item.rarity}</em><br>Tipo: ${item.type}<br>`;
-                    if (item.count) desc += `Quantidade: ${item.count}<br>`;
-                    if (item.minDmg) desc += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
-                    if (item.def) desc += `Defesa: ${item.def}<br>`;
-                    if (item.weakness) desc += `Elemento/Especial: ${item.weakness}<br>`;
-                    if (item.effect) desc += `Efeito: Cura/Mana ${item.value}<br>`;
-                    if (item.reqLvl) desc += `Nível Requerido: ${item.reqLvl}<br>`;
-
-                    this.elActionPanelDesc.innerHTML = desc;
+                    this.elActionPanelDesc.innerHTML = this.getItemDescription(item);
 
                     this.btnEquipItem.classList.add('hidden');
                     if (this.btnEquipItemMain) this.btnEquipItemMain.classList.add('hidden');
@@ -474,13 +609,7 @@ class UIManager {
 
     showItemTooltip(e, item) {
         let html = `<strong>${item.name}</strong><br>`;
-        html += `<em>Raridade: ${item.rarity}</em><br>`;
-        html += `Tipo: ${item.type}<br>`;
-        if (item.minDmg) html += `Dano: ${item.minDmg} - ${item.maxDmg}<br>`;
-        if (item.def) html += `Defesa: ${item.def}<br>`;
-        if (item.weakness) html += `Elemento/Especial: ${item.weakness}<br>`;
-        if (item.effect) html += `Efeito: Cura/Mana ${item.value}<br>`;
-        if (item.reqLvl) html += `Nível Requerido: ${item.reqLvl}<br>`;
+        html += this.getItemDescription(item);
 
         this.tooltip.innerHTML = html;
         this.tooltip.classList.remove('hidden');
@@ -492,7 +621,7 @@ class UIManager {
 
     showEquipmentTooltip(e, slotEl) {
         const slotId = slotEl.getAttribute('data-slot');
-        const item = window.gameInventory.equipment[slotId];
+        const item = window.gameParty[this.selectedPartyIndex].equipment[slotId];
         if (item) {
             this.showItemTooltip(e, item);
         }
@@ -719,31 +848,52 @@ showToast(msg) {
         if (!this.elShopList) return;
         this.elShopList.innerHTML = '';
 
-        const playerLvl = window.gamePlayer ? window.gamePlayer.level : 1;
-        const currentFilter = this.elShopFilter ? this.elShopFilter.value : 'all';
+        const playerLvl = window.gameParty[0] ? window.gameParty[0].level : 1;
+        const currentFilter = this.currentShopFilter || 'all';
 
         if (!this.shopItems || this.shopLevel !== playerLvl) {
             this.shopLevel = playerLvl;
-            this.shopItems = [
-                ItemDatabase.getPotion('p1'),
-                ItemDatabase.getPotion('p2'),
-                ItemDatabase.getPotion('p3'),
-                ItemDatabase.getPotion('p4'),
-                ItemDatabase.getPotion('p5'),
-                ItemDatabase.getMaterial('m1'),
-                ItemDatabase.getMaterial('m2'),
-                ItemDatabase.getMaterial('m8'),
-                ItemDatabase.generateItem(playerLvl, 'comum'),
-                ItemDatabase.generateItem(playerLvl, 'incomum'),
-                ItemDatabase.generateItem(Math.min(playerLvl + 2, 60), 'incomum')
-            ];
+            this.shopItems = [];
+
+            // Random Gear
+            for (let i = 0; i < 6; i++) {
+                this.shopItems.push(ItemDatabase.generateItem(playerLvl + Math.floor(Math.random() * 5)));
+            }
+
+            // Random Potions
+            for (let i = 0; i < 4; i++) {
+                const pot = ItemDatabase.potions[Math.floor(Math.random() * ItemDatabase.potions.length)];
+                this.shopItems.push(ItemDatabase.getPotion(pot.id));
+            }
+
+            // Random Materials
+            for (let i = 0; i < 4; i++) {
+                const mat = ItemDatabase.materials[Math.floor(Math.random() * ItemDatabase.materials.length)];
+                this.shopItems.push(ItemDatabase.getMaterial(mat.id));
+            }
         }
 
+        const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
+        const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
+
         // 1. FILTRAGEM DOS ITENS DISPONÍVEIS PARA COMPRA
-        let filteredBuyItems = this.shopItems;
+        let filteredBuyItems = [...this.shopItems];
         if (currentFilter !== 'all') {
             filteredBuyItems = filteredBuyItems.filter(item => item.type === currentFilter);
         }
+
+        filteredBuyItems.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        // Wrapper for Buy Section
+        const buySection = document.createElement('div');
+        buySection.className = 'shop-buy-section shop-items';
+        buySection.style.display = 'grid';
+        buySection.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        buySection.style.gap = '1rem';
 
         filteredBuyItems.forEach(item => {
             const div = document.createElement('div');
@@ -753,14 +903,17 @@ showToast(msg) {
             const baseCost = item.gold || item.value || 10;
             const increasedCost = Math.floor(baseCost * 3);
 
-            div.innerHTML = `<strong>${item.name}</strong><br>
-                             Tipo: ${item.type}<br>
-                             Preço: ${increasedCost} Ouro<br>`;
+            let descHtml = `<strong>${item.name}</strong><br>`;
+            descHtml += this.getItemDescription(item);
+            descHtml += `<hr style="margin: 0.5rem 0; border-color: var(--border-color);">`;
+            descHtml += `Preço: <strong>${increasedCost} Ouro</strong><br><br>`;
+
+            div.innerHTML = descHtml;
 
             const btnBuy = document.createElement('button');
             btnBuy.innerText = 'Comprar';
             btnBuy.onclick = () => {
-                if (window.gamePlayer.gold >= increasedCost) {
+                if ((window.gameParty[0].gold || 0) >= increasedCost) {
                     let newItem;
                     if (item.type === 'potion') {
                         newItem = ItemDatabase.getPotion(item.id);
@@ -771,8 +924,8 @@ showToast(msg) {
                         newItem.instanceId = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                     }
                     if (newItem && window.gameInventory.addItem(newItem)) {
-                        window.gamePlayer.gold -= increasedCost;
-                        Engine.emit('playerUpdated', window.gamePlayer);
+                        window.gameParty[0].gold -= increasedCost;
+                        Engine.emit('playerUpdated', window.gameParty[0]);
                         Engine.emit('systemLog', `Você comprou ${item.name} por ${increasedCost} Ouro.`);
                     }
                 } else {
@@ -780,13 +933,15 @@ showToast(msg) {
                 }
             };
             div.appendChild(btnBuy);
-            this.elShopList.appendChild(div);
+            buySection.appendChild(div);
         });
+
+        this.elShopList.appendChild(buySection);
 
         // Divisor visual para a seção de Venda
         const hr = document.createElement('hr');
         hr.style.gridColumn = '1 / -1';
-        hr.style.margin = '1rem 0';
+        hr.style.margin = '2rem 0 1rem 0';
         hr.style.borderColor = 'var(--border-color)';
         this.elShopList.appendChild(hr);
 
@@ -794,20 +949,34 @@ showToast(msg) {
         sellTitle.innerText = 'Vender seus itens';
         sellTitle.style.gridColumn = '1 / -1';
         sellTitle.style.color = 'var(--accent-gold)';
+        sellTitle.style.marginBottom = '1rem';
         this.elShopList.appendChild(sellTitle);
 
         // 2. FILTRAGEM DOS ITENS DO INVENTÁRIO PARA VENDA
-        let itemsToSell = window.gameInventory.items;
+        let itemsToSell = [...window.gameInventory.items];
         if (currentFilter !== 'all') {
             itemsToSell = itemsToSell.filter(item => item.type === currentFilter);
         }
+
+        itemsToSell.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        // Wrapper for Sell Section
+        const sellSection = document.createElement('div');
+        sellSection.className = 'shop-sell-section shop-items';
+        sellSection.style.display = 'grid';
+        sellSection.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        sellSection.style.gap = '1rem';
 
         if (itemsToSell.length === 0) {
             const noItemsMsg = document.createElement('p');
             noItemsMsg.innerText = 'Nenhum item desta categoria no seu inventário.';
             noItemsMsg.style.gridColumn = '1 / -1';
             noItemsMsg.style.color = '#777';
-            this.elShopList.appendChild(noItemsMsg);
+            sellSection.appendChild(noItemsMsg);
         }
 
         itemsToSell.forEach(item => {
@@ -816,12 +985,11 @@ showToast(msg) {
 
             const sellPrice = item.sellValue || Math.floor((item.gold || item.value || 10) / 2) || 5;
 
-            let desc = `<strong>${item.name}</strong><br>
-                        Tipo: ${item.type}<br>
-                        Venda: ${sellPrice} Ouro${item.count > 1 ? ' (cada)' : ''}<br>`;
-            if (item.count > 1) {
-                desc += `Quantidade: ${item.count}<br>`;
-            }
+            let desc = `<strong>${item.name}</strong><br>`;
+            desc += this.getItemDescription(item);
+            desc += `<hr style="margin: 0.5rem 0; border-color: var(--border-color);">`;
+            desc += `Venda: <strong>${sellPrice} Ouro</strong>${item.count > 1 ? ' (cada)' : ''}<br><br>`;
+
             div.innerHTML = desc;
 
             const btnSell = document.createElement('button');
@@ -829,8 +997,7 @@ showToast(msg) {
             btnSell.onclick = () => {
                 const removedItem = window.gameInventory.removeItem(item.instanceId, 1);
                 if (removedItem) {
-                    window.gamePlayer.gold += sellPrice;
-                    Engine.emit('playerUpdated', window.gamePlayer);
+                    window.gameParty[0].gainGold(sellPrice);
                     Engine.emit('systemLog', `Você vendeu 1x ${item.name} por ${sellPrice} Ouro.`);
                 }
             };
@@ -844,27 +1011,33 @@ showToast(msg) {
                     const totalGold = sellPrice * totalSells;
                     const removedItem = window.gameInventory.removeItem(item.instanceId, totalSells);
                     if (removedItem) {
-                        window.gamePlayer.gold += totalGold;
-                        Engine.emit('playerUpdated', window.gamePlayer);
+                        window.gameParty[0].gainGold(totalGold);
                         Engine.emit('systemLog', `Você vendeu ${totalSells}x ${item.name} por ${totalGold} Ouro.`);
                     }
                 };
                 div.appendChild(btnSellAll);
             }
 
-            this.elShopList.appendChild(div);
+            sellSection.appendChild(div);
         });
+
+        this.elShopList.appendChild(sellSection);
     }
 
 handleMapEvent(ev) {
         let msg = `${ev.title}\n\n${ev.desc}\n`;
-        if (ev.gold > 0) { msg += `\n💰 +${ev.gold} Ouro`; window.gamePlayer.gainGold(ev.gold); }
-        if (ev.hp > 0) { msg += `\n❤️ +${ev.hp} HP`; window.gamePlayer.heal(ev.hp); }
+        if (ev.gold > 0) { msg += `\n💰 +${ev.gold} Ouro`; window.gameParty[0].gainGold(ev.gold); }
+        if (ev.hp > 0) {
+            msg += `\n❤️ +${ev.hp} HP`;
+            window.gameParty.forEach(p => p.heal(ev.hp));
+        }
         if (ev.hp < 0) { 
             const dmg = Math.abs(ev.hp); 
-            msg += `\n🩸 -${dmg} HP`; 
-            window.gamePlayer.hp -= dmg; 
-            if(window.gamePlayer.hp <= 0) window.gamePlayer.hp = 1; 
+            msg += `\n🩸 -${dmg} HP (Todos os Membros)`;
+            window.gameParty.forEach(p => {
+                p.hp -= dmg;
+                if(p.hp <= 0) p.hp = 1;
+            });
         }
         alert(msg);
         

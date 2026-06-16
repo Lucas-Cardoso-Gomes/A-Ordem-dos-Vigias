@@ -6,6 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A Ordem dos Vigias</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .inv-tab-btn.active, .shop-tab-btn.active {
+            background-color: var(--accent-gold);
+            color: black;
+            border-color: var(--accent-gold);
+        }
+        .inv-tab-btn, .shop-tab-btn {
+            background-color: var(--bg-panel);
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .inv-tab-btn:hover, .shop-tab-btn:hover {
+            border-color: var(--accent-gold);
+        }
+    </style>
 </head>
 
 <body>
@@ -33,11 +51,20 @@
         <main id="screens">
             <!-- Screen: Character -->
             <section id="screen-character" class="screen active">
-                <h2>Personagem</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Personagem</h2>
+                    <div>
+                        <select id="char-party-selector" style="padding: 0.3rem; margin-right: 0.5rem;"></select>
+                        <button id="btn-rename-member">Renomear</button>
+                        <button id="btn-add-member">+ Membro</button>
+                    </div>
+                </div>
                 <div class="character-info">
                     <div class="stats-panel">
                         <h3>Atributos</h3>
                         <p>Nível: <span id="char-level">1</span></p>
+                        <p>HP: <span id="char-hp">100</span> / <span id="char-hp-max">100</span></p>
+                        <p>Mana: <span id="char-mana">50</span> / <span id="char-mana-max">50</span></p>
                         <p>XP: <span id="char-xp">0</span> / <span id="char-xp-needed">100</span></p>
                         <p>Classe: <span id="char-class">Nenhuma</span></p>
                         <p>Pontos de Atributo: <span id="char-points">0</span></p>
@@ -80,15 +107,17 @@
 
             <!-- Screen: Inventory -->
             <section id="screen-inventory" class="screen hidden">
-                <h2>Inventário (<span id="inv-count">0</span>/50)</h2>
-                <div class="inventory-controls">
-                    <select id="inv-filter">
-                        <option value="all">Todos</option>
-                        <option value="weapon">Armas</option>
-                        <option value="armor">Armaduras</option>
-                        <option value="potion">Poções</option>
-                        <option value="material">Materiais</option>
-                    </select>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Inventário (<span id="inv-count">0</span>/50)</h2>
+                    <select id="inv-party-selector" style="padding: 0.3rem;"></select>
+                </div>
+                <div class="inventory-controls" id="inv-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="inv-tab-btn active" data-filter="all">Todos</button>
+                    <button class="inv-tab-btn" data-filter="weapon">Armas</button>
+                    <button class="inv-tab-btn" data-filter="armor">Armaduras</button>
+                    <button class="inv-tab-btn" data-filter="accessory">Acessórios</button>
+                    <button class="inv-tab-btn" data-filter="potion">Poções</button>
+                    <button class="inv-tab-btn" data-filter="material">Materiais</button>
                 </div>
                 <div style="display: flex; gap: 1rem;">
                     <div class="inventory-grid" id="inventory-list" style="flex: 1;">
@@ -144,14 +173,14 @@
             <!-- Screen: Combat -->
             <section id="screen-combat" class="screen hidden">
                 <h2>Combate</h2>
+                <div id="combat-turn-queue" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; overflow-x: auto; padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border-color); align-items: center;">
+                    <span style="font-weight: bold; color: var(--accent-gold); white-space: nowrap;">Fila de Turnos:</span>
+                    <div id="combat-turn-queue-list" style="display: flex; gap: 0.5rem;"></div>
+                </div>
+
                 <div class="combat-arena">
-                    <div class="combat-entity player-side">
-                        <h3>Você</h3>
-                        <div class="health-bar-container">
-                            <div class="health-bar" id="combat-player-hp-bar"></div>
-                        </div>
-                        <p>HP: <span id="combat-player-hp">100</span> / <span id="combat-player-hp-max">100</span></p>
-                        <div class="status-effects" id="combat-player-status"></div>
+                    <div class="combat-entity player-side" id="combat-party-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- Player cards will be injected here via UI manager -->
                     </div>
                     <div class="monsters-container" id="combat-monsters-container">
                         <!-- Monster cards will be injected here via UI manager -->
@@ -198,20 +227,17 @@
             <section id="screen-shop" class="screen hidden">
                 <h2>Mercador</h2>
 
-                <div class="shop-controls" style="margin-bottom: 1rem; margin-top: 0.5rem;">
-                    <label for="shop-filter" style="font-size: 0.9rem; color: #aaa;">Filtrar artigos: </label>
-                    <select id="shop-filter"
-                        style="padding: 0.3rem 0.6rem; background: var(--bg-panel); color: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
-                        <option value="all">Todos os Itens</option>
-                        <option value="weapon">Armas</option>
-                        <option value="armor">Armaduras</option>
-                        <option value="potion">Poções</option>
-                        <option value="material">Materiais</option>
-                    </select>
+                <div class="shop-controls" id="shop-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; margin-top: 0.5rem;">
+                    <button class="shop-tab-btn active" data-filter="all">Todos os Itens</button>
+                    <button class="shop-tab-btn" data-filter="weapon">Armas</button>
+                    <button class="shop-tab-btn" data-filter="armor">Armaduras</button>
+                    <button class="shop-tab-btn" data-filter="accessory">Acessórios</button>
+                    <button class="shop-tab-btn" data-filter="potion">Poções</button>
+                    <button class="shop-tab-btn" data-filter="material">Materiais</button>
                 </div>
 
                 <div class="shop-container">
-                    <div class="shop-items" id="shop-list">
+                    <div id="shop-list">
                     </div>
                 </div>
             </section>
