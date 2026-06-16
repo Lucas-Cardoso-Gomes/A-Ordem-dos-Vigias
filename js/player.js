@@ -9,6 +9,7 @@ class Player {
     }
 
     reset() {
+        this.name = 'Herói';
         this.level = 1;
         this.xp = 0;
         this.gold = 0;
@@ -23,6 +24,20 @@ class Player {
 
         this.statPoints = 0;
         this.playerClass = 'Nenhuma'; // Caçador, Exorcista, Alquimista, Bruxo, Mago
+        this.classLocked = false;
+
+        this.equipment = {
+            head: null,
+            chest: null,
+            hands: null,
+            legs: null,
+            boots: null,
+            weaponMain: null,
+            weaponOff: null,
+            amulet: null,
+            ring1: null,
+            ring2: null
+        };
 
         this.hp = this.getMaxHp();
         this.mana = this.getMaxMana();
@@ -32,12 +47,16 @@ class Player {
 
     load(data) {
         if (!data) return;
+        this.name = data.name || 'Herói';
         this.level = data.level || 1;
         this.xp = data.xp || 0;
         this.gold = data.gold || 0;
         this.attributes = data.attributes || this.attributes;
         this.statPoints = data.statPoints || 0;
         this.playerClass = data.playerClass || 'Nenhuma';
+        this.classLocked = data.classLocked || false;
+        if (this.playerClass !== 'Nenhuma' && data.classLocked === undefined) this.classLocked = true; // Migrate old saves
+        this.equipment = data.equipment || this.equipment;
         this.hp = data.hp || this.getMaxHp();
         this.mana = data.mana || this.getMaxMana();
         this.bestiary = data.bestiary || [];
@@ -45,12 +64,15 @@ class Player {
 
     save() {
         return {
+            name: this.name,
             level: this.level,
             xp: this.xp,
             gold: this.gold,
             attributes: this.attributes,
             statPoints: this.statPoints,
             playerClass: this.playerClass,
+            classLocked: this.classLocked,
+            equipment: this.equipment,
             hp: this.hp,
             mana: this.mana,
             bestiary: this.bestiary
@@ -63,6 +85,11 @@ class Player {
         return Math.floor(100 * Math.pow(1.15, this.level - 1));
     }
 
+    gainGold(amount) {
+        this.gold = (this.gold || 0) + amount;
+        Engine.emit('playerUpdated', this);
+    }
+
     gainXp(amount) {
         this.xp += amount;
         let leveledUp = false;
@@ -72,15 +99,11 @@ class Player {
             leveledUp = true;
         }
         if (leveledUp) {
-            Engine.emit('systemLog', `Você alcançou o nível ${this.level}! (+5 Pontos de Atributo)`);
+            Engine.emit('systemLog', `${this.name} alcançou o nível ${this.level}! (+5 Pontos de Atributo)`);
         }
         Engine.emit('playerUpdated', this);
     }
 
-    gainGold(amount) {
-        this.gold += amount;
-        Engine.emit('playerUpdated', this);
-    }
 
     levelUp() {
         this.level++;
@@ -113,8 +136,8 @@ class Player {
 
     getTotalAttr(attr) {
         let val = this.attributes[attr] || 0;
-        if (window.gameInventory && window.gameInventory.equipment) {
-            Object.values(window.gameInventory.equipment).forEach(item => {
+        if (this.equipment) {
+            Object.values(this.equipment).forEach(item => {
                 if (item && item.stats && item.stats[attr]) {
                     val += item.stats[attr];
                 }
@@ -127,8 +150,8 @@ class Player {
         // Base 100 + 10 per Str + 5 per Def + level bonus + item bonuses
         let max = 100 + (this.getTotalAttr('str') * 10) + (this.getTotalAttr('def') * 5) + (this.level * 10);
 
-        if (window.gameInventory && window.gameInventory.equipment) {
-            Object.values(window.gameInventory.equipment).forEach(item => {
+        if (this.equipment) {
+            Object.values(this.equipment).forEach(item => {
                 if (item && item.stats && item.stats.hp) {
                     max += item.stats.hp;
                 }
@@ -141,8 +164,8 @@ class Player {
         // Base 50 + 10 per Int + level bonus + item bonuses
         let max = 50 + (this.getTotalAttr('int') * 10) + (this.level * 5);
 
-        if (window.gameInventory && window.gameInventory.equipment) {
-            Object.values(window.gameInventory.equipment).forEach(item => {
+        if (this.equipment) {
+            Object.values(this.equipment).forEach(item => {
                 if (item && item.stats && item.stats.mana) {
                     max += item.stats.mana;
                 }
@@ -167,8 +190,9 @@ class Player {
         const match = validClasses.find(c => c.toLowerCase() === inputClass);
         if (match) {
             this.playerClass = match;
+            this.classLocked = true;
             Engine.emit('playerUpdated', this);
-            Engine.emit('systemLog', `Você se tornou um ${match}!`);
+            Engine.emit('systemLog', `${this.name} se tornou um ${match}!`);
         }
     }
 

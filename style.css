@@ -338,6 +338,7 @@ button.danger:hover {
     height: 200px;
     overflow-y: auto;
     font-family: monospace;
+    font-size: 0.85rem;
 }
 .log-player { color: var(--rarity-uncommon); }
 .log-monster { color: var(--rarity-mythic); }
