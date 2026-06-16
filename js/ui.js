@@ -395,16 +395,35 @@ class UIManager {
         this.elInvCount.innerText = inv.items.length;
         this.elInvList.innerHTML = '';
 
-        let items = inv.items;
+        let items = [...inv.items];
         if (filter !== 'all') {
             items = items.filter(i => i.type === filter);
         }
+
+        const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
+        const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
+
+        items.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        const typeEmojis = {
+            'weapon': '⚔️',
+            'armor': '🛡️',
+            'accessory': '💍',
+            'potion': '🧪',
+            'material': '💎'
+        };
 
         items.forEach(item => {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
             div.style.position = 'relative';
-            div.innerText = item.name.substring(0, 3) + '.';
+
+            const emoji = typeEmojis[item.type] || '📦';
+            div.innerHTML = `<span style="font-size: 1.5rem;">${emoji}</span>`;
 
             if ((item.type === 'material' || item.type === 'potion') && item.count > 1) {
                 div.innerHTML += `<span class="item-count">x${item.count}</span>`;
@@ -739,11 +758,27 @@ showToast(msg) {
             ];
         }
 
+        const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
+        const rarityOrder = { 'mitico': 1, 'lendario': 2, 'epico': 3, 'raro': 4, 'incomum': 5, 'comum': 6 };
+
         // 1. FILTRAGEM DOS ITENS DISPONÍVEIS PARA COMPRA
-        let filteredBuyItems = this.shopItems;
+        let filteredBuyItems = [...this.shopItems];
         if (currentFilter !== 'all') {
             filteredBuyItems = filteredBuyItems.filter(item => item.type === currentFilter);
         }
+
+        filteredBuyItems.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        // Wrapper for Buy Section
+        const buySection = document.createElement('div');
+        buySection.className = 'shop-buy-section shop-items';
+        buySection.style.display = 'grid';
+        buySection.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        buySection.style.gap = '1rem';
 
         filteredBuyItems.forEach(item => {
             const div = document.createElement('div');
@@ -780,13 +815,15 @@ showToast(msg) {
                 }
             };
             div.appendChild(btnBuy);
-            this.elShopList.appendChild(div);
+            buySection.appendChild(div);
         });
+
+        this.elShopList.appendChild(buySection);
 
         // Divisor visual para a seção de Venda
         const hr = document.createElement('hr');
         hr.style.gridColumn = '1 / -1';
-        hr.style.margin = '1rem 0';
+        hr.style.margin = '2rem 0 1rem 0';
         hr.style.borderColor = 'var(--border-color)';
         this.elShopList.appendChild(hr);
 
@@ -794,20 +831,34 @@ showToast(msg) {
         sellTitle.innerText = 'Vender seus itens';
         sellTitle.style.gridColumn = '1 / -1';
         sellTitle.style.color = 'var(--accent-gold)';
+        sellTitle.style.marginBottom = '1rem';
         this.elShopList.appendChild(sellTitle);
 
         // 2. FILTRAGEM DOS ITENS DO INVENTÁRIO PARA VENDA
-        let itemsToSell = window.gameInventory.items;
+        let itemsToSell = [...window.gameInventory.items];
         if (currentFilter !== 'all') {
             itemsToSell = itemsToSell.filter(item => item.type === currentFilter);
         }
+
+        itemsToSell.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+            return a.name.localeCompare(b.name);
+        });
+
+        // Wrapper for Sell Section
+        const sellSection = document.createElement('div');
+        sellSection.className = 'shop-sell-section shop-items';
+        sellSection.style.display = 'grid';
+        sellSection.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        sellSection.style.gap = '1rem';
 
         if (itemsToSell.length === 0) {
             const noItemsMsg = document.createElement('p');
             noItemsMsg.innerText = 'Nenhum item desta categoria no seu inventário.';
             noItemsMsg.style.gridColumn = '1 / -1';
             noItemsMsg.style.color = '#777';
-            this.elShopList.appendChild(noItemsMsg);
+            sellSection.appendChild(noItemsMsg);
         }
 
         itemsToSell.forEach(item => {
@@ -852,8 +903,10 @@ showToast(msg) {
                 div.appendChild(btnSellAll);
             }
 
-            this.elShopList.appendChild(div);
+            sellSection.appendChild(div);
         });
+
+        this.elShopList.appendChild(sellSection);
     }
 
 handleMapEvent(ev) {
