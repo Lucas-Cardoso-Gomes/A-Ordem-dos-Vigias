@@ -6,11 +6,8 @@ class CombatUIManager {
     }
 
     cacheDOM() {
-        this.elCombatPlayerSide = document.querySelector('.player-side');
+        this.elCombatPartyContainer = document.getElementById('combat-party-container');
         this.elCombatMonstersContainer = document.getElementById('combat-monsters-container');
-        this.elCombatPlayerHpBar = document.getElementById('combat-player-hp-bar');
-        this.elCombatPlayerHp = document.getElementById('combat-player-hp');
-        this.elCombatPlayerHpMax = document.getElementById('combat-player-hp-max');
 
         this.btnAttack = document.getElementById('btn-attack');
         this.btnSkill = document.getElementById('btn-skill');
@@ -54,22 +51,29 @@ class CombatUIManager {
     }
 
     showCombatSkillsMenu() {
-        if (!this.elCombatSkillsMenu) return;
+        if (!this.elCombatSkillsMenu || !window.gameCombat || !window.gameCombat.currentTurnEntity || window.gameCombat.currentTurnEntity.type !== 'player') return;
         this.elCombatSkillsList.innerHTML = '';
 
-        const skills = window.gamePlayer.getSkills();
+        const pIndex = window.gameCombat.currentTurnEntity.index;
+        const p = window.gameParty[pIndex];
+        const skills = p.getSkills();
+
         if (skills.length === 0) {
             this.elCombatSkillsList.innerText = 'Nenhuma habilidade disponível.';
         } else {
             skills.forEach(skill => {
                 const btn = document.createElement('button');
                 btn.innerText = `${skill.name} (${skill.manaCost} MP)`;
-                if (window.gamePlayer.mana < skill.manaCost) {
+                if (p.mana < skill.manaCost) {
                     btn.disabled = true;
                 }
                 btn.onclick = () => {
                     this.hideCombatMenus();
-                    window.gameCombat.playerSkill(skill);
+                    if (skill.type === 'heal' && window.gameParty.length > 1) {
+                        this.showPartyTargetMenu(skill);
+                    } else {
+                        window.gameCombat.playerSkill(skill);
+                    }
                 };
                 this.elCombatSkillsList.appendChild(btn);
             });
@@ -81,6 +85,27 @@ class CombatUIManager {
         cancelBtn.onclick = () => this.hideCombatMenus();
         this.elCombatSkillsList.appendChild(cancelBtn);
 
+        this.elCombatSkillsMenu.classList.remove('hidden');
+    }
+
+    showPartyTargetMenu(skill) {
+        this.elCombatSkillsList.innerHTML = `<h4>Escolha o alvo para ${skill.name}</h4>`;
+        window.gameParty.forEach((member, idx) => {
+            if (member.hp > 0 || skill.name.includes("Ressurreição")) { // Just in case we add revive
+                const btn = document.createElement('button');
+                btn.innerText = `${member.name} (HP: ${member.hp}/${member.getMaxHp()})`;
+                btn.onclick = () => {
+                    this.hideCombatMenus();
+                    window.gameCombat.playerSkill(skill, idx);
+                };
+                this.elCombatSkillsList.appendChild(btn);
+            }
+        });
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.className = 'danger';
+        cancelBtn.onclick = () => this.hideCombatMenus();
+        this.elCombatSkillsList.appendChild(cancelBtn);
         this.elCombatSkillsMenu.classList.remove('hidden');
     }
 
@@ -182,13 +207,46 @@ class CombatUIManager {
     }
 
     renderCombatStats(data) {
-        const p = data.player;
+        const party = data.party || window.gameParty;
         const monsters = data.monsters;
 
-        const pPct = Math.max(0, (p.hp / p.getMaxHp()) * 100);
-        this.elCombatPlayerHpBar.style.width = `${pPct}%`;
-        this.elCombatPlayerHp.innerText = p.hp;
-        this.elCombatPlayerHpMax.innerText = p.getMaxHp();
+        this.elCombatPartyContainer.innerHTML = '';
+
+        let turnIndex = null;
+        if (window.gameCombat && window.gameCombat.currentTurnEntity && window.gameCombat.currentTurnEntity.type === 'player') {
+            turnIndex = window.gameCombat.currentTurnEntity.index;
+        }
+
+        party.forEach((p, idx) => {
+            const isDead = p.hp <= 0;
+            const isTurn = idx === turnIndex;
+
+            const pPct = Math.max(0, (p.hp / p.getMaxHp()) * 100);
+            const mPct = Math.max(0, (p.mana / p.getMaxMana()) * 100);
+
+            const card = document.createElement('div');
+            card.className = `combat-party-member ${isDead ? 'dead' : ''} ${isTurn ? 'active-turn' : ''}`;
+            card.id = `combat-player-${idx}`;
+            card.style.border = isTurn ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)';
+            card.style.padding = '0.5rem';
+            card.style.borderRadius = '4px';
+            card.style.background = 'rgba(0,0,0,0.5)';
+            card.style.position = 'relative';
+
+            card.innerHTML = `
+                <h4 style="margin: 0 0 0.5rem 0;">${p.name} <small>Nv.${p.level} ${p.playerClass}</small></h4>
+                <div class="health-bar-container" style="height: 10px; margin-bottom: 2px;">
+                    <div class="health-bar" style="width: ${pPct}%"></div>
+                </div>
+                <div style="font-size: 0.8rem; text-align: right; margin-bottom: 5px;">HP: ${p.hp} / ${p.getMaxHp()}</div>
+
+                <div class="health-bar-container" style="height: 10px; margin-bottom: 2px;">
+                    <div class="mana-bar" style="width: ${mPct}%; background-color: #3b82f6; height: 100%;"></div>
+                </div>
+                <div style="font-size: 0.8rem; text-align: right;">MP: ${p.mana} / ${p.getMaxMana()}</div>
+            `;
+            this.elCombatPartyContainer.appendChild(card);
+        });
 
         if (monsters) {
             this.renderCombatMonsters(monsters);
@@ -212,7 +270,10 @@ class CombatUIManager {
 
     playCombatAnimation(data) {
         let el;
-        if (data.target === 'player') el = this.elCombatPlayerSide;
+        if (data.target === 'player') {
+            if (data.playerIndex !== undefined) el = document.getElementById(`combat-player-${data.playerIndex}`);
+            else el = document.getElementById(`combat-player-0`); // fallback
+        }
         else if (data.monsterId) el = document.getElementById(`monster-card-${data.monsterId}`);
         if (!el) return;
 

@@ -5,13 +5,14 @@
 
 class Game {
     constructor() {
-        this.player = new Player();
-        this.inventory = new Inventory(this.player);
-        this.combat = new CombatSystem(this.player, this.inventory);
-        this.quests = new QuestSystem(this.player);
+        this.party = [new Player()];
+        this.inventory = new Inventory();
+        this.combat = new CombatSystem(this.party, this.inventory);
+        this.quests = new QuestSystem(this.party[0]);
         
         // Export to window for UI access
-        window.gamePlayer = this.player;
+        window.gameParty = this.party;
+        window.gamePlayer = this.party[0]; // Kept for some legacy parts temporarily
         window.gameInventory = this.inventory;
         window.gameCombat = this.combat;
         window.gameQuests = this.quests;
@@ -21,15 +22,33 @@ class Game {
         this.lastSave = Date.now();
     }
 
+    addPartyMember(name = 'Aliado', playerClass = 'Guerreiro') {
+        if (this.party.length >= 4) return false;
+
+        let newMember = new Player();
+        newMember.name = name;
+        newMember.level = this.party[0].level;
+        newMember.hp = newMember.getMaxHp();
+        newMember.mana = newMember.getMaxMana();
+        newMember.setClass(playerClass);
+
+        this.party.push(newMember);
+        Engine.emit('partyUpdated', this.party);
+        Engine.emit('systemLog', `${name} se juntou ao grupo!`);
+        return true;
+    }
+
     init() {
         this.ui = new UIManager();
         this.load();
         
         // Trigger initial renders
-        Engine.emit('playerUpdated', this.player);
+        Engine.emit('partyUpdated', this.party);
+        Engine.emit('playerUpdated', this.party[0]);
         Engine.emit('inventoryUpdated', this.inventory);
-        Engine.emit('equipmentUpdated', this.inventory.equipment);
+        Engine.emit('equipmentUpdated', this.party[0].equipment);
         Engine.emit('questsUpdated', this.quests);
+        Engine.emit('regionProgressUpdated');
 
         // Listen to combat events
         Engine.on('questUpdate', (data) => {
@@ -55,7 +74,7 @@ class Game {
 
     save() {
         const state = {
-            player: this.player.save(),
+            party: this.party.map(p => p.save()),
             inventory: this.inventory.save(),
             quests: this.quests.save(),
             mapProgress: MapSystem.progress,
@@ -68,7 +87,21 @@ class Game {
     load() {
         const state = Engine.loadGame();
         if (state) {
-            this.player.load(state.player);
+            if (state.party) {
+                this.party = state.party.map(pData => {
+                    let p = new Player();
+                    p.load(pData);
+                    return p;
+                });
+                window.gameParty = this.party;
+                window.gamePlayer = this.party[0];
+            } else if (state.player) {
+                this.party[0].load(state.player);
+            }
+
+            // Re-assign references after party load
+            this.combat.party = this.party;
+
             this.inventory.load(state.inventory);
             this.quests.load(state.quests);
             if (state.mapProgress) {
