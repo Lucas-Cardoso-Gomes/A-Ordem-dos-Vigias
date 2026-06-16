@@ -115,8 +115,21 @@ class QuestSystem {
         }
 
         // Rewards
-        this.player.gainXp(quest.rewards.xp);
-        this.player.gainGold(quest.rewards.gold);
+        if (window.gameParty) {
+            const livingPlayers = window.gameParty.filter(p => p.hp > 0);
+            if (livingPlayers.length > 0) {
+                const xpPerMember = Math.floor(quest.rewards.xp / window.gameParty.length);
+                livingPlayers.forEach(p => p.gainXp(xpPerMember));
+                window.gameParty[0].gainGold(quest.rewards.gold);
+            } else {
+                 // Fallback if all dead (shouldn't happen, but just in case)
+                 window.gameParty[0].gainXp(quest.rewards.xp);
+                 window.gameParty[0].gainGold(quest.rewards.gold);
+            }
+        } else {
+            this.player.gainXp(quest.rewards.xp);
+            this.player.gainGold(quest.rewards.gold);
+        }
         
         // Potion or Material bonus 30% chance
         if (Engine.randomChance(30)) {

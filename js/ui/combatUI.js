@@ -8,6 +8,7 @@ class CombatUIManager {
     cacheDOM() {
         this.elCombatPartyContainer = document.getElementById('combat-party-container');
         this.elCombatMonstersContainer = document.getElementById('combat-monsters-container');
+        this.elCombatTurnQueueList = document.getElementById('combat-turn-queue-list');
 
         this.btnAttack = document.getElementById('btn-attack');
         this.btnSkill = document.getElementById('btn-skill');
@@ -57,7 +58,7 @@ class CombatUIManager {
         const pIndex = window.gameCombat.currentTurnEntity.index;
         const p = window.gameParty[pIndex];
         const skills = p.getSkills();
-
+        
         if (skills.length === 0) {
             this.elCombatSkillsList.innerText = 'Nenhuma habilidade disponível.';
         } else {
@@ -211,7 +212,7 @@ class CombatUIManager {
         const monsters = data.monsters;
 
         this.elCombatPartyContainer.innerHTML = '';
-
+        
         let turnIndex = null;
         if (window.gameCombat && window.gameCombat.currentTurnEntity && window.gameCombat.currentTurnEntity.type === 'player') {
             turnIndex = window.gameCombat.currentTurnEntity.index;
@@ -220,10 +221,10 @@ class CombatUIManager {
         party.forEach((p, idx) => {
             const isDead = p.hp <= 0;
             const isTurn = idx === turnIndex;
-
+            
             const pPct = Math.max(0, (p.hp / p.getMaxHp()) * 100);
             const mPct = Math.max(0, (p.mana / p.getMaxMana()) * 100);
-
+            
             const card = document.createElement('div');
             card.className = `combat-party-member ${isDead ? 'dead' : ''} ${isTurn ? 'active-turn' : ''}`;
             card.id = `combat-player-${idx}`;
@@ -232,14 +233,14 @@ class CombatUIManager {
             card.style.borderRadius = '4px';
             card.style.background = 'rgba(0,0,0,0.5)';
             card.style.position = 'relative';
-
+            
             card.innerHTML = `
                 <h4 style="margin: 0 0 0.5rem 0;">${p.name} <small>Nv.${p.level} ${p.playerClass}</small></h4>
                 <div class="health-bar-container" style="height: 10px; margin-bottom: 2px;">
                     <div class="health-bar" style="width: ${pPct}%"></div>
                 </div>
                 <div style="font-size: 0.8rem; text-align: right; margin-bottom: 5px;">HP: ${p.hp} / ${p.getMaxHp()}</div>
-
+                
                 <div class="health-bar-container" style="height: 10px; margin-bottom: 2px;">
                     <div class="mana-bar" style="width: ${mPct}%; background-color: #3b82f6; height: 100%;"></div>
                 </div>
@@ -294,6 +295,45 @@ class CombatUIManager {
         }
 
         setTimeout(() => el.classList.remove(animClass), 500);
+    }
+
+    renderTurnQueue(queue) {
+        if (!this.elCombatTurnQueueList) return;
+        this.elCombatTurnQueueList.innerHTML = '';
+        
+        // Add the currently acting entity first if one exists
+        if (window.gameCombat && window.gameCombat.currentTurnEntity) {
+            const current = window.gameCombat.currentTurnEntity;
+            const currentSpan = document.createElement('span');
+            currentSpan.style.padding = '0.2rem 0.5rem';
+            currentSpan.style.background = 'var(--accent-gold)';
+            currentSpan.style.color = '#000';
+            currentSpan.style.borderRadius = '4px';
+            currentSpan.style.fontWeight = 'bold';
+            
+            let name = "???";
+            if (current.type === 'player') name = window.gameParty[current.index].name;
+            if (current.type === 'monster') name = window.gameCombat.monsters[current.index].name;
+            currentSpan.innerText = name;
+            
+            this.elCombatTurnQueueList.appendChild(currentSpan);
+        }
+
+        queue.forEach(q => {
+            const span = document.createElement('span');
+            span.style.padding = '0.2rem 0.5rem';
+            span.style.background = '#333';
+            span.style.border = '1px solid var(--border-color)';
+            span.style.borderRadius = '4px';
+            span.style.color = q.type === 'player' ? '#4ade80' : '#f87171';
+            
+            let name = "???";
+            if (q.type === 'player') name = window.gameParty[q.index].name;
+            if (q.type === 'monster') name = window.gameCombat.monsters[q.index].name;
+            
+            span.innerText = `${name} (${q.speed})`;
+            this.elCombatTurnQueueList.appendChild(span);
+        });
     }
 }
 window.CombatUIManager = CombatUIManager;
