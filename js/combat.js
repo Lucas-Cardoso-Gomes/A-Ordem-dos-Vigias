@@ -10,7 +10,7 @@ class CombatSystem {
         this.monsters = [];
         this.targetIndex = 0;
         this.inCombat = false;
-
+        
         this.turnQueue = []; // mix of party members and monsters
         this.currentTurnEntity = null;
     }
@@ -19,7 +19,7 @@ class CombatSystem {
         this.monsters = Array.isArray(monstersArray) ? monstersArray : [monstersArray];
         this.targetIndex = 0;
         this.inCombat = true;
-
+        
         // Revive players with 1 HP if they entered combat dead (optional gameplay rule, let's keep it forgiving)
         this.party.forEach(p => {
             if (p.hp <= 0) p.hp = 1;
@@ -32,7 +32,7 @@ class CombatSystem {
         } else {
             this.logSystem(`O grupo encontrou um ${this.monsters[0].name} (Nível ${this.monsters[0].level})!`);
         }
-
+        
         this.buildTurnQueue();
         this.nextTurn();
     }
@@ -40,7 +40,7 @@ class CombatSystem {
     buildTurnQueue() {
         this.turnQueue = [];
         this.logSystem('--- Nova Rodada (Iniciativa) ---');
-
+        
         this.party.forEach((p, idx) => {
             if (p.hp > 0) {
                 const roll = Engine.randomInt(1, 20);
@@ -50,7 +50,7 @@ class CombatSystem {
                 this.logSystem(`[Iniciativa] ${p.name} rolou d20(${roll}) + Agi(${agi}) = ${speed}`);
             }
         });
-
+        
         this.monsters.forEach((m, idx) => {
             if (m.hp > 0) {
                 const roll = Engine.randomInt(1, 20);
@@ -61,7 +61,7 @@ class CombatSystem {
                 this.logSystem(`[Iniciativa] ${m.name} rolou d20(${roll}) + Agi(${agi}) = ${speed}`);
             }
         });
-
+        
         this.turnQueue.sort((a, b) => b.speed - a.speed);
         Engine.emit('turnQueueUpdated', this.turnQueue);
     }
@@ -123,7 +123,7 @@ class CombatSystem {
 
     flee() {
         if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
-
+        
         const p = this.party[this.currentTurnEntity.index];
         Engine.emit('turnEnded', null);
 
@@ -248,7 +248,7 @@ class CombatSystem {
                     dmg = Math.floor(dmg * 2.0);
                     weaknessHit = true;
                 }
-
+                
                 if (dmg < 1) dmg = 1;
                 t.hp -= dmg;
                 damageDealt[t.instanceId] = dmg;
@@ -291,7 +291,7 @@ class CombatSystem {
 
         } else if (skill.type === 'heal') {
             const targetP = (targetPartyIndex !== null && this.party[targetPartyIndex]) ? this.party[targetPartyIndex] : p;
-
+            
             targetP.heal(skill.healAmount);
             this.logPlayer(`${p.name} usou [${skill.name}] e curou ${skill.healAmount} HP de ${targetP.name}!`);
             Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(targetP), dmg: skill.healAmount, isHeal: true });
@@ -306,23 +306,23 @@ class CombatSystem {
     processMonsterDeath(monster) {
         this.logSystem(`${monster.name} foi derrotado!`);
         Engine.emit('combatAnimation', { target: 'monster', anim: 'death', monsterId: monster.instanceId });
-
+        
         const loot = window.MonsterDatabase.getLoot(monster);
-
+        
         // Split XP globally
         const xpPerMember = Math.floor(loot.xp / this.party.length);
         this.party.forEach(p => {
             if (p.hp > 0) p.gainXp(xpPerMember);
         });
-
+        
         this.party[0].gainGold(loot.gold);
-
+        
         this.logSystem(`Recebeu ${loot.xp} XP (${xpPerMember} para cada) e ${loot.gold} Ouro.`);
 
         loot.items.forEach(item => {
             this.inventory.addItem(item);
         });
-
+        
         Engine.emit('bestiaryUpdate', monster);
         Engine.emit('questUpdate', { type: 'kill', monsterId: monster.id, qty: 1 });
     }
@@ -396,7 +396,7 @@ class CombatSystem {
             if (targetP.hp <= 0) {
                 targetP.hp = 0;
             }
-
+            
             setTimeout(() => this.nextTurn(), 600);
         }, 300);
     }
@@ -478,9 +478,9 @@ class CombatSystem {
 
     usePotion(itemInstanceId) {
         if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
-
+        
         const pIndex = this.currentTurnEntity.index;
-
+        
         if (this.inventory.useItem(itemInstanceId, pIndex)) {
             Engine.emit('turnEnded', null);
             this.logPlayer(`${this.party[pIndex].name} usou uma poção.`);
@@ -495,7 +495,7 @@ class CombatSystem {
     estimateWinChance(monstersArray) {
         const monsters = Array.isArray(monstersArray) ? monstersArray : [monstersArray];
         let playerPower = 0;
-
+        
         this.party.forEach(p => {
             if (p.hp <= 0) return;
             let { min, max } = this.calculatePlayerDamage(p);
@@ -535,7 +535,7 @@ class CombatSystem {
 
         const totalPartyMaxHp = livingPlayers.reduce((sum, p) => sum + p.getMaxHp(), 0);
         const totalHpLoss = Math.floor(totalPartyMaxHp * (0.1 + (Math.random() * 0.2)));
-
+        
         let remainingLoss = totalHpLoss;
         while (remainingLoss > 0 && livingPlayers.some(p => p.hp > 1)) {
             let p = livingPlayers[Math.floor(Math.random() * livingPlayers.length)];
@@ -550,7 +550,7 @@ class CombatSystem {
             
             monsters.forEach(monster => {
                 const loot = window.MonsterDatabase.getLoot(monster);
-
+                
                 const xpPerMember = Math.floor(loot.xp / this.party.length);
                 this.party.forEach(p => {
                     if (p.hp > 0) p.gainXp(xpPerMember);
