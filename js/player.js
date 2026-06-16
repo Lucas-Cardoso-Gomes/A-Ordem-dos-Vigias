@@ -24,6 +24,7 @@ class Player {
 
         this.statPoints = 0;
         this.playerClass = 'Nenhuma'; // Caçador, Exorcista, Alquimista, Bruxo, Mago
+        this.classLocked = false;
 
         this.equipment = {
             head: null,
@@ -53,6 +54,8 @@ class Player {
         this.attributes = data.attributes || this.attributes;
         this.statPoints = data.statPoints || 0;
         this.playerClass = data.playerClass || 'Nenhuma';
+        this.classLocked = data.classLocked || false;
+        if (this.playerClass !== 'Nenhuma' && data.classLocked === undefined) this.classLocked = true; // Migrate old saves
         this.equipment = data.equipment || this.equipment;
         this.hp = data.hp || this.getMaxHp();
         this.mana = data.mana || this.getMaxMana();
@@ -68,6 +71,7 @@ class Player {
             attributes: this.attributes,
             statPoints: this.statPoints,
             playerClass: this.playerClass,
+            classLocked: this.classLocked,
             equipment: this.equipment,
             hp: this.hp,
             mana: this.mana,
@@ -186,8 +190,9 @@ class Player {
         const match = validClasses.find(c => c.toLowerCase() === inputClass);
         if (match) {
             this.playerClass = match;
+            this.classLocked = true;
             Engine.emit('playerUpdated', this);
-            Engine.emit('systemLog', `Você se tornou um ${match}!`);
+            Engine.emit('systemLog', `${this.name} se tornou um ${match}!`);
         }
     }
 

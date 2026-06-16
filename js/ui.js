@@ -80,33 +80,12 @@ class UIManager {
         this.elHeaderGold = document.getElementById('header-gold');
 
         // Party Selection
-        this.elCharPartySelector = document.getElementById('char-party-selector');
         this.elInvPartySelector = document.getElementById('inv-party-selector');
         this.btnAddMember = document.getElementById('btn-add-member');
-        this.btnRenameMember = document.getElementById('btn-rename-member');
 
         // Nav
         this.navButtons = document.querySelectorAll('.nav-btn');
         this.screens = document.querySelectorAll('.screen');
-
-        // Character
-        this.elCharLevel = document.getElementById('char-level');
-        this.elCharHp = document.getElementById('char-hp');
-        this.elCharHpMax = document.getElementById('char-hp-max');
-        this.elCharMana = document.getElementById('char-mana');
-        this.elCharManaMax = document.getElementById('char-mana-max');
-        this.elCharXp = document.getElementById('char-xp');
-        this.elCharXpNeeded = document.getElementById('char-xp-needed');
-        this.elCharClass = document.getElementById('char-class');
-        this.elCharPoints = document.getElementById('char-points');
-
-        // Attributes
-        this.elAttrStr = document.getElementById('attr-str');
-        this.elAttrAgi = document.getElementById('attr-agi');
-        this.elAttrInt = document.getElementById('attr-int');
-        this.elAttrDef = document.getElementById('attr-def');
-        this.elAttrLuk = document.getElementById('attr-luk');
-        this.btnAttrs = document.querySelectorAll('.btn-add-attr');
 
         // Inventory
         this.elInvCount = document.getElementById('inv-count');
@@ -167,13 +146,6 @@ class UIManager {
     }
 
     bindEvents() {
-        this.btnAttrs.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const attr = e.target.getAttribute('data-attr');
-                window.gameParty[this.selectedPartyIndex].addAttribute(attr);
-            });
-        });
-
         if (this.btnAddMember) {
             this.btnAddMember.addEventListener('click', () => {
                 const name = prompt("Nome do novo membro:");
@@ -184,32 +156,9 @@ class UIManager {
             });
         }
 
-        if (this.btnRenameMember) {
-            this.btnRenameMember.addEventListener('click', () => {
-                const p = window.gameParty[this.selectedPartyIndex];
-                if (!p) return;
-                const newName = prompt("Digite o novo nome:", p.name);
-                if (newName && newName.trim().length > 0) {
-                    p.name = newName.trim();
-                    Engine.emit('partyUpdated', window.gameParty);
-                    Engine.emit('playerUpdated', p);
-                }
-            });
-        }
-
-        if (this.elCharPartySelector) {
-            this.elCharPartySelector.addEventListener('change', (e) => {
-                this.selectedPartyIndex = parseInt(e.target.value);
-                if (this.elInvPartySelector) this.elInvPartySelector.value = this.selectedPartyIndex;
-                this.renderPlayer(window.gameParty[this.selectedPartyIndex]);
-                this.renderEquipment(window.gameParty[this.selectedPartyIndex].equipment);
-            });
-        }
-
         if (this.elInvPartySelector) {
             this.elInvPartySelector.addEventListener('change', (e) => {
                 this.selectedPartyIndex = parseInt(e.target.value);
-                if (this.elCharPartySelector) this.elCharPartySelector.value = this.selectedPartyIndex;
                 this.renderPlayer(window.gameParty[this.selectedPartyIndex]);
                 this.renderEquipment(window.gameParty[this.selectedPartyIndex].equipment);
             });
@@ -400,11 +349,9 @@ class UIManager {
     }
 
     renderPartySelectors(party) {
-        if (!this.elCharPartySelector || !this.elInvPartySelector) return;
+        if (!this.elInvPartySelector) return;
         
         const optionsHTML = party.map((p, idx) => `<option value="${idx}">${p.name} (Nv. ${p.level})</option>`).join('');
-        this.elCharPartySelector.innerHTML = optionsHTML;
-        this.elCharPartySelector.value = this.selectedPartyIndex;
         
         this.elInvPartySelector.innerHTML = optionsHTML;
         this.elInvPartySelector.value = this.selectedPartyIndex;
@@ -436,64 +383,86 @@ class UIManager {
     renderPlayer(p) {
         this.renderBestiary();
         this.renderHeader();
+        this.renderAllPlayers();
+    }
 
-        this.elCharLevel.innerText = p.level;
-        if (this.elCharHp) this.elCharHp.innerText = p.hp;
-        if (this.elCharHpMax) this.elCharHpMax.innerText = p.getMaxHp();
-        if (this.elCharMana) this.elCharMana.innerText = p.mana;
-        if (this.elCharManaMax) this.elCharManaMax.innerText = p.getMaxMana();
-        this.elCharXp.innerText = p.xp;
-        this.elCharXpNeeded.innerText = p.getXpNeeded();
-
-        // Nova lógica de exibição de classe com botões de escolha
-        if (p.level >= 5 && p.playerClass === 'Nenhuma') {
-            this.elCharClass.innerHTML = ''; // Limpa o texto "Nenhuma"
-            this.elCharClass.style.display = 'inline-flex';
-            this.elCharClass.style.gap = '0.3rem';
-            this.elCharClass.style.flexWrap = 'wrap';
-            this.elCharClass.style.marginTop = '0.5rem';
-
-            const classesDisponiveis = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago', 'Guerreiro', 'Assassino', 'Paladino', 'Necromante'];
-
-            classesDisponiveis.forEach(cls => {
-                const btnClasse = document.createElement('button');
-                btnClasse.innerText = cls;
-                btnClasse.style.padding = '0.2rem 0.6rem';
-                btnClasse.style.fontSize = '0.8rem';
-
-                btnClasse.onclick = () => {
-                    window.gameParty[this.selectedPartyIndex].setClass(cls);
-                };
-
-                this.elCharClass.appendChild(btnClasse);
+    renderAllPlayers() {
+        const container = document.getElementById('character-list');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        window.gameParty.forEach((p, idx) => {
+            const card = document.createElement('div');
+            card.style.background = 'var(--bg-panel)';
+            card.style.border = '1px solid var(--border-color)';
+            card.style.padding = '1rem';
+            card.style.borderRadius = '4px';
+            
+            // Renomear button is built per character card
+            const titleHtml = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                <h3 style="margin: 0;">${p.name}</h3>
+                <button class="btn-rename" data-idx="${idx}" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">Renomear</button>
+            </div>`;
+            
+            const statsHtml = `
+                <p style="margin: 0.2rem 0;"><strong>Nível:</strong> ${p.level}</p>
+                <p style="margin: 0.2rem 0;"><strong>HP:</strong> ${p.hp} / ${p.getMaxHp()}</p>
+                <p style="margin: 0.2rem 0;"><strong>Mana:</strong> ${p.mana} / ${p.getMaxMana()}</p>
+                <p style="margin: 0.2rem 0;"><strong>XP:</strong> ${p.xp} / ${p.getXpNeeded()}</p>
+                <div class="class-container" style="margin: 0.5rem 0;">
+                    <strong>Classe:</strong> <span class="class-label" style="color: ${p.playerClass !== 'Nenhuma' ? 'var(--accent-gold)' : 'inherit'};">${p.playerClass}</span>
+                </div>
+                <p style="margin: 0.5rem 0 0.2rem 0;"><strong>Atributos (Pontos: ${p.statPoints})</strong></p>
+                <div style="display: grid; gap: 0.3rem;">
+                    <div style="display: flex; justify-content: space-between;"><span>Força: ${p.attributes.str} (${p.getTotalAttr('str')})</span> <button class="btn-add-attr" data-attr="str" data-idx="${idx}" style="display: ${p.statPoints > 0 ? 'inline-block' : 'none'}; padding: 0 5px;">+</button></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Agilidade: ${p.attributes.agi} (${p.getTotalAttr('agi')})</span> <button class="btn-add-attr" data-attr="agi" data-idx="${idx}" style="display: ${p.statPoints > 0 ? 'inline-block' : 'none'}; padding: 0 5px;">+</button></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Inteligência: ${p.attributes.int} (${p.getTotalAttr('int')})</span> <button class="btn-add-attr" data-attr="int" data-idx="${idx}" style="display: ${p.statPoints > 0 ? 'inline-block' : 'none'}; padding: 0 5px;">+</button></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Defesa: ${p.attributes.def} (${p.getTotalAttr('def')})</span> <button class="btn-add-attr" data-attr="def" data-idx="${idx}" style="display: ${p.statPoints > 0 ? 'inline-block' : 'none'}; padding: 0 5px;">+</button></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Sorte: ${p.attributes.luk} (${p.getTotalAttr('luk')})</span> <button class="btn-add-attr" data-attr="luk" data-idx="${idx}" style="display: ${p.statPoints > 0 ? 'inline-block' : 'none'}; padding: 0 5px;">+</button></div>
+                </div>
+            `;
+            
+            card.innerHTML = titleHtml + statsHtml;
+            
+            // Re-bind Rename
+            const btnRename = card.querySelector('.btn-rename');
+            btnRename.addEventListener('click', () => {
+                const newName = prompt("Digite o novo nome:", p.name);
+                if (newName && newName.trim().length > 0) {
+                    p.name = newName.trim();
+                    Engine.emit('partyUpdated', window.gameParty);
+                    Engine.emit('playerUpdated', p);
+                }
             });
-        } else {
-            // Se não tiver nível ou já tiver escolhido uma classe, exibe apenas o texto normal
-            this.elCharClass.innerHTML = p.playerClass;
-            this.elCharClass.style.display = 'inline';
-            this.elCharClass.style.cursor = 'default';
-            this.elCharClass.style.color = p.playerClass !== 'Nenhuma' ? 'var(--accent-gold)' : '';
-        }
 
-        this.elCharPoints.innerText = p.statPoints;
+            // Re-bind add attr
+            const addBtns = card.querySelectorAll('.btn-add-attr');
+            addBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const attr = e.target.getAttribute('data-attr');
+                    p.addAttribute(attr);
+                });
+            });
 
-        const attrStr = p.getTotalAttr('str');
-        this.elAttrStr.innerText = attrStr !== p.attributes.str ? `${p.attributes.str} (${attrStr})` : p.attributes.str;
-
-        const attrAgi = p.getTotalAttr('agi');
-        this.elAttrAgi.innerText = attrAgi !== p.attributes.agi ? `${p.attributes.agi} (${attrAgi})` : p.attributes.agi;
-
-        const attrInt = p.getTotalAttr('int');
-        this.elAttrInt.innerText = attrInt !== p.attributes.int ? `${p.attributes.int} (${attrInt})` : p.attributes.int;
-
-        const attrDef = p.getTotalAttr('def');
-        this.elAttrDef.innerText = attrDef !== p.attributes.def ? `${p.attributes.def} (${attrDef})` : p.attributes.def;
-
-        const attrLuk = p.getTotalAttr('luk');
-        this.elAttrLuk.innerText = attrLuk !== p.attributes.luk ? `${p.attributes.luk} (${attrLuk})` : p.attributes.luk;
-
-        this.btnAttrs.forEach(btn => {
-            btn.style.display = p.statPoints > 0 ? 'inline-block' : 'none';
+            // Class Selection
+            if (p.level >= 5 && !p.classLocked) {
+                const classCont = card.querySelector('.class-container');
+                classCont.innerHTML = `<strong>Classe:</strong> <span class="class-label" style="color: inherit;">${p.playerClass}</span><br><div style="display: flex; gap: 0.2rem; flex-wrap: wrap; margin-top: 0.2rem;"></div>`;
+                const btnArea = classCont.querySelector('div');
+                const classesDisponiveis = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago', 'Guerreiro', 'Assassino', 'Paladino', 'Necromante'];
+                classesDisponiveis.forEach(cls => {
+                    const btnClasse = document.createElement('button');
+                    btnClasse.innerText = cls;
+                    btnClasse.style.padding = '0.2rem 0.4rem';
+                    btnClasse.style.fontSize = '0.7rem';
+                    btnClasse.onclick = () => {
+                        p.setClass(cls);
+                    };
+                    btnArea.appendChild(btnClasse);
+                });
+            }
+            
+            container.appendChild(card);
         });
     }
 

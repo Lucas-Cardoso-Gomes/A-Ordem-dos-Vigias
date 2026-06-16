@@ -11,7 +11,8 @@ class CombatSystem {
         this.targetIndex = 0;
         this.inCombat = false;
         
-        this.turnQueue = []; // mix of party members and monsters
+        this.initiativeOrder = []; // Static list built once per battle
+        this.turnQueue = []; // Dynamic list that depletes and refills from initiativeOrder
         this.currentTurnEntity = null;
     }
 
@@ -38,15 +39,15 @@ class CombatSystem {
     }
 
     buildTurnQueue() {
-        this.turnQueue = [];
-        this.logSystem('--- Nova Rodada (Iniciativa) ---');
+        this.initiativeOrder = [];
+        this.logSystem('--- Iniciativa (Rolada uma vez por batalha) ---');
         
         this.party.forEach((p, idx) => {
             if (p.hp > 0) {
                 const roll = Engine.randomInt(1, 20);
                 const agi = p.getTotalAttr('agi');
                 const speed = roll + agi;
-                this.turnQueue.push({ type: 'player', index: idx, speed: speed, ref: p });
+                this.initiativeOrder.push({ type: 'player', index: idx, speed: speed, ref: p });
                 this.logSystem(`[Iniciativa] ${p.name} rolou d20(${roll}) + Agi(${agi}) = ${speed}`);
             }
         });
@@ -57,12 +58,13 @@ class CombatSystem {
                 // Assume base agility 10 for generic monsters, or scale with level
                 const agi = 5 + Math.floor(m.level / 2);
                 const speed = roll + agi;
-                this.turnQueue.push({ type: 'monster', index: idx, speed: speed, ref: m });
+                this.initiativeOrder.push({ type: 'monster', index: idx, speed: speed, ref: m });
                 this.logSystem(`[Iniciativa] ${m.name} rolou d20(${roll}) + Agi(${agi}) = ${speed}`);
             }
         });
         
-        this.turnQueue.sort((a, b) => b.speed - a.speed);
+        this.initiativeOrder.sort((a, b) => b.speed - a.speed);
+        this.turnQueue = [...this.initiativeOrder]; // Start first round
         Engine.emit('turnQueueUpdated', this.turnQueue);
     }
 
@@ -87,7 +89,15 @@ class CombatSystem {
         }
 
         if (this.turnQueue.length === 0) {
-            this.buildTurnQueue();
+            this.logSystem('--- Nova Rodada (Mantendo Ordem de Iniciativa) ---');
+            this.turnQueue = [...this.initiativeOrder];
+            
+            // Clean dead ones immediately from the refilled queue
+            this.turnQueue = this.turnQueue.filter(q => {
+                if (q.type === 'player') return this.party[q.index].hp > 0;
+                if (q.type === 'monster') return this.monsters[q.index].hp > 0;
+                return false;
+            });
         }
 
         this.currentTurnEntity = this.turnQueue.shift();
@@ -472,6 +482,7 @@ class CombatSystem {
         this.inCombat = false;
         this.monsters = [];
         this.turnQueue = [];
+        this.initiativeOrder = [];
         Engine.emit('turnQueueUpdated', this.turnQueue);
         Engine.emit('combatEnded', victory);
     }
