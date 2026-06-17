@@ -500,6 +500,60 @@ class UIManager {
         });
     }
 
+    getItemEmoji(item) {
+        if (!item || !item.name) return '📦';
+        const nameLower = item.name.toLowerCase();
+
+        // Accessories
+        if (nameLower.includes('colar') || nameLower.includes('amuleto')) return '📿';
+        if (nameLower.includes('anel')) return '💍';
+
+        // Magic weapons / staves
+        if (nameLower.includes('cajado') || nameLower.includes('orbe') || nameLower.includes('tomo') || nameLower.includes('grimório') || nameLower.includes('grimorio')) return '🪄';
+
+        // Ranged weapons
+        if (nameLower.includes('arco') || nameLower.includes('besta')) return '🏹';
+
+        // Bladed weapons
+        if (nameLower.includes('espada') || nameLower.includes('adaga') || nameLower.includes('katana')) return '🗡️';
+
+        // Other melee weapons
+        if (nameLower.includes('machado')) return '🪓';
+        if (nameLower.includes('lança') || nameLower.includes('lanca')) return '🔱';
+        if (nameLower.includes('martelo')) return '🔨';
+
+        // Armor & Shields
+        if (nameLower.includes('escudo') || nameLower.includes('aegis')) return '🛡️';
+        if (nameLower.includes('capuz') || nameLower.includes('elmo')) return '🪖';
+        if (nameLower.includes('peitoral') || nameLower.includes('armadura') || nameLower.includes('cota') || nameLower.includes('manto')) return '👕';
+        if (nameLower.includes('luvas')) return '🧤';
+        if (nameLower.includes('calças') || nameLower.includes('calcas')) return '👖';
+        if (nameLower.includes('botas')) return '👢';
+
+        // Materials
+        if (nameLower.includes('ossos')) return '🦴';
+        if (nameLower.includes('couro')) return '🟤';
+        if (nameLower.includes('presas') || nameLower.includes('chifre')) return '🦏';
+        if (nameLower.includes('escamas')) return '🐟';
+        if (nameLower.includes('sangue')) return '🩸';
+        if (nameLower.includes('essência') || nameLower.includes('essencia') || nameLower.includes('cristal') || nameLower.includes('pó') || nameLower.includes('po ')) return '✨';
+        if (nameLower.includes('minério') || nameLower.includes('minerio') || nameLower.includes('ferro')) return '🪨';
+
+        // Potions
+        if (nameLower.includes('poção') || nameLower.includes('pocao') || nameLower.includes('antídoto') || nameLower.includes('antidoto')) return '🧪';
+
+        // Fallbacks by type
+        const typeEmojis = {
+            'weapon': '⚔️',
+            'armor': '🛡️',
+            'accessory': '💍',
+            'potion': '🧪',
+            'material': '💎'
+        };
+
+        return typeEmojis[item.type] || '📦';
+    }
+
     getItemDescription(item) {
         let desc = `<em>Raridade: ${item.rarity || 'comum'}</em><br>Tipo: ${item.type}<br>`;
         if (item.count > 1) desc += `Quantidade: ${item.count}<br>`;
@@ -536,20 +590,12 @@ class UIManager {
             return a.name.localeCompare(b.name);
         });
 
-        const typeEmojis = {
-            'weapon': '⚔️',
-            'armor': '🛡️',
-            'accessory': '💍',
-            'potion': '🧪',
-            'material': '💎'
-        };
-
         items.forEach(item => {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
             div.style.position = 'relative';
             
-            const emoji = typeEmojis[item.type] || '📦';
+            const emoji = this.getItemEmoji(item);
             div.innerHTML = `<span style="font-size: 1.5rem;">${emoji}</span>`;
 
             if ((item.type === 'material' || item.type === 'potion') && item.count > 1) {
@@ -812,12 +858,15 @@ showToast(msg) {
             div.style.background = '#2a2a2a';
             div.style.borderRadius = '4px';
             
-            let emoji = '🔮';
+            let craftedItem = { name: r.name };
             if (r.result && r.result.baseId) {
-                emoji = r.result.baseId.startsWith('w') ? '⚔️' : r.result.baseId.startsWith('a') ? '🛡️' : '💍';
-            } else if (r.result && r.result.type === 'potion') {
-                emoji = '🧪';
+                if (r.result.baseId.startsWith('w')) craftedItem.type = 'weapon';
+                else if (r.result.baseId.startsWith('a')) craftedItem.type = 'armor';
+                else craftedItem.type = 'accessory';
+            } else if (r.result && r.result.type) {
+                craftedItem.type = r.result.type;
             }
+            let emoji = this.getItemEmoji(craftedItem);
             
             let ings = r.ingredients.map(ing => {
                 const hasItem = inventory.items.find(i => i.id === ing.id);

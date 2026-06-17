@@ -297,28 +297,31 @@ class CombatUIManager {
 
     getEmojiForClass(className) {
         const map = {
-            'Caçador': '🏹', 'Exorcista': '✝️', 'Alquimista': '🧪',
-            'Bruxo': '🔮', 'Mago': '🧙', 'Guerreiro': '⚔️',
-            'Assassino': '🗡️', 'Paladino': '🛡️', 'Necromante': '💀',
-            'Nenhuma': '🧑'
+            'Caçador': '🏹', 'Exorcista': '📿', 'Alquimista': '⚗️',
+            'Bruxo': '🔮', 'Mago': '🧙', 'Guerreiro': '🗡️',
+            'Assassino': '🥷', 'Paladino': '🛡️', 'Necromante': '🧟',
+            'Nenhuma': '🧍'
         };
-        return map[className] || '🧑';
+        return map[className] || '🧍';
     }
 
     getEmojiForMonster(monster) {
-        const map = {
-            'Morto-vivo': '🧟', 'Vampiro': '🧛', 'Besta': '🐺',
-            'Demonio': '👹', 'Dragão': '🐉', 'Goblin': '👺',
-            'Humano': '👤', 'Lobo': '🐺', 'Aranha': '🕷️',
-            'Orc': '👹'
-        };
-        // Simple heuristic matching
-        for (let key in map) {
-            if (monster.name.toLowerCase().includes(key.toLowerCase()) ||
-               (monster.type && monster.type.toLowerCase().includes(key.toLowerCase()))) {
-                return map[key];
-            }
-        }
+        const nameLower = monster.name.toLowerCase();
+        const typeLower = monster.type ? monster.type.toLowerCase() : '';
+
+        if (nameLower.includes('goblin') || typeLower.includes('goblin')) return '👺';
+        if (nameLower.includes('esqueleto') || typeLower.includes('esqueleto')) return '💀';
+        if (nameLower.includes('zumbi') || typeLower.includes('zumbi')) return '🧟';
+        if (nameLower.includes('aranha') || typeLower.includes('aranha')) return '🕷️';
+        if (nameLower.includes('lobo') || typeLower.includes('lobo')) return '🐺';
+        if (nameLower.includes('vampiro') || typeLower.includes('vampiro')) return '🧛';
+        if (nameLower.includes('minotauro') || typeLower.includes('minotauro')) return '🐂';
+        if (nameLower.includes('banshee') || typeLower.includes('banshee')) return '👻';
+        if (nameLower.includes('cérbero') || typeLower.includes('cérbero')) return '🐕‍🦺';
+        if (nameLower.includes('hidra') || typeLower.includes('hidra')) return '🐉';
+        if (nameLower.includes('demônio') || nameLower.includes('demonio') || typeLower.includes('demônio') || typeLower.includes('demonio')) return '👿';
+        if (nameLower.includes('dragão') || nameLower.includes('dragao') || typeLower.includes('dragão') || typeLower.includes('dragao')) return '🐲';
+
         return '👾';
     }
 
