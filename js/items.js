@@ -29,11 +29,14 @@ const ItemDatabase = {
         { id: 'w12', name: 'Martelo dos Deuses', type: 'weapon', slot: 'weaponMain', minDmg: 30, maxDmg: 50, reqLvl: 60, weakness: 'sagrado', range: 1 },
         
         { id: 'wo1', name: 'Adaga Curta', type: 'weapon', slot: 'weaponOff', minDmg: 3, maxDmg: 6, reqLvl: 1, range: 1 },
-        { id: 'wo2', name: 'Escudo de Madeira', type: 'weapon', slot: 'weaponOff', minDmg: 1, maxDmg: 2, def: 3, reqLvl: 3, range: 1 },
+        { id: 'wo2', name: 'Escudo de Madeira', type: 'weapon', slot: 'weaponOff', minDmg: 1, maxDmg: 2, def: 3, reqLvl: 3, range: 1, isShield: true },
         { id: 'wo3', name: 'Adaga Envenenada', type: 'weapon', slot: 'weaponOff', minDmg: 5, maxDmg: 10, reqLvl: 10, weakness: 'veneno', range: 1 },
         { id: 'wo4', name: 'Orbe Mágico', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 5, reqLvl: 10, magic: true, stats: { mana: 20 }, range: 1 },
-        { id: 'wo5', name: 'Escudo de Ferro', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 4, def: 8, reqLvl: 15, range: 1 },
-        { id: 'wo6', name: 'Tomo Menor', type: 'weapon', slot: 'weaponOff', minDmg: 4, maxDmg: 8, reqLvl: 15, magic: true, stats: { int: 5 }, range: 1 }
+        { id: 'wo5', name: 'Escudo de Ferro', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 4, def: 8, reqLvl: 15, range: 1, isShield: true },
+        { id: 'wo6', name: 'Tomo Menor', type: 'weapon', slot: 'weaponOff', minDmg: 4, maxDmg: 8, reqLvl: 15, magic: true, stats: { int: 5 }, range: 1 },
+        { id: 'wo7', name: 'Escudo de Aço', type: 'weapon', slot: 'weaponOff', minDmg: 3, maxDmg: 6, def: 15, reqLvl: 25, range: 1, isShield: true },
+        { id: 'wo8', name: 'Escudo Rúnico', type: 'weapon', slot: 'weaponOff', minDmg: 4, maxDmg: 8, def: 25, reqLvl: 40, range: 1, isShield: true, stats: { int: 10 } },
+        { id: 'wo9', name: 'Aegis Sagrada', type: 'weapon', slot: 'weaponOff', minDmg: 5, maxDmg: 10, def: 40, reqLvl: 60, range: 1, isShield: true, stats: { hp: 100, def: 10 } }
     ],
 
     armorBases: [
