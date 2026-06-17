@@ -295,6 +295,33 @@ class CombatUIManager {
         this.btnPotion.disabled = false;
     }
 
+    getEmojiForClass(className) {
+        const map = {
+            'Caçador': '🏹', 'Exorcista': '✝️', 'Alquimista': '🧪',
+            'Bruxo': '🔮', 'Mago': '🧙', 'Guerreiro': '⚔️',
+            'Assassino': '🗡️', 'Paladino': '🛡️', 'Necromante': '💀',
+            'Nenhuma': '🧑'
+        };
+        return map[className] || '🧑';
+    }
+
+    getEmojiForMonster(monster) {
+        const map = {
+            'Morto-vivo': '🧟', 'Vampiro': '🧛', 'Besta': '🐺',
+            'Demonio': '👹', 'Dragão': '🐉', 'Goblin': '👺',
+            'Humano': '👤', 'Lobo': '🐺', 'Aranha': '🕷️',
+            'Orc': '👹'
+        };
+        // Simple heuristic matching
+        for (let key in map) {
+            if (monster.name.toLowerCase().includes(key.toLowerCase()) ||
+               (monster.type && monster.type.toLowerCase().includes(key.toLowerCase()))) {
+                return map[key];
+            }
+        }
+        return '👾';
+    }
+
     renderCombatMonsters(monsters) {
         this.elCombatMonstersContainer.innerHTML = '';
         const targetIndex = window.gameCombat ? window.gameCombat.targetIndex : 0;
@@ -303,6 +330,7 @@ class CombatUIManager {
             const mPct = Math.max(0, (monster.hp / monster.maxHp) * 100);
             const isDead = monster.hp <= 0;
             const isTarget = index === targetIndex && !isDead;
+            const emoji = this.getEmojiForMonster(monster);
 
             const card = document.createElement('div');
             card.className = `monster-card ${isTarget ? 'target' : ''} ${isDead ? 'dead' : ''}`;
@@ -324,7 +352,7 @@ class CombatUIManager {
             }
 
             card.innerHTML = `
-                <h3 style="font-size:1.1em; margin-bottom:0.2rem">Lvl ${monster.level} ${monster.name}</h3>
+                <h3 style="font-size:1.1em; margin-bottom:0.2rem">${emoji} Lvl ${monster.level} ${monster.name}</h3>
                 <div class="health-bar-container"><div class="health-bar" style="width: ${mPct}%"></div></div>
                 <p style="margin-top:0.2rem">HP: <span>${monster.hp}</span> / <span>${monster.maxHp}</span></p>
                 ${weaknessText}
@@ -438,7 +466,7 @@ class CombatUIManager {
         }
 
         // Draw Entities
-        const drawEntity = (entity, color, label, isTurn) => {
+        const drawEntity = (entity, color, label, isTurn, emoji) => {
             if (entity.hp <= 0) return;
             const cx = entity.gridX * cellW + cellW / 2;
             const cy = entity.gridY * cellH + cellH / 2;
@@ -460,20 +488,23 @@ class CombatUIManager {
             this.ctx.stroke();
 
             this.ctx.fillStyle = '#fff';
-            this.ctx.font = '10px Arial';
+            this.ctx.font = '16px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(label, cx, cy);
+            // If emoji is available, draw emoji, else label
+            this.ctx.fillText(emoji || label, cx, cy);
         };
 
         window.gameCombat.party.forEach((p, idx) => {
             const isTurn = window.gameCombat.currentTurnEntity?.type === 'player' && window.gameCombat.currentTurnEntity.index === idx;
-            drawEntity(p, '#1d4ed8', p.name.substring(0, 2), isTurn);
+            const emoji = this.getEmojiForClass(p.playerClass);
+            drawEntity(p, '#1d4ed8', p.name.substring(0, 2), isTurn, emoji);
         });
 
         window.gameCombat.monsters.forEach((m, idx) => {
             const isTurn = window.gameCombat.currentTurnEntity?.type === 'monster' && window.gameCombat.currentTurnEntity.index === idx;
-            drawEntity(m, '#991b1b', m.name.substring(0, 2), isTurn);
+            const emoji = this.getEmojiForMonster(m);
+            drawEntity(m, '#991b1b', m.name.substring(0, 2), isTurn, emoji);
         });
     }
 
@@ -493,6 +524,7 @@ class CombatUIManager {
         party.forEach((p, idx) => {
             const isDead = p.hp <= 0;
             const isTurn = idx === turnIndex;
+            const emoji = this.getEmojiForClass(p.playerClass);
             
             const pPct = Math.max(0, (p.hp / p.getMaxHp()) * 100);
             const mPct = Math.max(0, (p.mana / p.getMaxMana()) * 100);
@@ -507,7 +539,7 @@ class CombatUIManager {
             card.style.position = 'relative';
             
             card.innerHTML = `
-                <h4 style="margin: 0 0 0.5rem 0;">${p.name} <small>Nv.${p.level} ${p.playerClass}</small></h4>
+                <h4 style="margin: 0 0 0.5rem 0;">${emoji} ${p.name} <small>Nv.${p.level} ${p.playerClass}</small></h4>
                 <div class="health-bar-container" style="height: 10px; margin-bottom: 2px;">
                     <div class="health-bar" style="width: ${pPct}%"></div>
                 </div>
