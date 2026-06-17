@@ -60,7 +60,8 @@ const ItemDatabase = {
         { id: 'm6', name: 'Chifre de Minotauro', type: 'material', value: 25 },
         { id: 'm7', name: 'Essência Demoníaca', type: 'material', value: 50 },
         { id: 'm8', name: 'Fragmento de Cristal', type: 'material', value: 75 },
-        { id: 'm9', name: 'Pó Mágico', type: 'material', value: 100 }
+        { id: 'm9', name: 'Pó Mágico', type: 'material', value: 100 },
+        { id: 'm10', name: 'Minério de Ferro', type: 'material', value: 5 }
     ],
 
     potions: [

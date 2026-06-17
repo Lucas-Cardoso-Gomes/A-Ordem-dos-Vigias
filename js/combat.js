@@ -37,9 +37,12 @@ class CombatSystem {
 
         // Place monsters on the right side (x: 23 or 24, spread y)
         this.monsters.forEach((m, idx) => {
-            m.gridX = idx % 2 === 0 ? 24 : 23;
-            m.gridY = 1 + (idx * 2);
+            const row = idx % 5;
+            const col = Math.floor(idx / 5);
+            m.gridX = 24 - col;
+            m.gridY = 1 + (row * 2);
             if (m.gridY >= this.gridHeight) m.gridY = this.gridHeight - 1;
+            if (m.gridX < 1) m.gridX = 1; // Prevent going off grid on extreme left
         });
     }
 
@@ -244,7 +247,8 @@ class CombatSystem {
                 // If player died from opportunity attack, stop moving
                 if (entity.hp <= 0) {
                      this.logSystem(`${entity.name} caiu devido a um Ataque de Oportunidade!`);
-                     break;
+                     setTimeout(() => this.nextTurn(), 1000);
+                     return false;
                 }
             } else {
                 // Monster is moving
@@ -701,92 +705,306 @@ class CombatSystem {
 
         let targetP = null;
         let minDist = Infinity;
-        const aiType = attacker.aiType || 'default';
+        const ai = attacker.ai || { targetPriority: 'CLOSEST', moveType: 'ASTAR' };
 
-        if (aiType === 'goblin') {
-            // Swarm behavior: find player with most adjacent monsters, or closest
-            let bestScore = -Infinity;
-            livingPlayers.forEach(p => {
-                const dist = this.getDistance(attacker, p);
-                let adjacentMonsters = 0;
-                this.monsters.forEach(m => {
-                    if (m.hp > 0 && this.getDistance(m, p) === 1) {
-                        adjacentMonsters++;
+        // Helper to get defense
+        const getPlayerDef = (p) => {
+            let defense = p.getTotalAttr('def');
+            Object.values(p.equipment).forEach(item => {
+                if (item && item.def) defense += item.def;
+            });
+            return defense;
+        };
+
+        // TARGET PRIORITY SWITCH
+        switch (ai.targetPriority) {
+            case 'HIGHEST_DEF_HP': {
+                let bestScore = -Infinity;
+                livingPlayers.forEach(p => {
+                    const score = p.getMaxHp() + getPlayerDef(p);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        targetP = p;
                     }
                 });
+                minDist = this.getDistance(attacker, targetP);
+                break;
+            }
+            case 'MAGE_OR_LOWEST_DEF': {
+                let mages = livingPlayers.filter(p => p.playerClass === 'Mago' || p.playerClass === 'Bruxo' || p.playerClass === 'Exorcista' || p.playerClass === 'Necromante');
+                let pool = mages.length > 0 ? mages : livingPlayers;
 
-                // Score = adjacentMonsters * 10 - dist
-                const score = (adjacentMonsters * 10) - dist;
-                if (score > bestScore) {
-                    bestScore = score;
-                    targetP = p;
-                    minDist = dist;
-                }
-            });
-        } else {
-            // Default and Zombie behavior: closest player
-            livingPlayers.forEach(p => {
-                const dist = this.getDistance(attacker, p);
-                if (dist < minDist) {
-                    minDist = dist;
-                    targetP = p;
-                }
-            });
+                let lowestDef = Infinity;
+                pool.forEach(p => {
+                    const def = getPlayerDef(p);
+                    if (def < lowestDef) {
+                        lowestDef = def;
+                        targetP = p;
+                    }
+                });
+                minDist = this.getDistance(attacker, targetP);
+                break;
+            }
+            case 'ISOLATED': {
+                let bestIsolScore = Infinity;
+                livingPlayers.forEach(p => {
+                    let adjacentEnemies = 0;
+                    this.monsters.forEach(m => {
+                        if (m.hp > 0 && this.getDistance(m, p) === 1) adjacentEnemies++;
+                    });
+                    if (adjacentEnemies < bestIsolScore) {
+                        bestIsolScore = adjacentEnemies;
+                        targetP = p;
+                    }
+                });
+                minDist = this.getDistance(attacker, targetP);
+                break;
+            }
+            case 'LOWEST_HP': {
+                let lowestHp = Infinity;
+                livingPlayers.forEach(p => {
+                    if (p.hp < lowestHp) {
+                        lowestHp = p.hp;
+                        targetP = p;
+                    }
+                });
+                minDist = this.getDistance(attacker, targetP);
+                break;
+            }
+            case 'CLOSEST':
+            default: {
+                livingPlayers.forEach(p => {
+                    const dist = this.getDistance(attacker, p);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        targetP = p;
+                    }
+                });
+                break;
+            }
         }
 
         const targetPIndex = this.party.indexOf(targetP);
-        const attackRange = 1; // Assuming melee for basic monsters
+        let attackRange = 1; // Default
 
-        if (minDist > attackRange) {
+        if (ai.moveType === 'KITING_EDGES') attackRange = 3;
+
+        let forceEndTurn = false;
+
+        if (minDist > attackRange || ai.moveType === 'KITING_EDGES') {
             let stepsTaken = 0;
             const maxSteps = this.movementRemaining;
 
-            if (aiType === 'zombie') {
-                // Zombie behavior: move straight towards target (greedy on X, then Y)
-                while (stepsTaken < maxSteps && this.getDistance(attacker, targetP) > attackRange) {
-                    let nextX = attacker.gridX;
-                    let nextY = attacker.gridY;
-                    
-                    if (attacker.gridX < targetP.gridX) nextX++;
-                    else if (attacker.gridX > targetP.gridX) nextX--;
-                    else if (attacker.gridY < targetP.gridY) nextY++;
-                    else if (attacker.gridY > targetP.gridY) nextY--;
-                    
-                    const isOccupied = this.party.some(p => p.hp > 0 && p.gridX === nextX && p.gridY === nextY) ||
-                                       this.monsters.some(m => m !== attacker && m.hp > 0 && m.gridX === nextX && m.gridY === nextY);
+            switch (ai.moveType) {
+                case 'ZOMBIE_WALK': {
+                    while (stepsTaken < maxSteps && this.getDistance(attacker, targetP) > attackRange) {
+                        let nextX = attacker.gridX;
+                        let nextY = attacker.gridY;
+                        if (attacker.gridX < targetP.gridX) nextX++;
+                        else if (attacker.gridX > targetP.gridX) nextX--;
+                        else if (attacker.gridY < targetP.gridY) nextY++;
+                        else if (attacker.gridY > targetP.gridY) nextY--;
 
-                    if (!isOccupied && (nextX !== attacker.gridX || nextY !== attacker.gridY)) {
+                        const isOccupied = this.party.some(p => p.hp > 0 && p.gridX === nextX && p.gridY === nextY) ||
+                                           this.monsters.some(m => m !== attacker && m.hp > 0 && m.gridX === nextX && m.gridY === nextY);
+
+                        if (!isOccupied && (nextX !== attacker.gridX || nextY !== attacker.gridY)) {
+                            attacker.gridX = nextX;
+                            attacker.gridY = nextY;
+                            stepsTaken++;
+                        } else break;
+                    }
+                    if (stepsTaken > 0) {
+                        this.logSystem(`${attacker.name} moveu-se lentamente em direção a ${targetP.name}.`);
+                        Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                    }
+                    break;
+                }
+                case 'SWARM': {
+                    let nearbyFriends = 0;
+                    this.monsters.forEach(m => {
+                        if (m !== attacker && m.hp > 0 && m.ai && m.ai.moveType === 'SWARM' && this.getDistance(m, attacker) <= 2) {
+                            nearbyFriends++;
+                        }
+                    });
+
+                    if (nearbyFriends === 0) {
+                        let nearestFriend = null;
+                        let minFDist = Infinity;
+                        this.monsters.forEach(m => {
+                            if (m !== attacker && m.hp > 0 && m.ai && m.ai.moveType === 'SWARM') {
+                                const dist = this.getDistance(m, attacker);
+                                if (dist < minFDist) {
+                                    minFDist = dist;
+                                    nearestFriend = m;
+                                }
+                            }
+                        });
+
+                        if (nearestFriend) {
+                            const path = this.findPathAStar(attacker.gridX, attacker.gridY, nearestFriend.gridX, nearestFriend.gridY, maxSteps, true);
+                            if (path.length > 0) {
+                                const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                                this.moveEntityTo(targetStep.x, targetStep.y);
+                            }
+                            this.logMonster(`${attacker.name} recuou para se juntar ao bando.`);
+                            forceEndTurn = true;
+                        } else {
+                            // Totalmente sozinho, ataca normal
+                            const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetP.gridX, targetP.gridY, maxSteps, true);
+                            if (path.length > 0) {
+                                const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                                this.moveEntityTo(targetStep.x, targetStep.y);
+                            }
+                        }
+                    } else {
+                        const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetP.gridX, targetP.gridY, maxSteps, true);
+                        if (path.length > 0) {
+                            const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                            this.moveEntityTo(targetStep.x, targetStep.y);
+                        }
+                    }
+                    break;
+                }
+                case 'ETHEREAL': {
+                    // Temporarily hide all obstacles from pathfinding
+                    const originalGetOccupied = (x, y) => {
+                         return this.party.some(p => p.hp > 0 && p.gridX === x && p.gridY === y) ||
+                                this.monsters.some(m => m.hp > 0 && m.gridX === x && m.gridY === y);
+                    };
+
+                    // Modify findPathAStar temporarily inside here or just use naive straight line ignoring things
+                    while (stepsTaken < maxSteps && this.getDistance(attacker, targetP) > attackRange) {
+                        let nextX = attacker.gridX;
+                        let nextY = attacker.gridY;
+                        if (attacker.gridX < targetP.gridX) nextX++;
+                        else if (attacker.gridX > targetP.gridX) nextX--;
+                        else if (attacker.gridY < targetP.gridY) nextY++;
+                        else if (attacker.gridY > targetP.gridY) nextY--;
+
+                        // Banshee can step anywhere unless destination is EXACTLY occupied at the end of turn
                         attacker.gridX = nextX;
                         attacker.gridY = nextY;
                         stepsTaken++;
-                    } else {
-                        // Stuck
-                        break;
                     }
-                }
-            } else {
-                // Default and Goblin behavior: A* pathfinding
-                const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetP.gridX, targetP.gridY, maxSteps, true);
 
-                // Move using moveEntityTo to trigger opportunity attacks
-                if (path.length > 0) {
-                    const targetStep = path[Math.min(path.length, maxSteps) - 1];
-                    this.moveEntityTo(targetStep.x, targetStep.y);
-                    stepsTaken = path.length;
+                    // Check if landed on occupied space, if so backtrack 1 step
+                    if (originalGetOccupied(attacker.gridX, attacker.gridY)) {
+                        // find closest free space
+                        let found = false;
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dy = -1; dy <= 1; dy++) {
+                                if (!originalGetOccupied(attacker.gridX + dx, attacker.gridY + dy)) {
+                                    attacker.gridX += dx;
+                                    attacker.gridY += dy;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+
+                    if (stepsTaken > 0) {
+                        this.logSystem(`${attacker.name} flutuou espectralmente.`);
+                        Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                    }
+                    break;
                 }
-            }
-            
-            if (stepsTaken > 0 && aiType === 'zombie') {
-                this.logSystem(`${attacker.name} moveu-se em direção a ${targetP.name}.`);
-                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                case 'KITING_EDGES': {
+                    if (minDist <= 1) {
+                        // Flee from player
+                        let dx = attacker.gridX - targetP.gridX;
+                        let dy = attacker.gridY - targetP.gridY;
+
+                        let runX = attacker.gridX + (dx > 0 ? 1 : -1);
+                        let runY = attacker.gridY + (dy > 0 ? 1 : -1);
+
+                        runX = Math.max(0, Math.min(this.gridWidth - 1, runX));
+                        runY = Math.max(0, Math.min(this.gridHeight - 1, runY));
+
+                        const path = this.findPathAStar(attacker.gridX, attacker.gridY, runX, runY, maxSteps, false);
+                        if (path.length > 0) {
+                            const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                            this.moveEntityTo(targetStep.x, targetStep.y);
+                        }
+                        this.logMonster(`${attacker.name} recuou rapidamente!`);
+                        forceEndTurn = true;
+                    } else if (minDist > attackRange) {
+                        // Kiting approach: prioritize y=0 or y=height-1
+                        let targetY = targetP.gridY < this.gridHeight / 2 ? 0 : this.gridHeight - 1;
+                        let targetX = targetP.gridX;
+
+                        const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetX, targetY, maxSteps, true);
+                        if (path.length > 0) {
+                            const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                            this.moveEntityTo(targetStep.x, targetStep.y);
+                        }
+                    }
+                    break;
+                }
+                case 'PHALANX': {
+                    let adjacentSkele = null;
+                    this.monsters.forEach(m => {
+                        if (m !== attacker && m.hp > 0 && m.ai && m.ai.moveType === 'PHALANX') {
+                            if (this.getDistance(m, attacker) === 1) adjacentSkele = m;
+                        }
+                    });
+
+                    if (!adjacentSkele) {
+                        let nearestSkele = null;
+                        let minSDist = Infinity;
+                        this.monsters.forEach(m => {
+                            if (m !== attacker && m.hp > 0 && m.ai && m.ai.moveType === 'PHALANX') {
+                                const dist = this.getDistance(m, attacker);
+                                if (dist < minSDist) {
+                                    minSDist = dist;
+                                    nearestSkele = m;
+                                }
+                            }
+                        });
+
+                        // Seek skeleton while moving to player
+                        if (nearestSkele && minDist > attackRange) {
+                             const path = this.findPathAStar(attacker.gridX, attacker.gridY, nearestSkele.gridX, nearestSkele.gridY, maxSteps, true);
+                             if (path.length > 0) {
+                                 const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                                 this.moveEntityTo(targetStep.x, targetStep.y);
+                             }
+                        } else {
+                             const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetP.gridX, targetP.gridY, maxSteps, true);
+                             if (path.length > 0) {
+                                 const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                                 this.moveEntityTo(targetStep.x, targetStep.y);
+                             }
+                        }
+                    } else {
+                        // Move with Phalanx
+                        const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetP.gridX, targetP.gridY, maxSteps, true);
+                        if (path.length > 0) {
+                            const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                            this.moveEntityTo(targetStep.x, targetStep.y);
+                        }
+                    }
+                    break;
+                }
+                case 'ASTAR':
+                default: {
+                    const path = this.findPathAStar(attacker.gridX, attacker.gridY, targetP.gridX, targetP.gridY, maxSteps, true);
+                    if (path.length > 0) {
+                        const targetStep = path[Math.min(path.length, maxSteps) - 1];
+                        this.moveEntityTo(targetStep.x, targetStep.y);
+                    }
+                    break;
+                }
             }
 
             // Recalculate distance after move
             minDist = this.getDistance(attacker, targetP);
         }
 
-        if (minDist > attackRange || attacker.hp <= 0) {
-             if (attacker.hp > 0) {
+        if (forceEndTurn || minDist > attackRange || attacker.hp <= 0) {
+             if (attacker.hp > 0 && !forceEndTurn) {
                  this.logMonster(`${attacker.name} está muito longe de ${targetP.name} e encerra o turno.`);
              }
              setTimeout(() => this.nextTurn(), 600);

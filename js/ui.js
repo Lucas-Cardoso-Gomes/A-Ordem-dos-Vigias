@@ -830,7 +830,7 @@ showToast(msg) {
             const currentLevel = parseInt((item.name.match(/\+(\d+)/) || [0, 0])[1]);
             const nextLevel = currentLevel + 1;
             const costGold = 100 * nextLevel;
-            const matReq = { id: 'm1', qty: nextLevel, name: 'Minério de Ferro' }; // Pede Ferro
+            const matReq = { id: 'm10', qty: nextLevel, name: 'Minério de Ferro' }; // Pede Ferro
 
             div.innerHTML = `<strong>${item.name} ➔ Nível +${nextLevel}</strong><br>Custo: ${costGold} Ouro e ${matReq.qty}x ${matReq.name}<br>`;
 
@@ -955,7 +955,7 @@ showToast(msg) {
             div.className = 'shop-card';
             
             // PREÇOS REFORMULADOS: Multiplicador de 3x aplicado sobre o custo base
-            const baseCost = item.gold || item.value || 10;
+            const baseCost = item.sellValue || item.gold || item.value || 10;
             const increasedCost = Math.floor(baseCost * 3);
 
             let descHtml = `<strong>${item.name}</strong><br>`;
