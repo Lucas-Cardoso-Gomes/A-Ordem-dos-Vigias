@@ -326,6 +326,10 @@ class CombatUIManager {
         this.elCombatMonstersContainer.innerHTML = '';
         const targetIndex = window.gameCombat ? window.gameCombat.targetIndex : 0;
 
+        // Separate living and dead monsters for visual ordering
+        const livingMonsters = [];
+        const deadMonsters = [];
+
         monsters.forEach((monster, index) => {
             const mPct = Math.max(0, (monster.hp / monster.maxHp) * 100);
             const isDead = monster.hp <= 0;
@@ -358,8 +362,15 @@ class CombatUIManager {
                 ${weaknessText}
             `;
 
-            this.elCombatMonstersContainer.appendChild(card);
+            if (isDead) {
+                deadMonsters.push(card);
+            } else {
+                livingMonsters.push(card);
+            }
         });
+
+        livingMonsters.forEach(card => this.elCombatMonstersContainer.appendChild(card));
+        deadMonsters.forEach(card => this.elCombatMonstersContainer.appendChild(card));
     }
 
     hideCombatScreen(victory) {
@@ -521,6 +532,9 @@ class CombatUIManager {
             turnIndex = window.gameCombat.currentTurnEntity.index;
         }
 
+        const livingPlayers = [];
+        const deadPlayers = [];
+
         party.forEach((p, idx) => {
             const isDead = p.hp <= 0;
             const isTurn = idx === turnIndex;
@@ -538,6 +552,11 @@ class CombatUIManager {
             card.style.background = 'rgba(0,0,0,0.5)';
             card.style.position = 'relative';
             
+            if (isDead) {
+                card.style.opacity = '0.4';
+                card.style.filter = 'grayscale(100%)';
+            }
+
             card.innerHTML = `
                 <h4 style="margin: 0 0 0.5rem 0;">${emoji} ${p.name} <small>Nv.${p.level} ${p.playerClass}</small></h4>
                 <div class="health-bar-container" style="height: 10px; margin-bottom: 2px;">
@@ -550,8 +569,15 @@ class CombatUIManager {
                 </div>
                 <div style="font-size: 0.8rem; text-align: right;">MP: ${p.mana} / ${p.getMaxMana()}</div>
             `;
-            this.elCombatPartyContainer.appendChild(card);
+            if (isDead) {
+                deadPlayers.push(card);
+            } else {
+                livingPlayers.push(card);
+            }
         });
+
+        livingPlayers.forEach(card => this.elCombatPartyContainer.appendChild(card));
+        deadPlayers.forEach(card => this.elCombatPartyContainer.appendChild(card));
 
         if (monsters) {
             this.renderCombatMonsters(monsters);

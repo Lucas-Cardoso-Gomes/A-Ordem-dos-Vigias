@@ -351,7 +351,7 @@ class UIManager {
                 if (target === 'screen-shop') {
                     this.renderShop();
                 }
-
+                
                 // Explicitly render crafting if navigating to it
                 if (target === 'screen-crafting') {
                     this.renderCrafting(window.gameInventory, window.gameParty[0]);
@@ -804,23 +804,28 @@ showToast(msg) {
         if (!this.elCraftingRecipes || !this.elCraftingUpgradeList) return;
         this.elCraftingRecipes.innerHTML = '';
         this.elCraftingUpgradeList.innerHTML = '';
-
+        
         CraftingSystem.recipes.forEach(r => {
             const div = document.createElement('div');
             div.style.padding = '1rem';
             div.style.border = '1px solid var(--border-color)';
             div.style.background = '#2a2a2a';
             div.style.borderRadius = '4px';
-
-            const emoji = r.resultId.startsWith('w') ? '⚔️' : r.resultId.startsWith('a') ? '🛡️' : '💍';
-
+            
+            let emoji = '🔮';
+            if (r.result && r.result.baseId) {
+                emoji = r.result.baseId.startsWith('w') ? '⚔️' : r.result.baseId.startsWith('a') ? '🛡️' : '💍';
+            } else if (r.result && r.result.type === 'potion') {
+                emoji = '🧪';
+            }
+            
             let ings = r.ingredients.map(ing => {
                 const hasItem = inventory.items.find(i => i.id === ing.id);
                 const hasQty = hasItem ? hasItem.count : 0;
                 const color = hasQty >= ing.qty ? 'var(--rarity-uncommon)' : 'var(--rarity-mythic)';
                 return `<span style="color: ${color};">${hasQty}/${ing.qty}x ${ing.name}</span>`;
             }).join('<br>');
-
+            
             div.innerHTML = `<h4 style="margin:0 0 0.5rem 0; color: var(--accent-gold);">${emoji} ${r.name}</h4>
                              <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem;">Requisito Nv: ${r.reqLvl}</p>
                              <div style="font-size: 0.85rem; margin-bottom: 1rem;"><strong>Ingredientes:</strong><br>${ings}</div>`;
@@ -829,14 +834,14 @@ showToast(msg) {
             btn.innerText = 'Forjar';
             btn.style.width = '100%';
             btn.style.backgroundColor = 'var(--bg-panel)';
-
+            
             if (!CraftingSystem.canCraft(r.id, inventory) || player.level < r.reqLvl) {
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
             } else {
                 btn.style.borderColor = 'var(--accent-gold)';
             }
-
+            
             btn.onclick = () => CraftingSystem.craft(r.id, inventory, player);
             div.appendChild(btn);
             this.elCraftingRecipes.appendChild(div);
@@ -864,7 +869,7 @@ showToast(msg) {
 
             let desc = `<strong>${item.name}</strong> ➔ <span style="color:var(--accent-gold);">Nível +${nextLevel}</span><br>`;
             desc += `<div style="font-size: 0.85rem; margin-top: 0.5rem;">Custo: ${costGold} Ouro</div>`;
-
+            
             const hasMat = inventory.items.find(i => i.id === matReq.id);
             const hasMatQty = hasMat ? hasMat.count : 0;
             const matColor = hasMatQty >= matReq.qty ? 'var(--rarity-uncommon)' : 'var(--rarity-mythic)';

@@ -44,7 +44,7 @@
                 <button data-target="screen-contracts" class="nav-btn">Contratos</button>
                 <button data-target="screen-shop" class="nav-btn">Loja</button>
                 <button data-target="screen-crafting" class="nav-btn">Forja</button>
-                <button data-target="screen-bestiary" class="nav-btn">Bestiário</button>
+                <button data-target="screen-bestiary" class="nav-btn">Manual</button>
                 <button data-target="screen-settings" class="nav-btn">Config.</button>
             </nav>
         </header>
@@ -115,7 +115,7 @@
             <section id="screen-crafting" class="screen hidden">
                 <h2 style="text-align: center; color: var(--accent-gold);">⚒️ Forja e Refinamento</h2>
                 <p style="text-align: center; margin-bottom: 2rem;">Crie novos equipamentos poderosos usando materiais encontrados no mundo ou refine seus itens atuais para aumentar seu poder!</p>
-
+                
                 <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
                     <!-- Forja -->
                     <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem;">
@@ -124,7 +124,7 @@
                             <!-- Recipes dynamically populated -->
                         </div>
                     </div>
-
+                    
                     <!-- Refinamento -->
                     <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem;">
                         <h3 style="color: var(--rarity-epic); margin-bottom: 1rem;">🛠️ Refinar Equipamento (Inventário)</h3>
@@ -167,13 +167,13 @@
                 
                 <div style="display: flex; gap: 1rem; align-items: flex-start; height: calc(100vh - 150px); min-height: 600px; position: relative;">
                     <!-- Left: Party Container and Turn Queue -->
-                    <div style="flex: 0 0 200px; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto;">
-                        <div id="combat-turn-queue" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border-color);">
-                            <span style="font-weight: bold; color: var(--accent-gold); text-align: center;">Iniciativa</span>
-                            <div id="combat-turn-queue-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-                        </div>
+                    <div style="flex: 0 0 250px; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto;">
                         <div class="combat-entity player-side" id="combat-party-container" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
                             <!-- Player cards will be injected here via UI manager -->
+                        </div>
+                        <div id="combat-turn-queue" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border-color); max-height: 200px; overflow-y: auto;">
+                            <span style="font-weight: bold; color: var(--accent-gold); text-align: center;">Iniciativa</span>
+                            <div id="combat-turn-queue-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
                         </div>
                     </div>
 
@@ -254,19 +254,62 @@
                 </div>
             </section>
 
-            <!-- Screen: Bestiary -->
+            <!-- Screen: Bestiary / Manual -->
             <section id="screen-bestiary" class="screen hidden">
-                <h2>Bestiário</h2>
-                <div class="bestiary-grid" id="bestiary-list">
-                    <!-- Known monsters -->
-                </div>
-                <div id="bestiary-details" class="hidden">
-                    <h3 id="best-name"></h3>
-                    <p>Habitat: <span id="best-habitat"></span></p>
-                    <p>Descrição: <span id="best-desc"></span></p>
-                    <p>Fraquezas: <span id="best-weak"></span></p>
-                    <p>Loot: <span id="best-loot"></span></p>
-                    <button id="btn-close-bestiary">Fechar</button>
+                <h2 style="text-align: center; color: var(--accent-gold); margin-bottom: 1rem;">📖 Manual & Bestiário</h2>
+                
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                    
+                    <!-- Left: Manual -->
+                    <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem; height: 60vh; overflow-y: auto;">
+                        <h3 style="color: var(--rarity-epic); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">O Mundo e Suas Regras</h3>
+                        
+                        <h4 style="color: var(--rarity-uncommon);">Atributos</h4>
+                        <ul style="margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
+                            <li><strong>Força (STR):</strong> Aumenta o dano de ataques físicos com armas pesadas.</li>
+                            <li><strong>Agilidade (AGI):</strong> Afeta a precisão, velocidade no turno de combate (Iniciativa) e evasão.</li>
+                            <li><strong>Inteligência (INT):</strong> Potencializa habilidades mágicas e aumenta o dano de cajados/varinhas.</li>
+                            <li><strong>Defesa (DEF):</strong> Reduz o dano físico sofrido em combate.</li>
+                            <li><strong>Sorte (LUK):</strong> Aumenta as chances de acerto crítico e melhora espólios.</li>
+                        </ul>
+                        
+                        <h4 style="color: var(--rarity-uncommon);">Classes</h4>
+                        <ul style="margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
+                            <li><strong>⚔️ Guerreiro:</strong> Alto HP e defesas. Excelente linha de frente.</li>
+                            <li><strong>🏹 Caçador:</strong> Especialista em ataque rápido e crítico à distância.</li>
+                            <li><strong>🧙 Mago:</strong> Foca em magias em área e danos elementais altíssimos.</li>
+                            <li><strong>✝️ Exorcista:</strong> Especialista em curar e causar dano sagrado (ótimo contra Mortos-Vivos).</li>
+                            <li><strong>🧪 Alquimista:</strong> Bônus na forja de itens e poder superior ao usar poções em combate.</li>
+                            <li><strong>🛡️ Paladino:</strong> Um defensor supremo, focado em mitigar dano do grupo.</li>
+                            <li><strong>🗡️ Assassino:</strong> Foca em abater alvos individuais rapidamente.</li>
+                            <li><strong>💀 Necromante:</strong> Especializado em magias sombrias.</li>
+                        </ul>
+
+                        <h4 style="color: var(--rarity-uncommon);">Mecânicas</h4>
+                        <p style="font-size: 0.9rem;">
+                            - Ouro e Inventário são divididos pelo seu grupo inteiro.<br>
+                            - A Forja permite consumir materiais largados por monstros para criar equipamentos.<br>
+                            - Explore áreas repetidamente usando o sistema de Contratos para ficar mais forte e desbloquear novos lugares.
+                        </p>
+                    </div>
+
+                    <!-- Right: Bestiary -->
+                    <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem; height: 60vh; overflow-y: auto;">
+                        <h3 style="color: var(--rarity-legendary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Bestiário</h3>
+                        <p style="font-size: 0.8rem; margin-bottom: 1rem;">Monstros são catalogados aqui conforme você os derrota em suas viagens.</p>
+                        
+                        <div class="bestiary-grid" id="bestiary-list" style="display: grid; gap: 0.5rem;">
+                            <!-- Known monsters -->
+                        </div>
+                        <div id="bestiary-details" class="hidden" style="background: #111; padding: 1rem; border: 1px solid #333; margin-top: 1rem;">
+                            <h3 id="best-name" style="color: var(--accent-red);"></h3>
+                            <p><strong>Habitat:</strong> <span id="best-habitat"></span></p>
+                            <p><strong>Descrição:</strong> <span id="best-desc"></span></p>
+                            <p><strong>Fraquezas:</strong> <span id="best-weak" style="color: var(--rarity-uncommon);"></span></p>
+                            <p><strong>Loot Base:</strong> <span id="best-loot"></span></p>
+                            <button id="btn-close-bestiary" style="margin-top: 1rem;">Voltar para Lista</button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
