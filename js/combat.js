@@ -353,7 +353,7 @@ class CombatSystem {
                 skillRange += 1;
             }
         }
-
+        
         const target = this.getCurrentTarget();
 
         if ((skill.type === 'attack' || skill.type === 'drain') && target) {
@@ -530,14 +530,14 @@ class CombatSystem {
                 for (let dir of directions) {
                     const nextX = attacker.gridX + dir.dx;
                     const nextY = attacker.gridY + dir.dy;
-
+                    
                     const cellKey = `${nextX},${nextY}`;
 
                     // Out of bounds check
                     if (nextX < 0 || nextX >= this.gridWidth || nextY < 0 || nextY >= this.gridHeight) {
                         continue;
                     }
-
+                    
                     // Visited check
                     if (visited.has(cellKey)) {
                         continue;
@@ -567,7 +567,7 @@ class CombatSystem {
                     break;
                 }
             }
-
+            
             if (stepsTaken > 0) {
                 this.logSystem(`${attacker.name} moveu-se em direção a ${targetP.name}.`);
                 Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
