@@ -23,6 +23,10 @@ class UIManager {
             if (window.gameParty[this.selectedPartyIndex] === p) {
                 this.renderPlayer(p);
             }
+            // Always re-render the party list if the player object changed (e.g., stats added)
+            if (window.gameParty && window.gameParty.includes(p)) {
+                this.renderAllPlayers();
+            }
             this.renderHeader();
         });
         Engine.on('inventoryUpdated', inv => {
@@ -150,8 +154,7 @@ class UIManager {
             this.btnAddMember.addEventListener('click', () => {
                 const name = prompt("Nome do novo membro:");
                 if (name) {
-                    const mainClass = window.gameParty[0].playerClass !== 'Nenhuma' ? window.gameParty[0].playerClass : 'Guerreiro';
-                    window.game.addPartyMember(name, mainClass);
+                    window.game.addPartyMember(name);
                 }
             });
         }
@@ -398,10 +401,15 @@ class UIManager {
             card.style.padding = '1rem';
             card.style.borderRadius = '4px';
             
-            // Renomear button is built per character card
+            // Renomear and Remover buttons
+            const removeBtnHtml = idx > 0 ? `<button class="btn-remove-member danger" data-idx="${idx}" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">Remover</button>` : '';
+
             const titleHtml = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
                 <h3 style="margin: 0;">${p.name}</h3>
-                <button class="btn-rename" data-idx="${idx}" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">Renomear</button>
+                <div style="display: flex; gap: 0.2rem;">
+                    <button class="btn-rename" data-idx="${idx}" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">Renomear</button>
+                    ${removeBtnHtml}
+                </div>
             </div>`;
             
             const statsHtml = `
@@ -434,6 +442,18 @@ class UIManager {
                     Engine.emit('playerUpdated', p);
                 }
             });
+
+            // Remove Member
+            const btnRemove = card.querySelector('.btn-remove-member');
+            if (btnRemove) {
+                btnRemove.addEventListener('click', () => {
+                    if (confirm(`Tem certeza que deseja remover ${p.name} do grupo?`)) {
+                        window.gameParty.splice(idx, 1);
+                        Engine.emit('partyUpdated', window.gameParty);
+                        Engine.emit('systemLog', `${p.name} deixou o grupo.`);
+                    }
+                });
+            }
 
             // Re-bind add attr
             const addBtns = card.querySelectorAll('.btn-add-attr');
