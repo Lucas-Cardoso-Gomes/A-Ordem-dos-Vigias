@@ -38,30 +38,101 @@ class QuestSystem {
         const numContracts = 3;
 
         for (let i = 0; i < numContracts; i++) {
-            // Pick a random monster around player level
-            const validMonsters = MonsterDatabase.monsters.filter(m => m.minLvl <= this.player.level + 10 && !m.isBoss);
-            if (validMonsters.length === 0) continue;
+            const questTypes = ['kill', 'gather', 'boss', 'explore'];
+            const type = questTypes[Math.floor(Math.random() * questTypes.length)];
             
-            const target = validMonsters[Math.floor(Math.random() * validMonsters.length)];
-            const targetQty = Engine.randomInt(3, 10);
+            let contract = null;
             
-            const xpReward = target.xp * targetQty * 1.5;
-            const goldReward = target.gold * targetQty * 2;
+            if (type === 'kill') {
+                const validMonsters = MonsterDatabase.monsters.filter(m => m.minLvl <= this.player.level + 10 && !m.isBoss);
+                if (validMonsters.length > 0) {
+                    const target = validMonsters[Math.floor(Math.random() * validMonsters.length)];
+                    const targetQty = Engine.randomInt(3, 10);
 
-            this.availableContracts.push({
-                id: 'contract_' + Date.now() + '_' + i,
-                title: `Contrato: Caça aos ${target.name}s`,
-                desc: `A Ordem recebeu relatos de ataques. Elimine ${targetQty} ${target.name}s.`,
-                type: 'kill',
-                targetId: target.id,
-                targetName: target.name,
-                requiredQty: targetQty,
-                currentQty: 0,
-                rewards: {
-                    xp: Math.floor(xpReward),
-                    gold: Math.floor(goldReward)
+                    contract = {
+                        id: 'contract_' + Date.now() + '_' + i,
+                        title: `Contrato: Caça aos ${target.name}s`,
+                        desc: `A Ordem recebeu relatos de ataques. Elimine ${targetQty} ${target.name}s.`,
+                        type: 'kill',
+                        targetId: target.id,
+                        targetName: target.name,
+                        requiredQty: targetQty,
+                        currentQty: 0,
+                        rewards: {
+                            xp: Math.floor(target.xp * targetQty * 1.5),
+                            gold: Math.floor(target.gold * targetQty * 2)
+                        }
+                    };
                 }
-            });
+            } else if (type === 'gather') {
+                const materials = ItemDatabase.materials;
+                const target = materials[Math.floor(Math.random() * materials.length)];
+                const targetQty = Engine.randomInt(3, 8);
+
+                contract = {
+                    id: 'contract_' + Date.now() + '_' + i,
+                    title: `Coleta: ${target.name}`,
+                    desc: `O Alquimista local precisa de ${targetQty} ${target.name}. Encontre-os e traga-os.`,
+                    type: 'gather',
+                    targetId: target.id,
+                    targetName: target.name,
+                    requiredQty: targetQty,
+                    currentQty: 0,
+                    rewards: {
+                        xp: Math.floor(this.player.level * 50),
+                        gold: Math.floor(target.value * targetQty * 3)
+                    }
+                };
+            } else if (type === 'boss') {
+                const validBosses = MonsterDatabase.monsters.filter(m => m.isBoss);
+                if (validBosses.length > 0) {
+                    const target = validBosses[Math.floor(Math.random() * validBosses.length)];
+
+                    contract = {
+                        id: 'contract_' + Date.now() + '_' + i,
+                        title: `Ameaça Máxima: ${target.name}`,
+                        desc: `Uma ameaça formidável foi detectada. Elimine o ${target.name}.`,
+                        type: 'kill', // We use 'kill' type to process it the same way
+                        targetId: target.id,
+                        targetName: target.name,
+                        requiredQty: 1,
+                        currentQty: 0,
+                        rewards: {
+                            xp: Math.floor(target.xp * 2),
+                            gold: Math.floor(target.gold * 3)
+                        }
+                    };
+                }
+            } else if (type === 'explore') {
+                const unlockedRegionsKeys = MapSystem.unlockedRegions;
+                const regionId = unlockedRegionsKeys[Math.floor(Math.random() * unlockedRegionsKeys.length)];
+                const region = MapSystem.regions[regionId];
+
+                if (region) {
+                    const targetQty = Engine.randomInt(2, 5);
+                    contract = {
+                        id: 'contract_' + Date.now() + '_' + i,
+                        title: `Exploração: ${region.name}`,
+                        desc: `Patrulhe a região e complete ${targetQty} batalhas em ${region.name}.`,
+                        type: 'explore',
+                        targetId: regionId,
+                        targetName: region.name,
+                        requiredQty: targetQty,
+                        currentQty: 0,
+                        rewards: {
+                            xp: Math.floor(this.player.level * 100),
+                            gold: Math.floor(this.player.level * 50)
+                        }
+                    };
+                }
+            }
+
+            if (contract) {
+                this.availableContracts.push(contract);
+            } else {
+                // Retry if failed to generate specific type
+                i--;
+            }
         }
         Engine.emit('questsUpdated', this);
     }
@@ -104,12 +175,43 @@ class QuestSystem {
         if (updated) Engine.emit('questsUpdated', this);
     }
 
+    processExploreEvent(regionId, qty = 1) {
+        let updated = false;
+        for (let quest of this.activeQuests) {
+            if (quest.type === 'explore' && quest.targetId === regionId) {
+                if (quest.currentQty < quest.requiredQty) {
+                    quest.currentQty += qty;
+                    if (quest.currentQty > quest.requiredQty) {
+                        quest.currentQty = quest.requiredQty;
+                    }
+                    updated = true;
+                    if (quest.currentQty === quest.requiredQty) {
+                        Engine.emit('systemLog', `Missão Concluída: ${quest.title}! Entregue na aba de Contratos.`);
+                    }
+                }
+            }
+        }
+        if (updated) Engine.emit('questsUpdated', this);
+    }
+
     completeQuest(id) {
         const index = this.activeQuests.findIndex(q => q.id === id);
         if (index === -1) return false;
 
         const quest = this.activeQuests[index];
-        if (quest.currentQty < quest.requiredQty) {
+
+        // Special check for gather quests (check inventory at completion time)
+        if (quest.type === 'gather') {
+            const item = window.gameInventory.items.find(i => i.id === quest.targetId);
+            if (!item || item.count < quest.requiredQty) {
+                Engine.emit('systemLog', `Itens insuficientes. Você precisa de ${quest.requiredQty}x ${quest.targetName}.`);
+                return false;
+            } else {
+                // Consume the items
+                window.gameInventory.removeItem(item.instanceId, quest.requiredQty);
+                quest.currentQty = quest.requiredQty; // Mark complete for rewards processing
+            }
+        } else if (quest.currentQty < quest.requiredQty) {
             Engine.emit('systemLog', 'Missão ainda não concluída.');
             return false;
         }

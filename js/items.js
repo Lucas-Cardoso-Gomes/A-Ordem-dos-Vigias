@@ -15,25 +15,25 @@ const ItemDatabase = {
     },
 
     weaponBases: [
-        { id: 'w1', name: 'Espada Longa', type: 'weapon', slot: 'weaponMain', minDmg: 5, maxDmg: 10, reqLvl: 1 },
-        { id: 'w2', name: 'Espada de Prata', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 14, reqLvl: 5, weakness: 'prata' },
-        { id: 'w3', name: 'Machado de Batalha', type: 'weapon', slot: 'weaponMain', minDmg: 10, maxDmg: 20, reqLvl: 10, weakness: 'machados' },
-        { id: 'w4', name: 'Lança', type: 'weapon', slot: 'weaponMain', minDmg: 7, maxDmg: 15, reqLvl: 5 },
-        { id: 'w5', name: 'Besta', type: 'weapon', slot: 'weaponMain', minDmg: 12, maxDmg: 18, reqLvl: 15, weakness: 'estaca' },
-        { id: 'w6', name: 'Arco Longo', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 16, reqLvl: 8 },
-        { id: 'w7', name: 'Cajado de Gelo', type: 'weapon', slot: 'weaponMain', minDmg: 6, maxDmg: 14, reqLvl: 10, weakness: 'gelo', magic: true },
-        { id: 'w8', name: 'Cajado de Fogo', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 18, reqLvl: 15, weakness: 'fogo', magic: true },
-        { id: 'w9', name: 'Tomo Sagrado', type: 'weapon', slot: 'weaponMain', minDmg: 10, maxDmg: 20, reqLvl: 20, weakness: 'luz sagrada', magic: true },
-        { id: 'w10', name: 'Grimório Sombrio', type: 'weapon', slot: 'weaponMain', minDmg: 15, maxDmg: 25, reqLvl: 30, weakness: 'magia arcana', magic: true },
-        { id: 'w11', name: 'Katana Sombria', type: 'weapon', slot: 'weaponMain', minDmg: 20, maxDmg: 35, reqLvl: 40, weakness: 'trevas' },
-        { id: 'w12', name: 'Martelo dos Deuses', type: 'weapon', slot: 'weaponMain', minDmg: 30, maxDmg: 50, reqLvl: 60, weakness: 'sagrado' },
+        { id: 'w1', name: 'Espada Longa', type: 'weapon', slot: 'weaponMain', minDmg: 5, maxDmg: 10, reqLvl: 1, range: 1 },
+        { id: 'w2', name: 'Espada de Prata', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 14, reqLvl: 5, weakness: 'prata', range: 1 },
+        { id: 'w3', name: 'Machado de Batalha', type: 'weapon', slot: 'weaponMain', minDmg: 10, maxDmg: 20, reqLvl: 10, weakness: 'machados', range: 1 },
+        { id: 'w4', name: 'Lança', type: 'weapon', slot: 'weaponMain', minDmg: 7, maxDmg: 15, reqLvl: 5, range: 2 },
+        { id: 'w5', name: 'Besta', type: 'weapon', slot: 'weaponMain', minDmg: 12, maxDmg: 18, reqLvl: 15, weakness: 'estaca', range: 8 },
+        { id: 'w6', name: 'Arco Longo', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 16, reqLvl: 8, range: 8 },
+        { id: 'w7', name: 'Cajado de Gelo', type: 'weapon', slot: 'weaponMain', minDmg: 6, maxDmg: 14, reqLvl: 10, weakness: 'gelo', magic: true, range: 6 },
+        { id: 'w8', name: 'Cajado de Fogo', type: 'weapon', slot: 'weaponMain', minDmg: 8, maxDmg: 18, reqLvl: 15, weakness: 'fogo', magic: true, range: 6 },
+        { id: 'w9', name: 'Tomo Sagrado', type: 'weapon', slot: 'weaponMain', minDmg: 10, maxDmg: 20, reqLvl: 20, weakness: 'luz sagrada', magic: true, range: 6 },
+        { id: 'w10', name: 'Grimório Sombrio', type: 'weapon', slot: 'weaponMain', minDmg: 15, maxDmg: 25, reqLvl: 30, weakness: 'magia arcana', magic: true, range: 6 },
+        { id: 'w11', name: 'Katana Sombria', type: 'weapon', slot: 'weaponMain', minDmg: 20, maxDmg: 35, reqLvl: 40, weakness: 'trevas', range: 1 },
+        { id: 'w12', name: 'Martelo dos Deuses', type: 'weapon', slot: 'weaponMain', minDmg: 30, maxDmg: 50, reqLvl: 60, weakness: 'sagrado', range: 1 },
         
-        { id: 'wo1', name: 'Adaga Curta', type: 'weapon', slot: 'weaponOff', minDmg: 3, maxDmg: 6, reqLvl: 1 },
-        { id: 'wo2', name: 'Escudo de Madeira', type: 'weapon', slot: 'weaponOff', minDmg: 1, maxDmg: 2, def: 3, reqLvl: 3 },
-        { id: 'wo3', name: 'Adaga Envenenada', type: 'weapon', slot: 'weaponOff', minDmg: 5, maxDmg: 10, reqLvl: 10, weakness: 'veneno' },
-        { id: 'wo4', name: 'Orbe Mágico', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 5, reqLvl: 10, magic: true, stats: { mana: 20 } },
-        { id: 'wo5', name: 'Escudo de Ferro', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 4, def: 8, reqLvl: 15 },
-        { id: 'wo6', name: 'Tomo Menor', type: 'weapon', slot: 'weaponOff', minDmg: 4, maxDmg: 8, reqLvl: 15, magic: true, stats: { int: 5 } }
+        { id: 'wo1', name: 'Adaga Curta', type: 'weapon', slot: 'weaponOff', minDmg: 3, maxDmg: 6, reqLvl: 1, range: 1 },
+        { id: 'wo2', name: 'Escudo de Madeira', type: 'weapon', slot: 'weaponOff', minDmg: 1, maxDmg: 2, def: 3, reqLvl: 3, range: 1 },
+        { id: 'wo3', name: 'Adaga Envenenada', type: 'weapon', slot: 'weaponOff', minDmg: 5, maxDmg: 10, reqLvl: 10, weakness: 'veneno', range: 1 },
+        { id: 'wo4', name: 'Orbe Mágico', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 5, reqLvl: 10, magic: true, stats: { mana: 20 }, range: 1 },
+        { id: 'wo5', name: 'Escudo de Ferro', type: 'weapon', slot: 'weaponOff', minDmg: 2, maxDmg: 4, def: 8, reqLvl: 15, range: 1 },
+        { id: 'wo6', name: 'Tomo Menor', type: 'weapon', slot: 'weaponOff', minDmg: 4, maxDmg: 8, reqLvl: 15, magic: true, stats: { int: 5 }, range: 1 }
     ],
 
     armorBases: [
