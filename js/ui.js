@@ -662,6 +662,14 @@ showToast(msg) {
 
     renderQuests(questSys) {
         this.elActiveQuests.innerHTML = '';
+        const categories = {
+            'kill': { title: 'Batalha / Caça', items: [] },
+            'gather': { title: 'Coleta', items: [] },
+            'explore': { title: 'Exploração', items: [] },
+            'boss': { title: 'Chefe', items: [] }
+        };
+
+        // Populate Active Quests
         questSys.activeQuests.forEach(q => {
             const li = document.createElement('li');
             li.className = 'quest-card';
@@ -683,10 +691,38 @@ showToast(msg) {
                 btn.onclick = () => questSys.completeQuest(q.id);
                 li.appendChild(btn);
             }
-            this.elActiveQuests.appendChild(li);
+
+            let cat = q.type;
+            if (q.title.includes('Ameaça Máxima')) cat = 'boss';
+            if (categories[cat]) categories[cat].items.push(li);
+            else categories['kill'].items.push(li); // Fallback
         });
 
+        Object.values(categories).forEach(cat => {
+            if (cat.items.length > 0) {
+                const header = document.createElement('h4');
+                header.innerText = cat.title;
+                header.style.color = 'var(--accent-gold)';
+                header.style.marginTop = '1rem';
+                this.elActiveQuests.appendChild(header);
+                cat.items.forEach(item => this.elActiveQuests.appendChild(item));
+            }
+        });
+
+        if (this.elActiveQuests.innerHTML === '') {
+            this.elActiveQuests.innerHTML = 'Nenhuma missão ativa.';
+        }
+
+
+        // Populate Available Contracts
         this.elAvailableContracts.innerHTML = '';
+        const availableCategories = {
+            'kill': { title: 'Batalha / Caça', items: [] },
+            'gather': { title: 'Coleta', items: [] },
+            'explore': { title: 'Exploração', items: [] },
+            'boss': { title: 'Chefe', items: [] }
+        };
+
         questSys.availableContracts.forEach(c => {
             const li = document.createElement('li');
             li.className = 'quest-card';
@@ -695,8 +731,27 @@ showToast(msg) {
             btn.innerText = 'Aceitar';
             btn.onclick = () => questSys.acceptContract(c.id);
             li.appendChild(btn);
-            this.elAvailableContracts.appendChild(li);
+
+            let cat = c.type;
+            if (c.title.includes('Ameaça Máxima')) cat = 'boss';
+            if (availableCategories[cat]) availableCategories[cat].items.push(li);
+            else availableCategories['kill'].items.push(li); // Fallback
         });
+
+        Object.values(availableCategories).forEach(cat => {
+            if (cat.items.length > 0) {
+                const header = document.createElement('h4');
+                header.innerText = cat.title;
+                header.style.color = 'var(--accent-gold)';
+                header.style.marginTop = '1rem';
+                this.elAvailableContracts.appendChild(header);
+                cat.items.forEach(item => this.elAvailableContracts.appendChild(item));
+            }
+        });
+
+        if (this.elAvailableContracts.innerHTML === '') {
+            this.elAvailableContracts.innerHTML = 'Nenhum contrato disponível no momento.';
+        }
     }
 
     renderMap() {
