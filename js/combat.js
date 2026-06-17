@@ -141,6 +141,7 @@ class CombatSystem {
 
         if (this.currentTurnEntity.type === 'player') {
             const p = this.party[this.currentTurnEntity.index];
+            p.defenseStance = false; // Reset defense stance on new turn
             this.movementRemaining = 5 + Math.floor(p.getTotalAttr('agi') / 10);
             this.logSystem(`Turno de ${p.name}. Movimento: ${this.movementRemaining} blocos.`);
             Engine.emit('turnStarted', this.currentTurnEntity.index);
@@ -286,6 +287,11 @@ class CombatSystem {
             let dmg = attacker.dmg - Math.floor(defense * 0.5);
             if (dmg < 1) dmg = 1;
 
+            if (defender.defenseStance) {
+                dmg = Math.floor(dmg * 0.5);
+                if (dmg < 1) dmg = 1;
+            }
+
             defender.hp -= dmg;
             this.logMonster(`⚠️ Ataque de Oportunidade! ${attacker.name} atacou ${defender.name} pelas costas e causou ${dmg} de dano!`);
             Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(defender), dmg: dmg });
@@ -349,7 +355,17 @@ class CombatSystem {
         return Math.abs(e1.gridX - e2.gridX) + Math.abs(e1.gridY - e2.gridY);
     }
 
-    playerAttack() {
+    activateDefenseStance() {
+        if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
+        const p = this.party[this.currentTurnEntity.index];
+        p.defenseStance = true;
+        this.logSystem(`${p.name} assumiu Posição de Defesa.`);
+        this.isSelectingTarget = false;
+        Engine.emit('turnEnded', null);
+        setTimeout(() => this.nextTurn(), 500);
+    }
+
+    playerAttack(slot = 'weaponMain') {
         if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
         const p = this.party[this.currentTurnEntity.index];
 
@@ -358,8 +374,9 @@ class CombatSystem {
 
         // Check Range
         let attackRange = 1; // Default melee
-        if (p.equipment?.weaponMain && p.equipment.weaponMain.range !== undefined) {
-            attackRange = p.equipment.weaponMain.range;
+        const weapon = p.equipment?.[slot];
+        if (weapon && weapon.range !== undefined) {
+            attackRange = weapon.range;
         }
         
         const dist = this.getDistance(p, target);
@@ -373,7 +390,7 @@ class CombatSystem {
         this.isSelectingTarget = false;
         Engine.emit('turnEnded', null);
 
-        let { min, max, weaknessMods } = this.calculatePlayerDamage(p);
+        let { min, max, weaknessMods } = this.calculatePlayerDamage(p, slot);
         let dmg = Engine.randomInt(min, max);
 
         const critChance = 5 + (p.getTotalAttr('luk') * 0.2) + (p.getTotalAttr('agi') * 0.1);
@@ -821,6 +838,12 @@ class CombatSystem {
             this.logMonster(`${attacker.name} atacou ${targetP.name} e causou ${dmg} de dano.`);
         }
 
+        if (targetP.defenseStance) {
+            dmg = Math.floor(dmg * 0.5);
+            if (dmg < 1) dmg = 1;
+            this.logMonster(`🛡️ O ataque foi mitigado pela postura de defesa de ${targetP.name}!`);
+        }
+
         Engine.emit('combatAnimation', { target: 'monster', anim: 'attack', monsterId: attacker.instanceId });
 
         setTimeout(() => {
@@ -837,28 +860,30 @@ class CombatSystem {
         }, 300);
     }
 
-    calculatePlayerDamage(p) {
+    calculatePlayerDamage(p, slot = 'weaponMain') {
         let min = 1 + Math.floor(p.getTotalAttr('str') * 0.5);
         let max = 2 + p.getTotalAttr('str');
         let weaknessMods = [];
 
-        const mainWeapon = p.equipment?.weaponMain;
-        if (mainWeapon) {
-            min += mainWeapon.minDmg || 0;
-            max += mainWeapon.maxDmg || 0;
-            if (mainWeapon.weakness) weaknessMods.push(mainWeapon.weakness);
+        const weapon = p.equipment?.[slot];
+        if (weapon && weapon.type === 'weapon') {
+            let wMin = weapon.minDmg || 0;
+            let wMax = weapon.maxDmg || 0;
 
-            if (mainWeapon.magic) {
+            if (slot === 'weaponOff') {
+                wMin = Math.floor(wMin * 0.5);
+                wMax = Math.floor(wMax * 0.5);
+            }
+
+            min += wMin;
+            max += wMax;
+
+            if (weapon.weakness) weaknessMods.push(weapon.weakness);
+
+            if (weapon.magic) {
                 min += Math.floor(p.getTotalAttr('int') * 0.8);
                 max += p.getTotalAttr('int');
             }
-        }
-
-        const offWeapon = p.equipment?.weaponOff;
-        if (offWeapon && offWeapon.type === 'weapon') {
-            min += Math.floor((offWeapon.minDmg || 0) * 0.5);
-            max += Math.floor((offWeapon.maxDmg || 0) * 0.5);
-            if (offWeapon.weakness) weaknessMods.push(offWeapon.weakness);
         }
 
         return { min, max, weaknessMods };
@@ -1030,6 +1055,11 @@ class CombatSystem {
                     }
                 }
                 Engine.emit('regionProgressUpdated', regionId);
+
+                // Notify quests about explore progress
+                if (window.gameQuests) {
+                    window.gameQuests.processExploreEvent(regionId, 1);
+                }
             }
             
             Engine.emit('partyUpdated', this.party);

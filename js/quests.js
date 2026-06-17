@@ -141,11 +141,6 @@ class QuestSystem {
         const index = this.availableContracts.findIndex(c => c.id === id);
         if (index === -1) return false;
 
-        if (this.activeQuests.length >= 5) {
-            Engine.emit('systemLog', 'Você já atingiu o limite de missões ativas (5).');
-            return false;
-        }
-
         const contract = this.availableContracts.splice(index, 1)[0];
         this.activeQuests.push(contract);
         Engine.emit('systemLog', `Contrato Aceito: ${contract.title}`);

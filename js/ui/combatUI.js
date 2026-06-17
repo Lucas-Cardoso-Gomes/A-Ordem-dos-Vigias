@@ -44,10 +44,8 @@ class CombatUIManager {
 
         this.btnAttack.addEventListener('click', () => {
             this.hideCombatMenus();
-            window.gameCombat.isSelectingMove = false;
-            window.gameCombat.isSelectingTarget = true;
-            window.gameCombat.selectedSkill = null; // null means basic attack
-            Engine.emit('combatUpdated', { party: window.gameCombat.party, monsters: window.gameCombat.monsters });
+            window.gameCombat.cancelGridSelection();
+            this.showCombatAttackMenu();
         });
 
         if (this.btnSkill) {
@@ -96,7 +94,7 @@ class CombatUIManager {
                 if (window.gameCombat.selectedSkill) {
                     window.gameCombat.playerSkill(window.gameCombat.selectedSkill);
                 } else {
-                    window.gameCombat.playerAttack();
+                    window.gameCombat.playerAttack(window.gameCombat.selectedAttackSlot || 'weaponMain');
                 }
             } else if (window.gameCombat.selectedSkill && window.gameCombat.selectedSkill.isAoE) {
                  // For AoE we can set a dummy target to coordinates or just find nearest to clicked point if needed, 
@@ -126,6 +124,64 @@ class CombatUIManager {
         if (this.elCombatItemsMenu) this.elCombatItemsMenu.classList.add('hidden');
     }
 
+    showCombatAttackMenu() {
+        if (!this.elCombatSkillsMenu || !window.gameCombat || !window.gameCombat.currentTurnEntity || window.gameCombat.currentTurnEntity.type !== 'player') return;
+        this.elCombatSkillsList.innerHTML = '';
+
+        const pIndex = window.gameCombat.currentTurnEntity.index;
+        const p = window.gameParty[pIndex];
+
+        const wMain = p.equipment?.weaponMain;
+        const btnMain = document.createElement('button');
+        if (wMain) {
+            btnMain.innerText = `${wMain.name} (Dano: ${wMain.minDmg}-${wMain.maxDmg}, Alcance: ${wMain.range || 1})`;
+        } else {
+            btnMain.innerText = `Soco (Dano: 1-2, Alcance: 1)`;
+        }
+        btnMain.onclick = () => {
+            this.hideCombatMenus();
+            window.gameCombat.isSelectingMove = false;
+            window.gameCombat.isSelectingTarget = true;
+            window.gameCombat.selectedSkill = null;
+            window.gameCombat.selectedAttackSlot = 'weaponMain';
+            Engine.emit('combatUpdated', { party: window.gameCombat.party, monsters: window.gameCombat.monsters });
+        };
+        this.elCombatSkillsList.appendChild(btnMain);
+
+        const wOff = p.equipment?.weaponOff;
+        if (wOff) {
+            const btnOff = document.createElement('button');
+            if (wOff.isShield || (wOff.name && wOff.name.toLowerCase().includes('escudo'))) {
+                btnOff.innerText = `Posição de Defesa (${wOff.name})`;
+                btnOff.onclick = () => {
+                    this.hideCombatMenus();
+                    window.gameCombat.activateDefenseStance();
+                };
+            } else {
+                let offMin = Math.floor((wOff.minDmg || 0) * 0.5);
+                let offMax = Math.floor((wOff.maxDmg || 0) * 0.5);
+                btnOff.innerText = `${wOff.name} (Dano: ${offMin}-${offMax}, Alcance: ${wOff.range || 1})`;
+                btnOff.onclick = () => {
+                    this.hideCombatMenus();
+                    window.gameCombat.isSelectingMove = false;
+                    window.gameCombat.isSelectingTarget = true;
+                    window.gameCombat.selectedSkill = null;
+                    window.gameCombat.selectedAttackSlot = 'weaponOff';
+                    Engine.emit('combatUpdated', { party: window.gameCombat.party, monsters: window.gameCombat.monsters });
+                };
+            }
+            this.elCombatSkillsList.appendChild(btnOff);
+        }
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.className = 'danger';
+        cancelBtn.onclick = () => this.hideCombatMenus();
+        this.elCombatSkillsList.appendChild(cancelBtn);
+
+        this.elCombatSkillsMenu.classList.remove('hidden');
+    }
+
     showCombatSkillsMenu() {
         if (!this.elCombatSkillsMenu || !window.gameCombat || !window.gameCombat.currentTurnEntity || window.gameCombat.currentTurnEntity.type !== 'player') return;
         this.elCombatSkillsList.innerHTML = '';
@@ -145,8 +201,12 @@ class CombatUIManager {
                 }
                 btn.onclick = () => {
                     this.hideCombatMenus();
-                    if (skill.type === 'heal' && window.gameParty.length > 1) {
-                        this.showPartyTargetMenu(skill);
+                    if (skill.type === 'heal') {
+                        if (window.gameParty.length > 1) {
+                            this.showPartyTargetMenu(skill);
+                        } else {
+                            window.gameCombat.playerSkill(skill, 0);
+                        }
                     } else {
                         window.gameCombat.isSelectingMove = false;
                         window.gameCombat.isSelectingTarget = true;
@@ -253,7 +313,7 @@ class CombatUIManager {
                     if (window.gameCombat.selectedSkill) {
                         window.gameCombat.playerSkill(window.gameCombat.selectedSkill);
                     } else {
-                        window.gameCombat.playerAttack();
+                        window.gameCombat.playerAttack(window.gameCombat.selectedAttackSlot || 'weaponMain');
                     }
                 }
             };
@@ -353,10 +413,10 @@ class CombatUIManager {
             let attackRange = 1; // Default melee
             if (window.gameCombat.selectedSkill) {
                 attackRange = window.gameCombat.selectedSkill.range || 4;
-            } else if (p.equipment?.weaponMain) {
-                const wType = p.equipment.weaponMain.type;
-                if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
-                    attackRange = 5;
+            } else {
+                const slot = window.gameCombat.selectedAttackSlot || 'weaponMain';
+                if (p.equipment?.[slot] && p.equipment[slot].range !== undefined) {
+                    attackRange = p.equipment[slot].range;
                 }
             }
 
