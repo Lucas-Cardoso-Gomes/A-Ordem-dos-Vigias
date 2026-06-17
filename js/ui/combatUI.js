@@ -297,9 +297,11 @@ class CombatUIManager {
 
     getEmojiForClass(className) {
         const map = {
-            'Caçador': '🏹', 'Exorcista': '📿', 'Alquimista': '⚗️',
-            'Bruxo': '🔮', 'Mago': '🧙', 'Guerreiro': '🗡️',
-            'Assassino': '🥷', 'Paladino': '🛡️', 'Necromante': '🧟',
+            'Guerreiro': '⚔️',
+            'Caçador': '🏹',
+            'Guardião': '🛡️',
+            'Mago': '🔮',
+            'Clérigo': '✨',
             'Nenhuma': '🧍'
         };
         return map[className] || '🧍';

@@ -413,13 +413,6 @@ class CombatSystem {
             }
         }
 
-        if (p.playerClass === 'Caçador' && !p.equipment?.weaponMain?.magic) {
-            dmg = Math.floor(dmg * 1.2);
-        } else if (p.playerClass === 'Bruxo' && p.equipment?.weaponMain?.magic) {
-            dmg = Math.floor(dmg * 1.2);
-        } else if (p.playerClass === 'Exorcista' && target.type && target.type.includes('Morto-vivo')) {
-            dmg = Math.floor(dmg * 1.3);
-        }
 
         dmg = Math.floor(dmg * weaknessMultiplier);
         target.hp -= dmg;
@@ -560,15 +553,29 @@ class CombatSystem {
             }, 600);
 
         } else if (skill.type === 'heal') {
-            const targetP = (targetPartyIndex !== null && this.party[targetPartyIndex]) ? this.party[targetPartyIndex] : p;
+            let targets = [];
+            if (skill.isAoE) {
+                targets = this.party.filter(member => member.hp > 0);
+                this.logPlayer(`${p.name} usou [${skill.name}] curando todos os aliados!`);
+            } else {
+                targets = [(targetPartyIndex !== null && this.party[targetPartyIndex]) ? this.party[targetPartyIndex] : p];
+                this.logPlayer(`${p.name} usou [${skill.name}] e curou ${targets[0].name}!`);
+            }
             
-            targetP.heal(skill.healAmount);
-            this.logPlayer(`${p.name} usou [${skill.name}] e curou ${skill.healAmount} HP de ${targetP.name}!`);
-            Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(targetP), dmg: skill.healAmount, isHeal: true });
+            targets.forEach(targetP => {
+                targetP.heal(skill.healAmount);
+                Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(targetP), dmg: skill.healAmount, isHeal: true });
+            });
 
             setTimeout(() => {
                 Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
                 setTimeout(() => this.nextTurn(), 1000);
+            }, 600);
+        } else if (skill.type === 'buff' || skill.type === 'buff_taunt' || skill.type === 'taunt' || skill.type === 'terrain') {
+            this.logPlayer(`${p.name} usou [${skill.name}] (Efeito base ativado, implementação completa pendente)`);
+            setTimeout(() => {
+                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                this.nextTurn();
             }, 600);
         }
     }
@@ -731,7 +738,7 @@ class CombatSystem {
                 break;
             }
             case 'MAGE_OR_LOWEST_DEF': {
-                let mages = livingPlayers.filter(p => p.playerClass === 'Mago' || p.playerClass === 'Bruxo' || p.playerClass === 'Exorcista' || p.playerClass === 'Necromante');
+                let mages = livingPlayers.filter(p => p.playerClass === 'Mago' || p.playerClass === 'Clérigo');
                 let pool = mages.length > 0 ? mages : livingPlayers;
 
                 let lowestDef = Infinity;

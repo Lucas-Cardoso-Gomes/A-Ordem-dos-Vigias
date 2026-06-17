@@ -155,14 +155,6 @@ const CraftingSystem = {
             if (recipe.result.defMod) {
                 item.def = recipe.result.defMod;
             }
-            
-            // Alquimista class bonus for crafting
-            if (player.playerClass === 'Alquimista') {
-                if (item.minDmg) item.minDmg += 2;
-                if (item.maxDmg) item.maxDmg += 2;
-                if (item.def) item.def += 2;
-                if (item.effect === 'heal') item.value += 50;
-            }
         }
 
         inventory.addItem(item);
