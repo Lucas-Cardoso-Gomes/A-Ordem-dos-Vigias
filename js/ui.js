@@ -665,8 +665,19 @@ showToast(msg) {
         questSys.activeQuests.forEach(q => {
             const li = document.createElement('li');
             li.className = 'quest-card';
-            li.innerHTML = `<strong>${q.title}</strong><br>Progresso: ${q.currentQty} / ${q.requiredQty}<br>`;
-            if (q.currentQty >= q.requiredQty) {
+
+            let progressText = `Progresso: ${q.currentQty} / ${q.requiredQty}`;
+            let isComplete = q.currentQty >= q.requiredQty;
+
+            if (q.type === 'gather') {
+                const item = window.gameInventory.items.find(i => i.id === q.targetId);
+                const currentCount = item ? item.count : 0;
+                progressText = `Progresso: ${currentCount} / ${q.requiredQty}`;
+                isComplete = currentCount >= q.requiredQty;
+            }
+
+            li.innerHTML = `<strong>${q.title}</strong><br>${progressText}<br>`;
+            if (isComplete) {
                 const btn = document.createElement('button');
                 btn.innerText = 'Concluir';
                 btn.onclick = () => questSys.completeQuest(q.id);
