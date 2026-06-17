@@ -23,7 +23,7 @@ class Player {
         };
 
         this.statPoints = 0;
-        this.playerClass = 'Nenhuma'; // Caçador, Exorcista, Alquimista, Bruxo, Mago
+        this.playerClass = 'Nenhuma'; // Guerreiro, Caçador, Guardião, Mago, Clérigo
         this.classLocked = false;
 
         this.equipment = {
@@ -185,7 +185,7 @@ class Player {
     }
 
     setClass(newClass) {
-        const validClasses = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago', 'Guerreiro', 'Assassino', 'Paladino', 'Necromante'];
+        const validClasses = ['Guerreiro', 'Caçador', 'Guardião', 'Mago', 'Clérigo'];
         const inputClass = newClass ? newClass.trim().toLowerCase() : '';
         const match = validClasses.find(c => c.toLowerCase() === inputClass);
         if (match) {

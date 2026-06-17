@@ -483,7 +483,7 @@ class UIManager {
                 const classCont = card.querySelector('.class-container');
                 classCont.innerHTML = `<strong>Classe:</strong> <span class="class-label" style="color: inherit;">${p.playerClass}</span><br><div style="display: flex; gap: 0.2rem; flex-wrap: wrap; margin-top: 0.2rem;"></div>`;
                 const btnArea = classCont.querySelector('div');
-                const classesDisponiveis = ['Caçador', 'Exorcista', 'Alquimista', 'Bruxo', 'Mago', 'Guerreiro', 'Assassino', 'Paladino', 'Necromante'];
+                const classesDisponiveis = ['Guerreiro', 'Caçador', 'Guardião', 'Mago', 'Clérigo'];
                 classesDisponiveis.forEach(cls => {
                     const btnClasse = document.createElement('button');
                     btnClasse.innerText = cls;

@@ -3,132 +3,82 @@ const SkillDatabase = {
         let skills = [];
 
         switch (playerClass) {
+            case 'Guerreiro':
+                // Corpo a corpo puro, foco em dano físico direto, investidas. Alcance baixo.
+                if (level >= 5) skills.push({ id: 's_gue_1', name: "Golpe Poderoso", manaCost: 20, type: 'attack', multiplier: 2.0, reqLvl: 5, range: 1 });
+                if (level >= 10) skills.push({ id: 's_gue_2', name: "Corte Furioso", manaCost: 40, type: 'attack', multiplier: 3.5, reqLvl: 10, range: 1 });
+                if (level >= 20) skills.push({ id: 's_gue_3', name: "Investida Bruta", manaCost: 70, type: 'attack', multiplier: 5.0, reqLvl: 20, range: 2 });
+                if (level >= 30) skills.push({ id: 's_gue_4', name: "Giro de Batalha (Área)", manaCost: 100, type: 'attack', multiplier: 4.5, isAoE: true, aoeRadius: 1, reqLvl: 30, range: 1 });
+                if (level >= 40) skills.push({ id: 's_gue_5', name: "Fúria do Berserker", manaCost: 140, type: 'attack', multiplier: 8.0, reqLvl: 40, range: 1 });
+                if (level >= 50) skills.push({ id: 's_gue_6', name: "Esmagar Ossos", manaCost: 180, type: 'attack', multiplier: 11.0, reqLvl: 50, range: 1 });
+                if (level >= 60) skills.push({ id: 's_gue_7', name: "Onda de Choque (Área)", manaCost: 220, type: 'attack', multiplier: 9.0, isAoE: true, aoeRadius: 2, reqLvl: 60, range: 2 });
+                if (level >= 70) skills.push({ id: 's_gue_8', name: "Golpe Colossal", manaCost: 260, type: 'attack', multiplier: 15.0, reqLvl: 70, range: 1 });
+                if (level >= 80) skills.push({ id: 's_gue_9', name: "Devastar", manaCost: 310, type: 'attack', multiplier: 19.0, reqLvl: 80, range: 1 });
+                if (level >= 90) skills.push({ id: 's_gue_10', name: "Terremoto (Área)", manaCost: 360, type: 'attack', multiplier: 14.0, isAoE: true, aoeRadius: 3, reqLvl: 90, range: 2 });
+                if (level >= 100) skills.push({ id: 's_gue_11', name: "Ira do Deus da Guerra", manaCost: 450, type: 'attack', multiplier: 25.0, reqLvl: 100, range: 1 });
+                break;
+
             case 'Caçador':
-                skills.push({ id: 's_cac_1', name: "Tiro Preciso", manaCost: 35, type: 'attack', multiplier: 2.5, reqLvl: 5, range: 6 });
-                if (level >= 10) skills.push({ id: 's_cac_2', name: "Saraivada (Área)", manaCost: 60, type: 'attack', multiplier: 2.4, isAoE: true, reqLvl: 10, range: 6, aoeRadius: 2 });
-                if (level >= 20) skills.push({ id: 's_cac_3', name: "Flecha Perfurante", manaCost: 110, type: 'attack', multiplier: 7.0, element: 'estaca', reqLvl: 20, range: 7 });
-                if (level >= 30) skills.push({ id: 's_cac_4', name: "Bala de Prata", manaCost: 160, type: 'attack', multiplier: 10.0, element: 'prata', reqLvl: 30, range: 6 });
-                if (level >= 40) skills.push({ id: 's_cac_5', name: "Chuva de Flechas (Área)", manaCost: 210, type: 'attack', multiplier: 7.8, isAoE: true, reqLvl: 40, range: 6, aoeRadius: 3 });
-                if (level >= 50) skills.push({ id: 's_cac_6', name: "Execução", manaCost: 260, type: 'attack', multiplier: 16.0, element: 'sagrado', reqLvl: 50, range: 7 });
-                if (level >= 60) skills.push({ id: 's_cac_7', name: "Marca da Caçada", manaCost: 310, type: 'attack', multiplier: 19.0, element: 'prata', reqLvl: 60, range: 8 });
-                if (level >= 70) skills.push({ id: 's_cac_8', name: "Tempestade de Projéteis (Área)", manaCost: 360, type: 'attack', multiplier: 13.2, isAoE: true, reqLvl: 70, range: 7, aoeRadius: 3 });
-                if (level >= 80) skills.push({ id: 's_cac_9', name: "Caçada Implacável", manaCost: 410, type: 'attack', multiplier: 25.0, element: 'prata', reqLvl: 80, range: 6 });
-                if (level >= 90) skills.push({ id: 's_cac_10', name: "Extermínio Sobrenatural", manaCost: 460, type: 'attack', multiplier: 28.0, element: 'sagrado', reqLvl: 90, range: 8 });
-                if (level >= 100) skills.push({ id: 's_cac_11', name: "Última Caçada", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'sagrado', reqLvl: 100, range: 8, aoeRadius: 4 });
+                // Ataque à distância, dano perfurante e controle. Alcance alto.
+                if (level >= 5) skills.push({ id: 's_cac_1', name: "Tiro Certeiro", manaCost: 20, type: 'attack', multiplier: 2.0, reqLvl: 5, range: 6 });
+                if (level >= 10) skills.push({ id: 's_cac_2', name: "Tiro Penetrante", manaCost: 45, type: 'attack', multiplier: 3.2, reqLvl: 10, range: 7 });
+                if (level >= 20) skills.push({ id: 's_cac_3', name: "Armadilha de Espinhos", manaCost: 80, type: 'terrain', terrainType: 'spikes', multiplier: 2.0, duration: 3, reqLvl: 20, range: 5, desc: "Cria terreno que causa dano." });
+                if (level >= 30) skills.push({ id: 's_cac_4', name: "Saraivada (Área)", manaCost: 110, type: 'attack', multiplier: 4.0, isAoE: true, aoeRadius: 2, reqLvl: 30, range: 6 });
+                if (level >= 40) skills.push({ id: 's_cac_5', name: "Tiro Envenenado", manaCost: 150, type: 'attack', multiplier: 7.5, element: 'veneno', reqLvl: 40, range: 7 });
+                if (level >= 50) skills.push({ id: 's_cac_6', name: "Olho da Águia", manaCost: 190, type: 'attack', multiplier: 10.5, reqLvl: 50, range: 8 });
+                if (level >= 60) skills.push({ id: 's_cac_7', name: "Chuva de Flechas (Área)", manaCost: 240, type: 'attack', multiplier: 8.5, isAoE: true, aoeRadius: 3, reqLvl: 60, range: 6 });
+                if (level >= 70) skills.push({ id: 's_cac_8', name: "Tiro Fatal", manaCost: 280, type: 'attack', multiplier: 14.5, reqLvl: 70, range: 7 });
+                if (level >= 80) skills.push({ id: 's_cac_9', name: "Campo Minado", manaCost: 330, type: 'terrain', terrainType: 'mine', multiplier: 15.0, duration: 5, reqLvl: 80, range: 6, desc: "Terreno altamente explosivo." });
+                if (level >= 90) skills.push({ id: 's_cac_10', name: "Tiro na Cabeça", manaCost: 380, type: 'attack', multiplier: 20.0, reqLvl: 90, range: 8 });
+                if (level >= 100) skills.push({ id: 's_cac_11', name: "Chuva de Meteoros Perfurantes", manaCost: 460, type: 'attack', multiplier: 18.0, isAoE: true, aoeRadius: 4, reqLvl: 100, range: 7 });
                 break;
 
-            case 'Exorcista':
-                skills.push({ id: 's_exo_1', name: "Cura Sagrada", manaCost: 30, type: 'heal', healAmount: 175 + getTotalAttr('int') * 2, reqLvl: 5 });
-                if (level >= 10) skills.push({ id: 's_exo_2', name: "Punição Divina", manaCost: 60, type: 'attack', multiplier: 4.0, element: 'luz sagrada', reqLvl: 10 });
-                if (level >= 20) skills.push({ id: 's_exo_3', name: "Aura Restauradora", manaCost: 90, type: 'heal', healAmount: 550 + getTotalAttr('int') * 4, reqLvl: 20 });
-                if (level >= 30) skills.push({ id: 's_exo_4', name: "Expulsão Demoníaca", manaCost: 160, type: 'attack', multiplier: 10.0, element: 'sagrado', reqLvl: 30 });
-                if (level >= 40) skills.push({ id: 's_exo_5', name: "Milagre Divino", manaCost: 170, type: 'heal', healAmount: 1050 + getTotalAttr('int') * 6, reqLvl: 40 });
-                if (level >= 50) skills.push({ id: 's_exo_6', name: "Julgamento Celestial (Área)", manaCost: 260, type: 'attack', multiplier: 9.6, isAoE: true, element: 'luz sagrada', reqLvl: 50 });
-                if (level >= 60) skills.push({ id: 's_exo_7', name: "Lança do Arcanjo", manaCost: 310, type: 'attack', multiplier: 19.0, element: 'sagrado', reqLvl: 60 });
-                if (level >= 70) skills.push({ id: 's_exo_8', name: "Graça Suprema", manaCost: 290, type: 'heal', healAmount: 1800 + getTotalAttr('int') * 9, reqLvl: 70 });
-                if (level >= 80) skills.push({ id: 's_exo_9', name: "Purificação Total (Área)", manaCost: 410, type: 'attack', multiplier: 15.0, isAoE: true, element: 'luz sagrada', reqLvl: 80 });
-                if (level >= 90) skills.push({ id: 's_exo_10', name: "Intervenção Divina", manaCost: 370, type: 'heal', healAmount: 2300 + getTotalAttr('int') * 11, reqLvl: 90 });
-                if (level >= 100) skills.push({ id: 's_exo_11', name: "Apoteose Celestial", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'sagrado', reqLvl: 100 });
-                break;
-
-            case 'Alquimista':
-                skills.push({ id: 's_alq_1', name: "Bomba Ácida", manaCost: 35, type: 'attack', multiplier: 2.5, reqLvl: 5 });
-                if (level >= 10) skills.push({ id: 's_alq_2', name: "Fogo Alquímico (Área)", manaCost: 60, type: 'attack', multiplier: 2.4, isAoE: true, element: 'fogo', reqLvl: 10 });
-                if (level >= 20) skills.push({ id: 's_alq_3', name: "Transmutação Explosiva", manaCost: 110, type: 'attack', multiplier: 7.0, reqLvl: 20 });
-                if (level >= 30) skills.push({ id: 's_alq_4', name: "Névoa Corrosiva (Área)", manaCost: 160, type: 'attack', multiplier: 6.0, isAoE: true, element: 'ácido', reqLvl: 30 });
-                if (level >= 40) skills.push({ id: 's_alq_5', name: "Estilhaços Químicos", manaCost: 210, type: 'attack', multiplier: 13.0, element: 'explosão', reqLvl: 40 });
-                if (level >= 50) skills.push({ id: 's_alq_6', name: "Reação em Cadeia (Área)", manaCost: 260, type: 'attack', multiplier: 9.6, isAoE: true, element: 'alquimia', reqLvl: 50 });
-                if (level >= 60) skills.push({ id: 's_alq_7', name: "Granada de Napalm", manaCost: 310, type: 'attack', multiplier: 19.0, element: 'fogo', reqLvl: 60 });
-                if (level >= 70) skills.push({ id: 's_alq_8', name: "Praga Química (Área)", manaCost: 360, type: 'attack', multiplier: 13.2, isAoE: true, element: 'veneno', reqLvl: 70 });
-                if (level >= 80) skills.push({ id: 's_alq_9', name: "Catalisador Supremo", manaCost: 410, type: 'attack', multiplier: 25.0, element: 'alquimia', reqLvl: 80 });
-                if (level >= 90) skills.push({ id: 's_alq_10', name: "Fissão Alquímica", manaCost: 460, type: 'attack', multiplier: 16.8, isAoE: true, element: 'explosão', reqLvl: 90 });
-                if (level >= 100) skills.push({ id: 's_alq_11', name: "Bomba do Juízo Final", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'explosão', reqLvl: 100 });
-                break;
-
-            case 'Bruxo':
-                skills.push({ id: 's_bru_1', name: "Dreno de Vida", manaCost: 35, type: 'drain', multiplier: 2.5, reqLvl: 5, range: 4 });
-                if (level >= 10) skills.push({ id: 's_bru_2', name: "Maldição Sombria", manaCost: 60, type: 'attack', multiplier: 4.0, element: 'trevas', reqLvl: 10, range: 5 });
-                if (level >= 20) skills.push({ id: 's_bru_3', name: "Festim de Almas", manaCost: 110, type: 'drain', multiplier: 7.0, reqLvl: 20, range: 4 });
-                if (level >= 30) skills.push({ id: 's_bru_4', name: "Praga Eterna (Área)", manaCost: 160, type: 'attack', multiplier: 6.0, isAoE: true, element: 'trevas', reqLvl: 30, range: 5, aoeRadius: 2 });
-                if (level >= 40) skills.push({ id: 's_bru_5', name: "Invocar Espectros", manaCost: 210, type: 'attack', multiplier: 13.0, element: 'espiritual', reqLvl: 40, range: 4 });
-                if (level >= 50) skills.push({ id: 's_bru_6', name: "Apocalipse das Almas (Área)", manaCost: 260, type: 'drain', multiplier: 9.6, isAoE: true, element: 'trevas', reqLvl: 50, range: 4, aoeRadius: 3 });
-                if (level >= 60) skills.push({ id: 's_bru_7', name: "Pacto Profano", manaCost: 310, type: 'drain', multiplier: 19.0, element: 'trevas', reqLvl: 60, range: 5 });
-                if (level >= 70) skills.push({ id: 's_bru_8', name: "Legião das Sombras (Área)", manaCost: 360, type: 'attack', multiplier: 13.2, isAoE: true, element: 'espiritual', reqLvl: 70, range: 5, aoeRadius: 3 });
-                if (level >= 80) skills.push({ id: 's_bru_9', name: "Arauto do Abismo", manaCost: 410, type: 'drain', multiplier: 25.0, element: 'trevas', reqLvl: 80, range: 5 });
-                if (level >= 90) skills.push({ id: 's_bru_10', name: "Ritual do Vazio", manaCost: 460, type: 'drain', multiplier: 28.0, element: 'trevas', reqLvl: 90, range: 6 });
-                if (level >= 100) skills.push({ id: 's_bru_11', name: "Devorador de Mundos", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'trevas', reqLvl: 100, range: 6, aoeRadius: 4 });
+            case 'Guardião':
+                // Tank, defesa, taunt, controle. Alcance baixo a médio.
+                if (level >= 5) skills.push({ id: 's_grd_1', name: "Golpe de Escudo", manaCost: 25, type: 'attack', multiplier: 1.5, reqLvl: 5, range: 1 });
+                if (level >= 10) skills.push({ id: 's_grd_2', name: "Postura Inabalável", manaCost: 50, type: 'buff_taunt', buffType: 'defense', amount: 0.20, buffDuration: 3, tauntDuration: 5, reqLvl: 10, range: 3, desc: "Aumenta defesa em 20% por 3 turnos e atrai inimigos por 5 turnos. Inimigos rolam INT." });
+                if (level >= 20) skills.push({ id: 's_grd_3', name: "Investida Pesada", manaCost: 80, type: 'attack', multiplier: 3.5, reqLvl: 20, range: 2, desc: "Avança e atinge o inimigo." });
+                if (level >= 30) skills.push({ id: 's_grd_4', name: "Terreno Sagrado", manaCost: 120, type: 'terrain', terrainType: 'holy', duration: 4, reqLvl: 30, range: 2, desc: "Cria área que desacelera ou fere inimigos." });
+                if (level >= 40) skills.push({ id: 's_grd_5', name: "Choque de Tremor (Área)", manaCost: 150, type: 'attack', multiplier: 5.5, isAoE: true, aoeRadius: 2, reqLvl: 40, range: 1 });
+                if (level >= 50) skills.push({ id: 's_grd_6', name: "Provocação em Massa", manaCost: 190, type: 'taunt', duration: 5, reqLvl: 50, range: 5, desc: "Atrai todos próximos. Alvos rolam INT." });
+                if (level >= 60) skills.push({ id: 's_grd_7', name: "Baluarte Absoluto", manaCost: 230, type: 'buff', buffType: 'defense', amount: 0.40, duration: 4, reqLvl: 60, range: 0, desc: "Aumenta defesa em 40% por 4 turnos." });
+                if (level >= 70) skills.push({ id: 's_grd_8', name: "Pancada Sísmica", manaCost: 270, type: 'attack', multiplier: 12.0, reqLvl: 70, range: 2 });
+                if (level >= 80) skills.push({ id: 's_grd_9', name: "Barreira Intransponível", manaCost: 320, type: 'terrain', terrainType: 'wall', duration: 3, reqLvl: 80, range: 3, desc: "Cria parede física que bloqueia passagem." });
+                if (level >= 90) skills.push({ id: 's_grd_10', name: "Golpe Punição", manaCost: 370, type: 'attack', multiplier: 16.0, reqLvl: 90, range: 1 });
+                if (level >= 100) skills.push({ id: 's_grd_11', name: "Avatar de Aço", manaCost: 500, type: 'buff', buffType: 'defense', amount: 0.80, duration: 5, reqLvl: 100, range: 0, desc: "Aumenta defesa em 80% por 5 turnos." });
                 break;
 
             case 'Mago':
-                skills.push({ id: 's_mag_1', name: "Lança de Gelo", manaCost: 35, type: 'attack', multiplier: 2.5, element: 'gelo', reqLvl: 5, range: 6 });
-                if (level >= 10) skills.push({ id: 's_mag_2', name: "Bola de Fogo (Área)", manaCost: 60, type: 'attack', multiplier: 2.4, isAoE: true, element: 'fogo', reqLvl: 10, range: 5, aoeRadius: 2 });
-                if (level >= 20) skills.push({ id: 's_mag_3', name: "Tempestade Arcana (Área)", manaCost: 110, type: 'attack', multiplier: 4.2, isAoE: true, element: 'arcano', reqLvl: 20, range: 6, aoeRadius: 3 });
-                if (level >= 30) skills.push({ id: 's_mag_4', name: "Raio Concentrado", manaCost: 160, type: 'attack', multiplier: 10.0, element: 'raio', reqLvl: 30, range: 7 });
-                if (level >= 40) skills.push({ id: 's_mag_5', name: "Meteoro", manaCost: 210, type: 'attack', multiplier: 13.0, element: 'fogo', reqLvl: 40, range: 5, aoeRadius: 2 });
-                if (level >= 50) skills.push({ id: 's_mag_6', name: "Cataclismo Arcano (Área)", manaCost: 260, type: 'attack', multiplier: 9.6, isAoE: true, element: 'arcano', reqLvl: 50, range: 6, aoeRadius: 3 });
-                if (level >= 60) skills.push({ id: 's_mag_7', name: "Tempestade Elemental (Área)", manaCost: 310, type: 'attack', multiplier: 11.4, isAoE: true, element: 'elemental', reqLvl: 60, range: 6, aoeRadius: 3 });
-                if (level >= 70) skills.push({ id: 's_mag_8', name: "Nova Arcana", manaCost: 360, type: 'attack', multiplier: 13.2, isAoE: true, element: 'arcano', reqLvl: 70, range: 7, aoeRadius: 3 });
-                if (level >= 80) skills.push({ id: 's_mag_9', name: "Cometa Celeste", manaCost: 410, type: 'attack', multiplier: 25.0, element: 'fogo', reqLvl: 80 });
-                if (level >= 90) skills.push({ id: 's_mag_10', name: "Colapso Arcano", manaCost: 460, type: 'attack', multiplier: 16.8, isAoE: true, element: 'arcano', reqLvl: 90 });
-                if (level >= 100) skills.push({ id: 's_mag_11', name: "Big Bang Arcano", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'arcano', reqLvl: 100 });
+                // Dano mágico, área, terrenos mágicos. Alcance alto.
+                if (level >= 5) skills.push({ id: 's_mag_1', name: "Dardo de Fogo", manaCost: 30, type: 'attack', multiplier: 2.5, element: 'fogo', reqLvl: 5, range: 5 });
+                if (level >= 10) skills.push({ id: 's_mag_2', name: "Onda de Frio (Área)", manaCost: 65, type: 'attack', multiplier: 3.5, element: 'gelo', isAoE: true, aoeRadius: 2, reqLvl: 10, range: 4 });
+                if (level >= 20) skills.push({ id: 's_mag_3', name: "Parede de Fogo", manaCost: 100, type: 'terrain', terrainType: 'fire', multiplier: 4.0, duration: 3, reqLvl: 20, range: 4, desc: "Cria uma parede em chamas." });
+                if (level >= 30) skills.push({ id: 's_mag_4', name: "Relâmpago", manaCost: 140, type: 'attack', multiplier: 7.0, element: 'raio', reqLvl: 30, range: 6 });
+                if (level >= 40) skills.push({ id: 's_mag_5', name: "Explosão Arcana (Área)", manaCost: 190, type: 'attack', multiplier: 8.5, isAoE: true, aoeRadius: 3, reqLvl: 40, range: 5 });
+                if (level >= 50) skills.push({ id: 's_mag_6', name: "Prisão de Gelo", manaCost: 240, type: 'terrain', terrainType: 'ice', duration: 3, reqLvl: 50, range: 5, desc: "Congela o chão, bloqueando avanço." });
+                if (level >= 60) skills.push({ id: 's_mag_7', name: "Tempestade Elétrica (Área)", manaCost: 290, type: 'attack', multiplier: 12.0, element: 'raio', isAoE: true, aoeRadius: 3, reqLvl: 60, range: 6 });
+                if (level >= 70) skills.push({ id: 's_mag_8', name: "Desintegração", manaCost: 350, type: 'attack', multiplier: 18.0, element: 'arcano', reqLvl: 70, range: 5 });
+                if (level >= 80) skills.push({ id: 's_mag_9', name: "Erupção Vulcânica", manaCost: 400, type: 'terrain', terrainType: 'lava', multiplier: 10.0, duration: 4, reqLvl: 80, range: 5, desc: "Enche o chão de lava contínua." });
+                if (level >= 90) skills.push({ id: 's_mag_10', name: "Buraco Negro", manaCost: 460, type: 'attack', multiplier: 22.0, element: 'trevas', reqLvl: 90, range: 6 });
+                if (level >= 100) skills.push({ id: 's_mag_11', name: "Armagedom (Área)", manaCost: 600, type: 'attack', multiplier: 28.0, isAoE: true, aoeRadius: 5, reqLvl: 100, range: 7 });
                 break;
 
-            case 'Guerreiro':
-                skills.push({ id: 's_war_1', name: "Golpe Forte", manaCost: 35, type: 'attack', multiplier: 2.5, reqLvl: 5, range: 1 });
-                if (level >= 10) skills.push({ id: 's_war_2', name: "Corte Giratório (Área)", manaCost: 60, type: 'attack', multiplier: 2.4, isAoE: true, reqLvl: 10, range: 1, aoeRadius: 2 });
-                if (level >= 20) skills.push({ id: 's_war_3', name: "Investida Brutal", manaCost: 110, type: 'attack', multiplier: 7.0, reqLvl: 20, range: 2 });
-                if (level >= 30) skills.push({ id: 's_war_4', name: "Esmagar Crânios", manaCost: 160, type: 'attack', multiplier: 10.0, reqLvl: 30, range: 1 });
-                if (level >= 40) skills.push({ id: 's_war_5', name: "Terremoto (Área)", manaCost: 210, type: 'attack', multiplier: 7.8, isAoE: true, reqLvl: 40, range: 1, aoeRadius: 3 });
-                if (level >= 50) skills.push({ id: 's_war_6', name: "Golpe Colossal", manaCost: 260, type: 'attack', multiplier: 16.0, reqLvl: 50, range: 1 });
-                if (level >= 60) skills.push({ id: 's_war_7', name: "Rompedor de Linhas", manaCost: 310, type: 'attack', multiplier: 11.4, isAoE: true, reqLvl: 60, range: 2, aoeRadius: 2 });
-                if (level >= 70) skills.push({ id: 's_war_8', name: "Fúria Titânica", manaCost: 360, type: 'attack', multiplier: 22.0, reqLvl: 70, range: 1 });
-                if (level >= 80) skills.push({ id: 's_war_9', name: "Executor dos Gigantes", manaCost: 410, type: 'attack', multiplier: 25.0, reqLvl: 80, range: 1 });
-                if (level >= 90) skills.push({ id: 's_war_10', name: "Quebra-Montanhas", manaCost: 460, type: 'attack', multiplier: 16.8, isAoE: true, reqLvl: 90, range: 1, aoeRadius: 4 });
-                if (level >= 100) skills.push({ id: 's_war_11', name: "Fim da Guerra", manaCost: 510, type: 'attack', multiplier: 31.0, reqLvl: 100, range: 1 });
-                break;
-
-            case 'Assassino':
-                skills.push({ id: 's_ass_1', name: "Ataque Furtivo", manaCost: 35, type: 'attack', multiplier: 2.5, reqLvl: 5, range: 1 });
-                if (level >= 10) skills.push({ id: 's_ass_2', name: "Lâmina Envenenada", manaCost: 60, type: 'attack', multiplier: 4.0, element: 'veneno', reqLvl: 10, range: 1 });
-                if (level >= 20) skills.push({ id: 's_ass_3', name: "Corte nas Sombras", manaCost: 110, type: 'attack', multiplier: 7.0, element: 'trevas', reqLvl: 20, range: 2 });
-                if (level >= 30) skills.push({ id: 's_ass_4', name: "Sangramento Letal", manaCost: 160, type: 'attack', multiplier: 10.0, element: 'sangramento', reqLvl: 30, range: 1 });
-                if (level >= 40) skills.push({ id: 's_ass_5', name: "Dança das Adagas", manaCost: 210, type: 'attack', multiplier: 13.0, reqLvl: 40, range: 1 });
-                if (level >= 50) skills.push({ id: 's_ass_6', name: "Assassinato", manaCost: 260, type: 'attack', multiplier: 16.0, reqLvl: 50, range: 1 });
-                if (level >= 60) skills.push({ id: 's_ass_7', name: "Perfuração Mortal", manaCost: 310, type: 'attack', multiplier: 19.0, reqLvl: 60, range: 1 });
-                if (level >= 70) skills.push({ id: 's_ass_8', name: "Execução Silenciosa", manaCost: 360, type: 'attack', multiplier: 22.0, reqLvl: 70, range: 1 });
-                if (level >= 80) skills.push({ id: 's_ass_9', name: "Mestre das Sombras", manaCost: 410, type: 'attack', multiplier: 25.0, element: 'trevas', reqLvl: 80, range: 2 });
-                if (level >= 90) skills.push({ id: 's_ass_10', name: "Golpe Fantasma", manaCost: 460, type: 'attack', multiplier: 28.0, reqLvl: 90, range: 2 });
-                if (level >= 100) skills.push({ id: 's_ass_11', name: "Morte Instantânea", manaCost: 510, type: 'attack', multiplier: 31.0, reqLvl: 100, range: 1 });
-                break;
-
-            case 'Paladino':
-                skills.push({ id: 's_pal_1', name: "Golpe Divino", manaCost: 35, type: 'attack', multiplier: 2.5, element: 'sagrado', reqLvl: 5, range: 1 });
-                if (level >= 10) skills.push({ id: 's_pal_2', name: "Consagração (Área)", manaCost: 60, type: 'attack', multiplier: 2.4, isAoE: true, element: 'luz sagrada', reqLvl: 10, range: 1, aoeRadius: 2 });
-                if (level >= 20) skills.push({ id: 's_pal_3', name: "Cura pelas Mãos", manaCost: 90, type: 'heal', healAmount: 550 + getTotalAttr('int') * 4, reqLvl: 20, range: 1 });
-                if (level >= 30) skills.push({ id: 's_pal_4', name: "Escudo Celestial", manaCost: 160, type: 'attack', multiplier: 10.0, element: 'luz sagrada', reqLvl: 30, range: 2 });
-                if (level >= 40) skills.push({ id: 's_pal_5', name: "Ira do Guardião (Área)", manaCost: 210, type: 'attack', multiplier: 7.8, isAoE: true, element: 'sagrado', reqLvl: 40, range: 1, aoeRadius: 3 });
-                if (level >= 50) skills.push({ id: 's_pal_6', name: "Veredito Final", manaCost: 260, type: 'attack', multiplier: 16.0, element: 'sagrado', reqLvl: 50, range: 1 });
-                if (level >= 60) skills.push({ id: 's_pal_7', name: "Luz Restauradora", manaCost: 250, type: 'heal', healAmount: 1550 + getTotalAttr('int') * 8, reqLvl: 60, range: 2 });
-                if (level >= 70) skills.push({ id: 's_pal_8', name: "Martelo Sagrado", manaCost: 360, type: 'attack', multiplier: 22.0, element: 'sagrado', reqLvl: 70, range: 2 });
-                if (level >= 80) skills.push({ id: 's_pal_9', name: "Purificação Divina (Área)", manaCost: 410, type: 'attack', multiplier: 15.0, isAoE: true, element: 'luz sagrada', reqLvl: 80, range: 1, aoeRadius: 3 });
-                if (level >= 90) skills.push({ id: 's_pal_10', name: "Ascensão do Campeão", manaCost: 370, type: 'heal', healAmount: 2300 + getTotalAttr('int') * 11, reqLvl: 90, range: 1 });
-                if (level >= 100) skills.push({ id: 's_pal_11', name: "Julgamento Supremo", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'sagrado', reqLvl: 100, range: 1, aoeRadius: 4 });
-                break;
-
-            case 'Necromante':
-                skills.push({ id: 's_nec_1', name: "Toque Macabro", manaCost: 35, type: 'drain', multiplier: 2.5, element: 'trevas', reqLvl: 5, range: 4 });
-                if (level >= 10) skills.push({ id: 's_nec_2', name: "Nuvem de Peste (Área)", manaCost: 60, type: 'attack', multiplier: 2.4, isAoE: true, element: 'veneno', reqLvl: 10, range: 5, aoeRadius: 2 });
-                if (level >= 20) skills.push({ id: 's_nec_3', name: "Lança de Ossos", manaCost: 110, type: 'attack', multiplier: 7.0, reqLvl: 20, range: 6 });
-                if (level >= 30) skills.push({ id: 's_nec_4', name: "Transfusão Sombria", manaCost: 160, type: 'drain', multiplier: 10.0, element: 'trevas', reqLvl: 30, range: 4 });
-                if (level >= 40) skills.push({ id: 's_nec_5', name: "Explosão de Cadáveres (Área)", manaCost: 210, type: 'attack', multiplier: 7.8, isAoE: true, element: 'explosão', reqLvl: 40, range: 5, aoeRadius: 2 });
-                if (level >= 50) skills.push({ id: 's_nec_6', name: "Exército dos Mortos", manaCost: 260, type: 'attack', multiplier: 16.0, element: 'espiritual', reqLvl: 50, range: 4 });
-                if (level >= 60) skills.push({ id: 's_nec_7', name: "Roubo de Alma", manaCost: 310, type: 'drain', multiplier: 19.0, element: 'trevas', reqLvl: 60, range: 5 });
-                if (level >= 70) skills.push({ id: 's_nec_8', name: "Peste Negra (Área)", manaCost: 360, type: 'attack', multiplier: 13.2, isAoE: true, element: 'veneno', reqLvl: 70, range: 5, aoeRadius: 3 });
-                if (level >= 80) skills.push({ id: 's_nec_9', name: "Ceifador de Almas", manaCost: 410, type: 'drain', multiplier: 25.0, element: 'trevas', reqLvl: 80, range: 6 });
-                if (level >= 90) skills.push({ id: 's_nec_10', name: "Apocalipse Necrótico", manaCost: 460, type: 'attack', multiplier: 16.8, isAoE: true, element: 'morte', reqLvl: 90, range: 6, aoeRadius: 3 });
-                if (level >= 100) skills.push({ id: 's_nec_11', name: "Imperador dos Mortos", manaCost: 510, type: 'attack', multiplier: 18.6, isAoE: true, element: 'morte', reqLvl: 100, range: 6, aoeRadius: 4 });
+            case 'Clérigo':
+                // Cura, buff, luz sagrada.
+                if (level >= 5) skills.push({ id: 's_cle_1', name: "Cura Menor", manaCost: 25, type: 'heal', healAmount: 100 + getTotalAttr('int') * 1.5, reqLvl: 5, range: 0 });
+                if (level >= 10) skills.push({ id: 's_cle_2', name: "Raio de Luz", manaCost: 40, type: 'attack', multiplier: 2.5, element: 'sagrado', reqLvl: 10, range: 5 });
+                if (level >= 20) skills.push({ id: 's_cle_3', name: "Cura em Grupo", manaCost: 90, type: 'heal', isAoE: true, healAmount: 200 + getTotalAttr('int') * 2.0, reqLvl: 20, range: 0 });
+                if (level >= 30) skills.push({ id: 's_cle_4', name: "Santuário", manaCost: 130, type: 'terrain', terrainType: 'healing', healAmount: 150, duration: 4, reqLvl: 30, range: 3, desc: "Cria área que cura aliados." });
+                if (level >= 40) skills.push({ id: 's_cle_5', name: "Purgação Sagrada (Área)", manaCost: 170, type: 'attack', multiplier: 6.0, element: 'sagrado', isAoE: true, aoeRadius: 2, reqLvl: 40, range: 4 });
+                if (level >= 50) skills.push({ id: 's_cle_6', name: "Luz Restauradora", manaCost: 220, type: 'heal', healAmount: 600 + getTotalAttr('int') * 4.0, reqLvl: 50, range: 0 });
+                if (level >= 60) skills.push({ id: 's_cle_7', name: "Aura de Proteção", manaCost: 260, type: 'buff', buffType: 'defense', amount: 0.30, duration: 4, reqLvl: 60, range: 0, desc: "Aumenta defesa em 30% por 4 turnos." });
+                if (level >= 70) skills.push({ id: 's_cle_8', name: "Julgamento", manaCost: 310, type: 'attack', multiplier: 14.0, element: 'sagrado', reqLvl: 70, range: 5 });
+                if (level >= 80) skills.push({ id: 's_cle_9', name: "Solo Consagrado", manaCost: 380, type: 'terrain', terrainType: 'blessing', buffType: 'damage', duration: 4, reqLvl: 80, range: 4, desc: "Área que aumenta dano dos aliados." });
+                if (level >= 90) skills.push({ id: 's_cle_10', name: "Ressurgência Divina", manaCost: 450, type: 'heal', isAoE: true, healAmount: 1500 + getTotalAttr('int') * 8.0, reqLvl: 90, range: 0 });
+                if (level >= 100) skills.push({ id: 's_cle_11', name: "Fúria do Criador (Área)", manaCost: 550, type: 'attack', multiplier: 20.0, element: 'sagrado', isAoE: true, aoeRadius: 4, reqLvl: 100, range: 6 });
                 break;
         }
+
         return skills;
     }
 };
