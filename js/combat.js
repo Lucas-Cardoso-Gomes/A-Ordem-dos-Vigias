@@ -358,13 +358,8 @@ class CombatSystem {
 
         // Check Range
         let attackRange = 1; // Default melee
-        if (p.equipment?.weaponMain) {
-            const wType = p.equipment.weaponMain.type;
-            if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
-                attackRange += 10;
-            } else if (['lança', 'alabarda', 'lanca'].includes(wType)) {
-                attackRange += 1;
-            }
+        if (p.equipment?.weaponMain && p.equipment.weaponMain.range !== undefined) {
+            attackRange = p.equipment.weaponMain.range;
         }
         
         const dist = this.getDistance(p, target);
@@ -445,13 +440,9 @@ class CombatSystem {
         }
 
         let skillRange = skill.range || 4; // default range for skills if not specified
-        if (p.equipment?.weaponMain) {
-            const wType = p.equipment.weaponMain.type;
-            if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
-                skillRange += 10;
-            } else if (['lança', 'alabarda', 'lanca'].includes(wType)) {
-                skillRange += 1;
-            }
+        if (p.equipment?.weaponMain && p.equipment.weaponMain.range !== undefined && p.equipment.weaponMain.range > 1) {
+            // Increase skill range slightly if using a ranged weapon, but let the skill baseline take precedence
+            skillRange = Math.max(skillRange, p.equipment.weaponMain.range);
         }
         
         const target = this.getCurrentTarget();
