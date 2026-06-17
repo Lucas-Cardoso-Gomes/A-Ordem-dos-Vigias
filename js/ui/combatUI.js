@@ -145,8 +145,12 @@ class CombatUIManager {
                 }
                 btn.onclick = () => {
                     this.hideCombatMenus();
-                    if (skill.type === 'heal' && window.gameParty.length > 1) {
-                        this.showPartyTargetMenu(skill);
+                    if (skill.type === 'heal') {
+                        if (window.gameParty.length > 1) {
+                            this.showPartyTargetMenu(skill);
+                        } else {
+                            window.gameCombat.playerSkill(skill, 0);
+                        }
                     } else {
                         window.gameCombat.isSelectingMove = false;
                         window.gameCombat.isSelectingTarget = true;
@@ -353,11 +357,8 @@ class CombatUIManager {
             let attackRange = 1; // Default melee
             if (window.gameCombat.selectedSkill) {
                 attackRange = window.gameCombat.selectedSkill.range || 4;
-            } else if (p.equipment?.weaponMain) {
-                const wType = p.equipment.weaponMain.type;
-                if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
-                    attackRange = 5;
-                }
+            } else if (p.equipment?.weaponMain && p.equipment.weaponMain.range !== undefined) {
+                attackRange = p.equipment.weaponMain.range;
             }
 
             this.ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
