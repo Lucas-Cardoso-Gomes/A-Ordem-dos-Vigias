@@ -98,6 +98,11 @@ const CraftingSystem = {
             return false;
         }
 
+        if (inventory.items.length >= inventory.capacity) {
+            Engine.emit('systemLog', 'Inventário cheio! Não há espaço para o novo item.');
+            return false;
+        }
+
         // Consume ingredients
         for (let ing of recipe.ingredients) {
             inventory.removeItemsById(ing.id, ing.qty);

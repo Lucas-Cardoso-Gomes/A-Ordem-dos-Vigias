@@ -114,6 +114,12 @@ class Inventory {
             slot = 'ring2';
         }
 
+        // Check inventory limit if replacing an item
+        if (player.equipment[slot] && this.items.length >= this.capacity) {
+            Engine.emit('systemLog', 'Inventário cheio! Não é possível trocar de equipamento.');
+            return false;
+        }
+
         // Un-equip current item in slot
         if (player.equipment[slot]) {
             this.items.push(player.equipment[slot]);
