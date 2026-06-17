@@ -261,7 +261,9 @@ class CombatSystem {
         if (p.equipment?.weaponMain) {
             const wType = p.equipment.weaponMain.type;
             if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
-                attackRange = 5;
+                attackRange += 10;
+            } else if (['lança', 'alabarda', 'lanca'].includes(wType)) {
+                attackRange += 1;
             }
         }
         
@@ -342,7 +344,16 @@ class CombatSystem {
             return;
         }
 
-        const skillRange = skill.range || 4; // default range for skills if not specified
+        let skillRange = skill.range || 4; // default range for skills if not specified
+        if (p.equipment?.weaponMain) {
+            const wType = p.equipment.weaponMain.type;
+            if (['arco', 'besta', 'pistola', 'fuzil', 'cajado', 'livro'].includes(wType)) {
+                skillRange += 10;
+            } else if (['lança', 'alabarda', 'lanca'].includes(wType)) {
+                skillRange += 1;
+            }
+        }
+        
         const target = this.getCurrentTarget();
 
         if ((skill.type === 'attack' || skill.type === 'drain') && target) {
@@ -501,6 +512,8 @@ class CombatSystem {
             // Move towards player step by step
             let stepsTaken = 0;
             const maxSteps = this.movementRemaining;
+            const visited = new Set();
+            visited.add(`${attacker.gridX},${attacker.gridY}`);
 
             while (stepsTaken < maxSteps && this.getDistance(attacker, targetP) > attackRange) {
                 let bestMove = null;
@@ -517,9 +530,16 @@ class CombatSystem {
                 for (let dir of directions) {
                     const nextX = attacker.gridX + dir.dx;
                     const nextY = attacker.gridY + dir.dy;
+                    
+                    const cellKey = `${nextX},${nextY}`;
 
                     // Out of bounds check
                     if (nextX < 0 || nextX >= this.gridWidth || nextY < 0 || nextY >= this.gridHeight) {
+                        continue;
+                    }
+                    
+                    // Visited check
+                    if (visited.has(cellKey)) {
                         continue;
                     }
 
@@ -532,7 +552,7 @@ class CombatSystem {
                         const tempDist = Math.abs(nextX - targetP.gridX) + Math.abs(nextY - targetP.gridY);
                         if (tempDist < bestDist) {
                             bestDist = tempDist;
-                            bestMove = { x: nextX, y: nextY };
+                            bestMove = { x: nextX, y: nextY, key: cellKey };
                         }
                     }
                 }
@@ -540,13 +560,14 @@ class CombatSystem {
                 if (bestMove) {
                     attacker.gridX = bestMove.x;
                     attacker.gridY = bestMove.y;
+                    visited.add(bestMove.key);
                     stepsTaken++;
                 } else {
                     // Blocked entirely
                     break;
                 }
             }
-
+            
             if (stepsTaken > 0) {
                 this.logSystem(`${attacker.name} moveu-se em direção a ${targetP.name}.`);
                 Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
