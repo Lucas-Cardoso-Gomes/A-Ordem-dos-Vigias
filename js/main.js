@@ -22,15 +22,23 @@ class Game {
         this.lastSave = Date.now();
     }
 
-    addPartyMember(name = 'Aliado', playerClass = 'Guerreiro') {
+    addPartyMember(name = 'Aliado') {
         if (this.party.length >= 4) return false;
 
         let newMember = new Player();
         newMember.name = name;
-        newMember.level = this.party[0].level;
+        // Start from level 1 with base attributes
+        newMember.level = 1;
+        newMember.exp = 0;
+        newMember.expToNext = 100;
+        newMember.statPoints = 0;
+        newMember.skillPoints = 0;
+
         newMember.hp = newMember.getMaxHp();
         newMember.mana = newMember.getMaxMana();
-        newMember.setClass(playerClass);
+
+        // Starts with no class
+        newMember.setClass('Nenhuma');
 
         this.party.push(newMember);
         Engine.emit('partyUpdated', this.party);
