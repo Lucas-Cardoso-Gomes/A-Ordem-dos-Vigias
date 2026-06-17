@@ -498,30 +498,58 @@ class CombatSystem {
         const attackRange = 1; // Assuming melee for basic monsters
 
         if (minDist > attackRange) {
-            // Move towards player
-            const steps = Math.min(this.movementRemaining, minDist - attackRange);
-            if (steps > 0) {
-                const dx = Math.sign(targetP.gridX - attacker.gridX);
-                const dy = Math.sign(targetP.gridY - attacker.gridY);
-                
-                let moveX = attacker.gridX;
-                let moveY = attacker.gridY;
-                
-                for(let i = 0; i < steps; i++) {
-                     if (moveX !== targetP.gridX) moveX += dx;
-                     else if (moveY !== targetP.gridY) moveY += dy;
+            // Move towards player step by step
+            let stepsTaken = 0;
+            const maxSteps = this.movementRemaining;
+
+            while (stepsTaken < maxSteps && this.getDistance(attacker, targetP) > attackRange) {
+                let bestMove = null;
+                let bestDist = Infinity;
+
+                // Test adjacent cells (up, down, left, right)
+                const directions = [
+                    { dx: 0, dy: -1 }, // Up
+                    { dx: 0, dy: 1 },  // Down
+                    { dx: -1, dy: 0 }, // Left
+                    { dx: 1, dy: 0 }   // Right
+                ];
+
+                for (let dir of directions) {
+                    const nextX = attacker.gridX + dir.dx;
+                    const nextY = attacker.gridY + dir.dy;
+
+                    // Out of bounds check
+                    if (nextX < 0 || nextX >= this.gridWidth || nextY < 0 || nextY >= this.gridHeight) {
+                        continue;
+                    }
+
+                    // Collision check
+                    const isOccupied = this.party.some(p => p.hp > 0 && p.gridX === nextX && p.gridY === nextY) ||
+                                       this.monsters.some(m => m !== attacker && m.hp > 0 && m.gridX === nextX && m.gridY === nextY);
+
+                    if (!isOccupied) {
+                        // Temp distance calculation
+                        const tempDist = Math.abs(nextX - targetP.gridX) + Math.abs(nextY - targetP.gridY);
+                        if (tempDist < bestDist) {
+                            bestDist = tempDist;
+                            bestMove = { x: nextX, y: nextY };
+                        }
+                    }
                 }
 
-                // Make sure we don't overlap someone
-                const isOccupied = this.party.some(p => p.hp > 0 && p.gridX === moveX && p.gridY === moveY) || 
-                                   this.monsters.some(m => m !== attacker && m.hp > 0 && m.gridX === moveX && m.gridY === moveY);
-                
-                if (!isOccupied) {
-                     attacker.gridX = moveX;
-                     attacker.gridY = moveY;
-                     this.logSystem(`${attacker.name} moveu-se em direção a ${targetP.name}.`);
-                     Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                if (bestMove) {
+                    attacker.gridX = bestMove.x;
+                    attacker.gridY = bestMove.y;
+                    stepsTaken++;
+                } else {
+                    // Blocked entirely
+                    break;
                 }
+            }
+
+            if (stepsTaken > 0) {
+                this.logSystem(`${attacker.name} moveu-se em direção a ${targetP.name}.`);
+                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
             }
 
             // Recalculate distance after move
