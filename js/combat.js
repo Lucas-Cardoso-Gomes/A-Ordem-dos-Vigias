@@ -143,7 +143,18 @@ class CombatSystem {
 
         if (this.currentTurnEntity.type === 'player') {
             const p = this.party[this.currentTurnEntity.index];
-            p.defenseStance = false; 
+            // Manage defense buffs duration
+            if (p.defenseBuffDuration && p.defenseBuffDuration > 0) {
+                p.defenseBuffDuration--;
+                p.defenseStance = true;
+                if (p.defenseBuffDuration === 0) {
+                    p.defenseStance = false;
+                    p.defenseBuffAmount = 0;
+                    this.logSystem(`🛡️ O efeito protetor de ${p.name} se dissipou.`);
+                }
+            } else {
+                p.defenseStance = false;
+            }
             this.movementRemaining = 5 + Math.floor(p.getTotalAttr('agi') / 10);
             this.logSystem(`Turno de ${p.name}. Movimento: ${this.movementRemaining} blocos.`);
             this.isProcessingTurn = false; // Libera pro jogador agir
@@ -535,17 +546,73 @@ class CombatSystem {
             });
             setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
 
-        // PREENCHIMENTO DA LÓGICA DE SUPORTE E TERRENO
         } else if (skill.type === 'buff' || skill.type === 'buff_taunt' || skill.type === 'taunt') {
-            this.logPlayer(`🛡️ ${p.name} usou [${skill.name}]! (Postura e Mitigação aumentadas)`);
-            p.defenseStance = true; // Absorve porcentagem de dano
+            let msg = `🛡️ ${p.name} usou [${skill.name}]!`;
+
+            if (skill.type === 'taunt' || skill.type === 'buff_taunt') {
+                msg += ' Atraindo a atenção dos inimigos!';
+                this.monsters.forEach(m => {
+                    if (m.hp > 0) {
+                        m.tauntedBy = p;
+                        m.tauntDuration = skill.tauntDuration || skill.duration || 3;
+                    }
+                });
+            }
+
+            if (skill.type === 'buff' || skill.type === 'buff_taunt') {
+                msg += ` (Aumento de Defesa: ${skill.amount ? skill.amount * 100 : 50}%)`;
+                p.defenseStance = true;
+                p.defenseBuffAmount = skill.amount || 0.5;
+                p.defenseBuffDuration = skill.buffDuration || skill.duration || 3;
+            }
+
+            this.logPlayer(msg);
             setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
 
         } else if (skill.type === 'terrain') {
             this.logPlayer(`🌋 ${p.name} conjurou [${skill.name}], alterando o campo de batalha!`);
-            // Debuff genérico básico como exemplo de terreno
-            this.monsters.forEach(m => { if(m.hp > 0) m.hp -= Math.floor(m.maxHp * 0.05); });
-            setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
+
+            // Apply immediate terrain effect
+            let totalDmg = 0;
+            let dmgMult = skill.multiplier || 1.0;
+            let baseTerrainDmg = 10 * dmgMult + p.getTotalAttr('int') * 2;
+
+            this.monsters.forEach(m => {
+                if (m.hp > 0) {
+                    let dmg = Math.floor(baseTerrainDmg);
+                    if (skill.terrainType === 'healing' || skill.terrainType === 'blessing') {
+                        // Cleric terrain doesn't damage enemies normally or damages undead
+                        if (m.type === 'Morto-vivo' && skill.terrainType === 'blessing') {
+                            m.hp -= dmg;
+                            totalDmg += dmg;
+                            Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: m.instanceId, dmg: dmg });
+                        }
+                    } else {
+                        m.hp -= dmg;
+                        totalDmg += dmg;
+                        Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: m.instanceId, dmg: dmg });
+                    }
+                }
+            });
+
+            // If it's a healing terrain, heal party
+            if (skill.terrainType === 'healing' || skill.terrainType === 'blessing') {
+                 this.party.forEach(member => {
+                     if (member.hp > 0) {
+                         let heal = skill.healAmount || Math.floor(baseTerrainDmg);
+                         member.heal(heal);
+                         Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(member), dmg: heal, isHeal: true });
+                     }
+                 });
+            }
+
+            setTimeout(() => {
+                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
+                this.monsters.forEach(t => { if (t.hp <= 0) { t.hp = 0; this.processMonsterDeath(t); } });
+
+                if (this.monsters.every(m => m.hp <= 0)) this.winCombat();
+                else { this.isProcessingTurn = false; this.nextTurn(); }
+            }, 1000);
         }
     }
 
@@ -679,6 +746,14 @@ class CombatSystem {
             return;
         }
 
+        // Handle Taunt duration
+        if (attacker.tauntDuration && attacker.tauntDuration > 0) {
+            attacker.tauntDuration--;
+            if (attacker.tauntDuration === 0) {
+                 attacker.tauntedBy = null;
+            }
+        }
+
         let targetP = null;
         let minDist = Infinity;
         const ai = attacker.ai || { targetPriority: 'CLOSEST', moveType: 'ASTAR' };
@@ -693,6 +768,10 @@ class CombatSystem {
         };
 
         // TARGET PRIORITY SWITCH
+        if (attacker.tauntedBy && attacker.tauntedBy.hp > 0) {
+            targetP = attacker.tauntedBy;
+            minDist = this.getDistance(attacker, targetP);
+        } else {
         switch (ai.targetPriority) {
             case 'HIGHEST_DEF_HP': {
                 let bestScore = -Infinity;
@@ -758,6 +837,7 @@ class CombatSystem {
                 });
                 break;
             }
+        }
         }
 
         const targetPIndex = this.party.indexOf(targetP);
@@ -1033,7 +1113,8 @@ class CombatSystem {
         }
 
         if (targetP.defenseStance) {
-            dmg = Math.floor(dmg * 0.5);
+            let reduction = targetP.defenseBuffAmount || 0.5;
+            dmg = Math.floor(dmg * (1 - reduction));
             if (dmg < 1) dmg = 1;
             this.logMonster(`🛡️ O ataque foi mitigado pela postura de defesa de ${targetP.name}!`);
         }

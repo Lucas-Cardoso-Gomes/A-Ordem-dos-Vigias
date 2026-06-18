@@ -76,6 +76,9 @@ const MonsterDatabase = {
                 matId = Engine.randomChance(50) ? 'm7' : (Engine.randomChance(50) ? 'm8' : 'm9'); // Essencia, Fragmento, ou Pó
             }
             else if (monster.id === 'boss2') matId = 'm4'; // Escamas
+            else if (monster.type === 'Comum') {
+                matId = Engine.randomChance(50) ? 'm10' : 'm1'; // Goblins têm chance de dropar Minério de Ferro
+            }
 
             loot.items.push(ItemDatabase.getMaterial(matId));
         }

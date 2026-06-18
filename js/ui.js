@@ -1030,6 +1030,11 @@ showToast(msg) {
                 const mat = ItemDatabase.materials[Math.floor(Math.random() * ItemDatabase.materials.length)];
                 this.shopItems.push(ItemDatabase.getMaterial(mat.id));
             }
+
+            // Garantir que Minério de Ferro sempre possa ser comprado
+            if (!this.shopItems.some(i => i.id === 'm10')) {
+                this.shopItems.push(ItemDatabase.getMaterial('m10'));
+            }
         }
 
         const typeOrder = { 'weapon': 1, 'armor': 2, 'accessory': 3, 'potion': 4, 'material': 5 };
