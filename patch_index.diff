@@ -1,0 +1,29 @@
+--- index.html
++++ index.html
+@@ -72,16 +72,16 @@
+                 <div class="equipment-panel" style="margin-bottom: 1rem;">
+                     <h3>Equipamento</h3>
+                     <div class="eq-slots">
+-                        <div class="eq-slot" id="eq-head" data-slot="head">Cabeça</div>
+-                        <div class="eq-slot" id="eq-chest" data-slot="chest">Peitoral</div>
+-                        <div class="eq-slot" id="eq-hands" data-slot="hands">Luvas</div>
+-                        <div class="eq-slot" id="eq-legs" data-slot="legs">Calças</div>
+-                        <div class="eq-slot" id="eq-boots" data-slot="boots">Botas</div>
+-                        <div class="eq-slot" id="eq-weaponMain" data-slot="weaponMain">Arma Principal</div>
+-                        <div class="eq-slot" id="eq-weaponOff" data-slot="weaponOff">Secundária</div>
+-                        <div class="eq-slot" id="eq-amulet" data-slot="amulet">Amuleto</div>
+-                        <div class="eq-slot" id="eq-ring1" data-slot="ring1">Anel 1</div>
+-                        <div class="eq-slot" id="eq-ring2" data-slot="ring2">Anel 2</div>
++                        <div class="eq-slot" id="eq-head" data-slot="head" tabindex="0" role="button">Cabeça</div>
++                        <div class="eq-slot" id="eq-chest" data-slot="chest" tabindex="0" role="button">Peitoral</div>
++                        <div class="eq-slot" id="eq-hands" data-slot="hands" tabindex="0" role="button">Luvas</div>
++                        <div class="eq-slot" id="eq-legs" data-slot="legs" tabindex="0" role="button">Calças</div>
++                        <div class="eq-slot" id="eq-boots" data-slot="boots" tabindex="0" role="button">Botas</div>
++                        <div class="eq-slot" id="eq-weaponMain" data-slot="weaponMain" tabindex="0" role="button">Arma Principal</div>
++                        <div class="eq-slot" id="eq-weaponOff" data-slot="weaponOff" tabindex="0" role="button">Secundária</div>
++                        <div class="eq-slot" id="eq-amulet" data-slot="amulet" tabindex="0" role="button">Amuleto</div>
++                        <div class="eq-slot" id="eq-ring1" data-slot="ring1" tabindex="0" role="button">Anel 1</div>
++                        <div class="eq-slot" id="eq-ring2" data-slot="ring2" tabindex="0" role="button">Anel 2</div>
+                     </div>
+                 </div>
+                 <div class="inventory-controls" id="inv-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
