@@ -391,6 +391,9 @@ class CombatUIManager {
         }
         setTimeout(() => {
             document.querySelector('[data-target="screen-map"]').click();
+            if (this.ui && this.ui.selectedLocId) {
+                this.ui.renderRegionDetails(this.ui.selectedLocId);
+            }
         }, 2000);
     }
 
