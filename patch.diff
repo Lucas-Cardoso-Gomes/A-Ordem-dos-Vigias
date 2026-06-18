@@ -1,0 +1,15 @@
+--- style.css
++++ style.css
+@@ -29,6 +29,12 @@
+     line-height: 1.6;
+ }
+
++/* Global Focus Styles for Accessibility */
++:focus-visible {
++    outline: 2px solid var(--accent-gold);
++    outline-offset: 2px;
++}
++
+ #game-container {
+     max-width: 1200px;
+     margin: 0 auto;

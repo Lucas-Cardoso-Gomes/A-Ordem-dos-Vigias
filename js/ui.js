@@ -242,6 +242,12 @@ Engine.on('turnStarted', () => {
                 const slotId = e.currentTarget.getAttribute('data-slot');
                 window.gameInventory.unequip(slotId, this.selectedPartyIndex);
             });
+            slot.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    slot.click();
+                }
+            });
             slot.addEventListener('mouseenter', (e) => this.showEquipmentTooltip(e, slot));
             slot.addEventListener('mouseleave', () => this.hideTooltip());
         });
@@ -598,6 +604,8 @@ Engine.on('turnStarted', () => {
         items.forEach(item => {
             const div = document.createElement('div');
             div.className = `inv-item rarity-${item.rarity}`;
+            div.tabIndex = 0;
+            div.setAttribute('role', 'button');
             div.style.position = 'relative';
             
             const emoji = this.getItemEmoji(item);
@@ -631,6 +639,12 @@ Engine.on('turnStarted', () => {
                 }
             });
 
+            div.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    div.click();
+                }
+            });
             div.addEventListener('mouseenter', (e) => this.showItemTooltip(e, item));
             div.addEventListener('mouseleave', () => this.hideTooltip());
 

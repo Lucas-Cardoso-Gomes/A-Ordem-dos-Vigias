@@ -5,7 +5,7 @@
     --accent-gold: #d4af37;
     --accent-red: #8b0000;
     --border-color: #333;
-    
+
     /* Rarities */
     --rarity-common: #a0a0a0;
     --rarity-uncommon: #2ecc71;
@@ -26,12 +26,6 @@ body {
     background-color: var(--bg-dark);
     color: var(--text-main);
     line-height: 1.6;
-}
-
-/* Global Focus Styles for Accessibility */
-:focus-visible {
-    outline: 2px solid var(--accent-gold);
-    outline-offset: 2px;
 }
 
 #game-container {
@@ -207,11 +201,11 @@ button.danger:hover {
 .rarity-incomum { border-bottom: 3px solid var(--rarity-uncommon); }
 .rarity-raro { border-bottom: 3px solid var(--rarity-rare); }
 .rarity-epico { border-bottom: 3px solid var(--rarity-epic); }
-.rarity-lendario { 
-    border-bottom: 3px solid var(--rarity-legendary); 
+.rarity-lendario {
+    border-bottom: 3px solid var(--rarity-legendary);
     box-shadow: 0 0 5px var(--rarity-legendary);
 }
-.rarity-mitico { 
+.rarity-mitico {
     border-bottom: 3px solid var(--rarity-mythic);
     box-shadow: 0 0 8px var(--rarity-mythic);
 }
