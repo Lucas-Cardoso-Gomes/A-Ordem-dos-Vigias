@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+                <div class="location-details" id="location-details">
+                    <h3 id="loc-name">Selecione um local</h3>
+                    <button id="btn-explore" class="hidden">Explorar</button>
+                </div>
+            </section>
+=======
+                <div class="location-details" id="location-details">
+                    <h3 id="loc-name">Selecione um local</h3>
+                    <button id="btn-explore" class="hidden">Explorar</button>
+                </div>
+
+                <h2>Modo Infinito</h2>
+                <div class="map-grid">
+                    <button class="map-location" id="btn-infinite-mode" style="border-color: var(--rarity-legendary); grid-column: 1 / -1;">🔥 Batalha de Ondas Infinitas</button>
+                </div>
+            </section>
+>>>>>>> REPLACE
