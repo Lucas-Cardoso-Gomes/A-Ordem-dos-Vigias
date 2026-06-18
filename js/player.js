@@ -88,7 +88,12 @@ class Player {
     }
 
     getXpNeeded() {
-        return Math.floor(100 * Math.pow(1.15, this.level - 1));
+        if (this.level <= 50) {
+            return Math.floor(100 * Math.pow(1.15, this.level - 1));
+        } else {
+            const base50 = Math.floor(100 * Math.pow(1.15, 49));
+            return Math.floor(base50 * Math.pow(1.35, this.level - 50));
+        }
     }
 
     // CORREÇÃO: Verificação rigorosa contra NaN e números negativos
