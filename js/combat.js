@@ -25,6 +25,9 @@ class CombatSystem {
         this.isSelectingMove = false;
         this.isSelectingTarget = false; // For ranged attacks/skills
         this.selectedSkill = null;
+
+        // Active Terrains
+        this.activeTerrains = [];
     }
 
     setupGridPositions() {
@@ -125,6 +128,13 @@ class CombatSystem {
 
         if (this.turnQueue.length === 0) {
             this.logSystem('--- Nova Rodada ---');
+
+            // Process terrains expiration at the start of a new round
+            if (this.activeTerrains && this.activeTerrains.length > 0) {
+                this.activeTerrains.forEach(t => t.duration--);
+                this.activeTerrains = this.activeTerrains.filter(t => t.duration > 0);
+            }
+
             this.turnQueue = [...this.initiativeOrder].filter(q => {
                 if (q.type === 'player') return this.party[q.index].hp > 0;
                 if (q.type === 'monster') return this.monsters[q.index].hp > 0;
@@ -141,8 +151,11 @@ class CombatSystem {
         Engine.emit('turnQueueUpdated', this.turnQueue);
         Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
 
+        let turnEntityObj = null;
+
         if (this.currentTurnEntity.type === 'player') {
             const p = this.party[this.currentTurnEntity.index];
+            turnEntityObj = p;
             // Manage defense buffs duration
             if (p.defenseBuffDuration && p.defenseBuffDuration > 0) {
                 p.defenseBuffDuration--;
@@ -161,6 +174,7 @@ class CombatSystem {
             Engine.emit('turnStarted', this.currentTurnEntity.index);
         } else {
             const m = this.monsters[this.currentTurnEntity.index];
+            turnEntityObj = m;
             this.movementRemaining = 5 + Math.floor((5 + Math.floor(m.level / 2)) / 10);
             Engine.emit('turnEnded', null);
             // Mantém a trava e executa a IA do monstro
@@ -169,6 +183,40 @@ class CombatSystem {
                 this.isProcessingTurn = false; // Libera a engine pós-ataque
             }, 1000);
         }
+
+        // Apply Terrain Effects at Start of Turn
+        if (turnEntityObj && this.activeTerrains && this.activeTerrains.length > 0) {
+            this.activeTerrains.forEach(t => {
+                if (t.x === turnEntityObj.gridX && t.y === turnEntityObj.gridY) {
+                    if (t.type !== 'wall' && t.type !== 'ice') {
+                        if (t.type === 'healing' || t.type === 'blessing') {
+                            if (this.currentTurnEntity.type === 'player') {
+                                turnEntityObj.heal(t.heal || 10);
+                                Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.currentTurnEntity.index, dmg: t.heal || 10, isHeal: true });
+                            } else if (turnEntityObj.type === 'Morto-vivo' && t.type === 'blessing') {
+                                turnEntityObj.hp -= t.damage || 10;
+                                Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: turnEntityObj.instanceId, dmg: t.damage || 10 });
+                            }
+                        } else {
+                            turnEntityObj.hp -= t.damage || 10;
+                            if (this.currentTurnEntity.type === 'player') {
+                                Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.currentTurnEntity.index, dmg: t.damage || 10 });
+                            } else {
+                                Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: turnEntityObj.instanceId, dmg: t.damage || 10 });
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (turnEntityObj.hp <= 0 && this.currentTurnEntity.type === 'monster') {
+                 turnEntityObj.hp = 0;
+                 this.processMonsterDeath(turnEntityObj);
+                 if (this.monsters.every(m => m.hp <= 0)) this.winCombat();
+                 else { this.isProcessingTurn = false; this.nextTurn(); }
+            }
+        }
+
     }
 
     startMoveSelection() {
@@ -236,7 +284,7 @@ class CombatSystem {
             return false;
         }
 
-        // Process step by step to check for Attacks of Opportunity
+        // Process step by step to check for Attacks of Opportunity and Terrains
         for (let step of path) {
             const startX = entity.gridX;
             const startY = entity.gridY;
@@ -245,6 +293,34 @@ class CombatSystem {
             entity.gridX = step.x;
             entity.gridY = step.y;
             this.movementRemaining -= 1;
+
+            // Terrain Effects on move
+            if (this.activeTerrains && this.activeTerrains.length > 0) {
+                this.activeTerrains.forEach(t => {
+                    if (t.x === entity.gridX && t.y === entity.gridY) {
+                        if (t.type !== 'wall' && t.type !== 'ice') {
+                            if (t.type === 'healing' || t.type === 'blessing') {
+                                if (isPlayerMoving) {
+                                    entity.heal(t.heal || 10);
+                                    Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(entity), dmg: t.heal || 10, isHeal: true });
+                                } else if (entity.type === 'Morto-vivo' && t.type === 'blessing') {
+                                    entity.hp -= t.damage || 10;
+                                    Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: entity.instanceId, dmg: t.damage || 10 });
+                                }
+                            } else {
+                                entity.hp -= t.damage || 10;
+                                if (isPlayerMoving) {
+                                    Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(entity), dmg: t.damage || 10 });
+                                } else {
+                                    Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: entity.instanceId, dmg: t.damage || 10 });
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (entity.hp <= 0) break;
 
             // Check for Attack of Opportunity
             // Definition: If you start adjacent to an enemy, and move to a cell NOT adjacent to that SAME enemy.
@@ -456,7 +532,7 @@ class CombatSystem {
     }
 
     // CORREÇÃO: Sistema de skills finalizado, incorporando validação robusta de AoE, Buffs e Terrenos
-    playerSkill(skill, targetPartyIndex = null) {
+    playerSkill(skill, targetPartyIndex = null, coords = null) {
         if (!this.inCombat || this.currentTurnEntity?.type !== 'player' || this.isProcessingTurn) return;
         const p = this.party[this.currentTurnEntity.index];
 
@@ -570,24 +646,42 @@ class CombatSystem {
             setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
 
         } else if (skill.type === 'terrain') {
-            this.logPlayer(`🌋 ${p.name} conjurou [${skill.name}], alterando o campo de batalha!`);
+            if (!coords) coords = { x: p.gridX, y: p.gridY }; // Fallback
+            this.logPlayer(`🌋 ${p.name} conjurou [${skill.name}], alterando o campo de batalha em (${coords.x}, ${coords.y})!`);
 
-            // Apply immediate terrain effect
-            let totalDmg = 0;
             let dmgMult = skill.multiplier || 1.0;
             let baseTerrainDmg = 10 * dmgMult + p.getTotalAttr('int') * 2;
+            let terrainRadius = skill.aoeRadius || 1;
 
+            // Create terrain cells
+            for(let tx = coords.x - terrainRadius; tx <= coords.x + terrainRadius; tx++) {
+                for(let ty = coords.y - terrainRadius; ty <= coords.y + terrainRadius; ty++) {
+                    if (tx >= 0 && tx < this.gridWidth && ty >= 0 && ty < this.gridHeight) {
+                        this.activeTerrains.push({
+                            x: tx,
+                            y: ty,
+                            type: skill.terrainType,
+                            damage: Math.floor(baseTerrainDmg),
+                            heal: skill.healAmount || Math.floor(baseTerrainDmg),
+                            duration: skill.duration || 3,
+                            casterId: p.name
+                        });
+                    }
+                }
+            }
+
+            // Apply immediate terrain effect for those already standing in it
+            let totalDmg = 0;
             this.monsters.forEach(m => {
-                if (m.hp > 0) {
+                if (m.hp > 0 && Math.abs(m.gridX - coords.x) <= terrainRadius && Math.abs(m.gridY - coords.y) <= terrainRadius) {
                     let dmg = Math.floor(baseTerrainDmg);
                     if (skill.terrainType === 'healing' || skill.terrainType === 'blessing') {
-                        // Cleric terrain doesn't damage enemies normally or damages undead
                         if (m.type === 'Morto-vivo' && skill.terrainType === 'blessing') {
                             m.hp -= dmg;
                             totalDmg += dmg;
                             Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: m.instanceId, dmg: dmg });
                         }
-                    } else {
+                    } else if (skill.terrainType !== 'wall') {
                         m.hp -= dmg;
                         totalDmg += dmg;
                         Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: m.instanceId, dmg: dmg });
@@ -595,10 +689,9 @@ class CombatSystem {
                 }
             });
 
-            // If it's a healing terrain, heal party
             if (skill.terrainType === 'healing' || skill.terrainType === 'blessing') {
                  this.party.forEach(member => {
-                     if (member.hp > 0) {
+                     if (member.hp > 0 && Math.abs(member.gridX - coords.x) <= terrainRadius && Math.abs(member.gridY - coords.y) <= terrainRadius) {
                          let heal = skill.healAmount || Math.floor(baseTerrainDmg);
                          member.heal(heal);
                          Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(member), dmg: heal, isHeal: true });
@@ -703,12 +796,27 @@ class CombatSystem {
                 const isOccupied = this.party.some(p => p.hp > 0 && p.gridX === nextX && p.gridY === nextY) ||
                                    this.monsters.some(m => m.hp > 0 && m.gridX === nextX && m.gridY === nextY);
 
+                // Verificação de Terrenos Bloqueadores
+                let isBlockedByTerrain = false;
+                let terrainPenalty = 0;
+                if (this.activeTerrains) {
+                    this.activeTerrains.forEach(t => {
+                        if (t.x === nextX && t.y === nextY) {
+                            if (t.type === 'wall' || t.type === 'ice') {
+                                isBlockedByTerrain = true;
+                            } else if (t.type !== 'healing' && t.type !== 'blessing') {
+                                terrainPenalty = 5; // Penalty for walking through fire/damaging tiles
+                            }
+                        }
+                    });
+                }
+
                 // Allow target space to be considered if we are trying to reach it or if we exclude it
-                if (isOccupied && (!excludeTarget || !(nextX === targetX && nextY === targetY))) {
+                if ((isOccupied || isBlockedByTerrain) && (!excludeTarget || !(nextX === targetX && nextY === targetY))) {
                     continue;
                 }
 
-                const gCost = currentNode.g + 1;
+                const gCost = currentNode.g + 1 + terrainPenalty;
                 const hCost = Math.abs(nextX - targetX) + Math.abs(nextY - targetY);
                 const neighborNode = new Node(nextX, nextY, gCost, hCost, currentNode);
 
@@ -843,15 +951,21 @@ class CombatSystem {
         const targetPIndex = this.party.indexOf(targetP);
         let attackRange = 1; // Default
 
-        if (ai.moveType === 'KITING_EDGES') attackRange = 3;
+        // Se estiver provocado (Taunt), o monstro perde a racionalidade e força ASTAR (corpo a corpo direto) ignorando evasão
+        let effectiveMoveType = ai.moveType;
+        if (attacker.tauntedBy && attacker.tauntedBy.hp > 0) {
+            effectiveMoveType = 'ASTAR';
+        }
+
+        if (effectiveMoveType === 'KITING_EDGES') attackRange = 3;
 
         let forceEndTurn = false;
 
-        if (minDist > attackRange || ai.moveType === 'KITING_EDGES') {
+        if (minDist > attackRange || effectiveMoveType === 'KITING_EDGES') {
             let stepsTaken = 0;
             const maxSteps = this.movementRemaining;
 
-            switch (ai.moveType) {
+            switch (effectiveMoveType) {
                 case 'ZOMBIE_WALK': {
                     while (stepsTaken < maxSteps && this.getDistance(attacker, targetP) > attackRange) {
                         let nextX = attacker.gridX;
