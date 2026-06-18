@@ -20,6 +20,7 @@ class CombatUIManager {
         this.btnEndTurn = document.getElementById('btn-end-turn');
         this.elCombatLog = document.getElementById('combat-log');
         this.elCombatInstruction = document.getElementById('combat-instruction');
+        this.elCombatActiveEffects = document.getElementById('combat-active-effects');
 
         this.elCombatSkillsMenu = document.getElementById('combat-skills-menu');
         this.elCombatSkillsList = document.getElementById('combat-skills-list');
@@ -60,6 +61,9 @@ class CombatUIManager {
             this.elCombatCanvas.addEventListener('click', (e) => this.handleCanvasClick(e));
             this.elCombatCanvas.addEventListener('mousemove', (e) => this.handleCanvasMouseMove(e));
         }
+
+        Engine.on('combatUpdated', () => this.updateActiveEffects());
+        Engine.on('turnQueueUpdated', () => this.updateActiveEffects());
 
         this.btnFlee.addEventListener('click', () => {
             this.hideCombatMenus();
@@ -290,6 +294,10 @@ class CombatUIManager {
         document.querySelector('[data-target="screen-combat"]').click();
         this.hideCombatMenus();
         this.elCombatLog.innerHTML = '';
+        if (this.elCombatActiveEffects) {
+            this.elCombatActiveEffects.innerHTML = '';
+            this.elCombatActiveEffects.style.display = 'none';
+        }
         this.renderCombatMonsters(monsters);
 
         this.btnAttack.disabled = false;
@@ -548,6 +556,45 @@ class CombatUIManager {
         });
     }
 
+    updateActiveEffects() {
+        if (!this.elCombatActiveEffects || !window.gameCombat || !window.gameCombat.inCombat) return;
+
+        let effectsHTML = [];
+
+        // Terrenos
+        if (window.gameCombat.activeTerrains && window.gameCombat.activeTerrains.length > 0) {
+            window.gameCombat.activeTerrains.forEach(t => {
+                effectsHTML.push(`<span style="color: var(--rarity-epic);">🌋 ${t.type.toUpperCase()} em (${t.x},${t.y}) [${t.duration} turnos]</span>`);
+            });
+        }
+
+        // Taunts em Monstros
+        if (window.gameCombat.monsters) {
+            window.gameCombat.monsters.forEach(m => {
+                if (m.hp > 0 && m.tauntedBy && m.tauntDuration > 0) {
+                    effectsHTML.push(`<span style="color: var(--rarity-legendary);">😠 ${m.name} provocado por ${m.tauntedBy.name} [${m.tauntDuration} turnos]</span>`);
+                }
+            });
+        }
+
+        // Buffs em Players
+        if (window.gameCombat.party) {
+            window.gameCombat.party.forEach(p => {
+                if (p.hp > 0 && p.defenseBuffDuration > 0) {
+                    effectsHTML.push(`<span style="color: #4ade80;">🛡️ ${p.name} Defesa [${p.defenseBuffDuration} turnos]</span>`);
+                }
+            });
+        }
+
+        if (effectsHTML.length > 0) {
+            this.elCombatActiveEffects.innerHTML = `<strong>Efeitos Ativos:</strong> ` + effectsHTML.join(' | ');
+            this.elCombatActiveEffects.style.display = 'block';
+        } else {
+            this.elCombatActiveEffects.innerHTML = '';
+            this.elCombatActiveEffects.style.display = 'none';
+        }
+    }
+
     renderCombatStats(data) {
         const party = data.party || window.gameParty;
         const monsters = data.monsters;
@@ -555,6 +602,7 @@ class CombatUIManager {
         this.elCombatPartyContainer.innerHTML = '';
         
         this.drawGrid();
+        this.updateActiveEffects();
         
         let turnIndex = null;
         if (window.gameCombat && window.gameCombat.currentTurnEntity && window.gameCombat.currentTurnEntity.type === 'player') {
