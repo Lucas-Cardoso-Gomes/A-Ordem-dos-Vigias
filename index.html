@@ -194,6 +194,12 @@
                                 <button id="btn-flee">Fugir</button>
                             </div>
                             <div id="combat-instruction" style="text-align: center; color: var(--rarity-legendary); font-weight: bold; padding: 0.5rem; display: none;"></div>
+
+                            <!-- Efeitos Ativos (Terrenos, Buffs, Taunt) -->
+                            <div id="combat-active-effects" style="text-align: center; font-size: 0.9rem; padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border-color); margin-bottom: 0.5rem; display: none;">
+                                <!-- Populate via JS -->
+                            </div>
+
                             <div id="combat-skills-menu" class="hidden"
                                 style="text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel); margin-bottom: 1rem;">
                                 <h4>Habilidades</h4>
@@ -275,14 +281,11 @@
                         
                         <h4 style="color: var(--rarity-uncommon);">Classes</h4>
                         <ul style="margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
-                            <li><strong>⚔️ Guerreiro:</strong> Alto HP e defesas. Excelente linha de frente.</li>
-                            <li><strong>🏹 Caçador:</strong> Especialista em ataque rápido e crítico à distância.</li>
-                            <li><strong>🧙 Mago:</strong> Foca em magias em área e danos elementais altíssimos.</li>
-                            <li><strong>✝️ Exorcista:</strong> Especialista em curar e causar dano sagrado (ótimo contra Mortos-Vivos).</li>
-                            <li><strong>🧪 Alquimista:</strong> Bônus na forja de itens e poder superior ao usar poções em combate.</li>
-                            <li><strong>🛡️ Paladino:</strong> Um defensor supremo, focado em mitigar dano do grupo.</li>
-                            <li><strong>🗡️ Assassino:</strong> Foca em abater alvos individuais rapidamente.</li>
-                            <li><strong>💀 Necromante:</strong> Especializado em magias sombrias.</li>
+                            <li><strong>⚔️ Guerreiro:</strong> Linha de frente resistente. Possui habilidades como "Ataque Furioso" para causar dano com bônus de Força, e "Provocar" para puxar o aggro dos inimigos para si durante turnos.</li>
+                            <li><strong>🏹 Caçador:</strong> Especialista em dano à distância e agilidade. Usa "Tiro Preciso" para acertar ataques de longe e "Tiro Múltiplo" para causar dano rápido e ágil em vários inimigos.</li>
+                            <li><strong>🛡️ Guardião:</strong> Focado em mitigar dano do grupo inteiro e controlar o campo de batalha. Usa "Defesa Absoluta" para se buffar e habilidades defensivas ou de terreno para bloquear passagens e manter a linha de frente.</li>
+                            <li><strong>🔮 Mago:</strong> Especializado em magias em área e dano elemental. Habilidades como "Bola de Fogo", "Nevasca", e "Terremoto" (que cria terrenos de dano/efeito no grid) definem a sua força devastadora.</li>
+                            <li><strong>✨ Clérigo:</strong> A única classe baseada puramente em suporte e cura. Usa "Cura Menor" e "Luz Sagrada" para curar aliados individualmente ou criar terrenos de "Terreno Sagrado" que curam aliados e causam dano a mortos-vivos no grid.</li>
                         </ul>
 
                         <h4 style="color: var(--rarity-uncommon);">Mecânicas</h4>

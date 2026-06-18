@@ -50,6 +50,17 @@ class CombatSystem {
     }
 
     startCombat(monstersArray) {
+        // Complete Cleanup Rule
+        this.activeTerrains = [];
+        this.turnQueue = [];
+        this.initiativeOrder = [];
+        this.hasMovedThisTurn = false;
+        this.isProcessingTurn = false;
+        this.currentTurnEntity = null;
+        this.isSelectingMove = false;
+        this.isSelectingTarget = false;
+        this.selectedSkill = null;
+
         this.monsters = Array.isArray(monstersArray) ? monstersArray : [monstersArray];
         this.targetIndex = 0;
         this.inCombat = true;
@@ -1326,8 +1337,16 @@ class CombatSystem {
     endCombat(victory) {
         this.inCombat = false;
         this.monsters = [];
+        this.activeTerrains = [];
         this.turnQueue = [];
         this.initiativeOrder = [];
+        this.hasMovedThisTurn = false;
+        this.isProcessingTurn = false;
+        this.currentTurnEntity = null;
+        this.isSelectingMove = false;
+        this.isSelectingTarget = false;
+        this.selectedSkill = null;
+
         Engine.emit('turnQueueUpdated', this.turnQueue);
         Engine.emit('combatEnded', victory);
     }
