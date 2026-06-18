@@ -86,8 +86,13 @@ class CombatUIManager {
         if (window.gameCombat.isSelectingMove) {
             window.gameCombat.moveEntityTo(x, y);
         } else if (window.gameCombat.isSelectingTarget) {
+            // Se for magia de terreno, pode clicar em qualquer célula
+            if (window.gameCombat.selectedSkill && window.gameCombat.selectedSkill.type === 'terrain') {
+                window.gameCombat.playerSkill(window.gameCombat.selectedSkill, null, {x, y});
+                return;
+            }
+
             // Se for ataque físico ou drain, clica no monstro
-            // Se for AoE (sem alvo específico necessário além de uma coordenada), pode clicar em qualquer lugar ou num monstro base
             const targetIndex = window.gameCombat.monsters.findIndex(m => m.hp > 0 && m.gridX === x && m.gridY === y);
             if (targetIndex !== -1) {
                 window.gameCombat.setTarget(targetIndex);
@@ -97,8 +102,6 @@ class CombatUIManager {
                     window.gameCombat.playerAttack(window.gameCombat.selectedAttackSlot || 'weaponMain');
                 }
             } else if (window.gameCombat.selectedSkill && window.gameCombat.selectedSkill.isAoE) {
-                 // For AoE we can set a dummy target to coordinates or just find nearest to clicked point if needed, 
-                 // but right now it is based on target monster. Let's keep it simple for now and require targeting a monster for AoE center
                  Engine.emit('combatLog', { msg: 'Selecione um inimigo como alvo para a área.', type: 'log-system' });
             } else {
                 Engine.emit('combatLog', { msg: 'Nenhum alvo válido selecionado no mapa.', type: 'log-system' });
@@ -405,7 +408,11 @@ class CombatUIManager {
             this.elCombatInstruction.style.display = 'block';
         } else if (window.gameCombat.isSelectingTarget) {
             if (window.gameCombat.selectedSkill) {
-                this.elCombatInstruction.innerText = `Selecione um alvo no grid para usar ${window.gameCombat.selectedSkill.name}`;
+                if (window.gameCombat.selectedSkill.type === 'terrain') {
+                    this.elCombatInstruction.innerText = `Selecione uma célula no grid para criar ${window.gameCombat.selectedSkill.name}`;
+                } else {
+                    this.elCombatInstruction.innerText = `Selecione um alvo no grid para usar ${window.gameCombat.selectedSkill.name}`;
+                }
             } else {
                 this.elCombatInstruction.innerText = `Selecione um alvo no grid para Atacar`;
             }
@@ -441,6 +448,20 @@ class CombatUIManager {
             this.ctx.moveTo(0, y * cellH);
             this.ctx.lineTo(this.elCombatCanvas.width, y * cellH);
             this.ctx.stroke();
+        }
+
+        // Draw Active Terrains
+        if (window.gameCombat.activeTerrains) {
+            window.gameCombat.activeTerrains.forEach(terrain => {
+                let terrainColor = 'rgba(255, 165, 0, 0.3)'; // Default orange for fire/lava
+                if (terrain.type === 'ice') terrainColor = 'rgba(0, 191, 255, 0.3)';
+                if (terrain.type === 'healing' || terrain.type === 'blessing' || terrain.type === 'holy') terrainColor = 'rgba(255, 215, 0, 0.3)';
+                if (terrain.type === 'wall') terrainColor = 'rgba(139, 69, 19, 0.5)';
+                if (terrain.type === 'spikes' || terrain.type === 'mine') terrainColor = 'rgba(128, 0, 128, 0.3)';
+
+                this.ctx.fillStyle = terrainColor;
+                this.ctx.fillRect(terrain.x * cellW, terrain.y * cellH, cellW, cellH);
+            });
         }
 
         // Draw movement range highlight
