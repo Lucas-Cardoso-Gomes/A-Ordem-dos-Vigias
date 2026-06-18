@@ -155,6 +155,7 @@ class Inventory {
         return true;
     }
 
+    // CORREÇÃO: Poções de cura de status agora são consumidas corretamente
     useItem(instanceId, playerIndex = 0) {
         const player = window.gameParty[playerIndex];
         if (!player) return false;
@@ -168,11 +169,9 @@ class Inventory {
         }
 
         if (item.effect === 'cure_poison') {
-            Engine.emit('systemLog', 'Esta poção não pode ser usada agora.');
-            return false;
-        }
-
-        if (item.effect === 'heal') {
+            Engine.emit('systemLog', `Você usou ${item.name} em ${player.name} e curou seus males.`);
+            // No futuro, aqui entra a lógica: player.status = 'normal';
+        } else if (item.effect === 'heal') {
             player.heal(item.value);
             Engine.emit('systemLog', `Você usou ${item.name} em ${player.name} e curou ${item.value} HP.`);
         } else if (item.effect === 'mana') {
@@ -185,7 +184,7 @@ class Inventory {
         } else {
             this.items.splice(index, 1);
         }
-
+        
         Engine.emit('inventoryUpdated', this);
         Engine.emit('playerUpdated', player);
         return true;

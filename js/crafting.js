@@ -160,6 +160,45 @@ const CraftingSystem = {
         inventory.addItem(item);
         Engine.emit('systemLog', `Você forjou: ${item.name}!`);
         return true;
+    },
+    // Adicione esta função dentro de CraftingSystem, após o método craft(...)
+    refineEquipment(itemInstanceId, inventory, player) {
+        const item = inventory.items.find(i => i.instanceId === itemInstanceId);
+        if (!item || (item.type !== 'weapon' && item.type !== 'armor')) {
+            Engine.emit('systemLog', 'Item inválido para refinamento.');
+            return false;
+        }
+
+        const currentLevel = parseInt((item.name.match(/\+(\d+)/) || [0, 0])[1]);
+        const nextLevel = currentLevel + 1;
+        const costGold = 100 * nextLevel;
+        const matReqId = 'm10'; // ID do Minério de Ferro
+        const matReqQty = nextLevel;
+
+        if (player.gold < costGold) {
+            Engine.emit('systemLog', 'Ouro insuficiente para refinar.');
+            return false;
+        }
+
+        if (inventory.countItem(matReqId) < matReqQty) {
+            Engine.emit('systemLog', 'Materiais insuficientes para refinar.');
+            return false;
+        }
+
+        // Executa o Refinamento de forma segura no Back-end do jogo
+        player.gold -= costGold;
+        inventory.removeItemsById(matReqId, matReqQty);
+
+        item.name = item.name.includes('+') ? item.name.replace(/\+\d+/, `+${nextLevel}`) : `${item.name} +1`;
+        if (item.minDmg) item.minDmg = Math.floor(item.minDmg * 1.20);
+        if (item.maxDmg) item.maxDmg = Math.floor(item.maxDmg * 1.20);
+        if (item.def) item.def = Math.floor(item.def * 1.20);
+        if (item.sellValue) item.sellValue = Math.floor(item.sellValue * 1.5);
+
+        Engine.emit('systemLog', `Sucesso! O equipamento foi refinado para +${nextLevel}!`);
+        Engine.emit('inventoryUpdated', inventory);
+        Engine.emit('playerUpdated', player);
+        return true;
     }
 };
 

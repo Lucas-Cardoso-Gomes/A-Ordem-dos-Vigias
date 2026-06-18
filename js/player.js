@@ -45,21 +45,29 @@ class Player {
         this.bestiary = [];
     }
 
+    // CORREÇÃO: Cópia profunda (Spread) de objetos e sanitização de HP/Mana ao carregar
     load(data) {
         if (!data) return;
         this.name = data.name || 'Herói';
-        this.level = data.level || 1;
-        this.xp = data.xp || 0;
-        this.gold = data.gold || 0;
-        this.attributes = data.attributes || this.attributes;
-        this.statPoints = data.statPoints || 0;
+        this.level = Math.max(1, data.level || 1);
+        this.xp = Math.max(0, data.xp || 0);
+        this.gold = Math.max(0, data.gold || 0);
+        
+        // Evita vazamento de referência de memória entre personagens
+        this.attributes = { ...this.attributes, ...(data.attributes || {}) };
+        this.statPoints = Math.max(0, data.statPoints || 0);
+        
         this.playerClass = data.playerClass || 'Nenhuma';
         this.classLocked = data.classLocked || false;
-        if (this.playerClass !== 'Nenhuma' && data.classLocked === undefined) this.classLocked = true; // Migrate old saves
-        this.equipment = data.equipment || this.equipment;
-        this.hp = data.hp || this.getMaxHp();
-        this.mana = data.mana || this.getMaxMana();
-        this.bestiary = data.bestiary || [];
+        if (this.playerClass !== 'Nenhuma' && data.classLocked === undefined) this.classLocked = true;
+        
+        this.equipment = { ...this.equipment, ...(data.equipment || {}) };
+        
+        // Garante que o HP/Mana carregados nunca ultrapassem o limite real do personagem
+        this.hp = Math.min(this.getMaxHp(), Math.max(0, data.hp ?? this.getMaxHp()));
+        this.mana = Math.min(this.getMaxMana(), Math.max(0, data.mana ?? this.getMaxMana()));
+        
+        this.bestiary = Array.isArray(data.bestiary) ? [...data.bestiary] : [];
     }
 
     save() {
@@ -80,24 +88,29 @@ class Player {
     }
 
     getXpNeeded() {
-        // More balanced exponential growth:
-        // level 1 -> 100, level 2 -> ~115, level 10 -> ~350, level 50 -> ~9400
         return Math.floor(100 * Math.pow(1.15, this.level - 1));
     }
 
+    // CORREÇÃO: Verificação rigorosa contra NaN e números negativos
     gainGold(amount) {
-        this.gold = (this.gold || 0) + amount;
+        if (typeof amount !== 'number' || isNaN(amount)) return;
+        this.gold = Math.max(0, (this.gold || 0) + amount);
         Engine.emit('playerUpdated', this);
     }
 
+    // CORREÇÃO: Verificação rigorosa de dados de XP
     gainXp(amount) {
+        if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) return;
+        
         this.xp += amount;
         let leveledUp = false;
+        
         while (this.xp >= this.getXpNeeded() && this.level < 100) {
             this.xp -= this.getXpNeeded();
             this.levelUp();
             leveledUp = true;
         }
+        
         if (leveledUp) {
             Engine.emit('systemLog', `${this.name} alcançou o nível ${this.level}! (+5 Pontos de Atributo)`);
         }

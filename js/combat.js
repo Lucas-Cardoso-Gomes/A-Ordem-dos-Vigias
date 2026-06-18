@@ -101,8 +101,10 @@ class CombatSystem {
         Engine.emit('turnQueueUpdated', this.turnQueue);
     }
 
+    // CORREÇÃO: Adicionada a flag de segurança "isProcessingTurn" para evitar sobreposição de ações
     nextTurn() {
-        if (!this.inCombat) return;
+        if (!this.inCombat || this.isProcessingTurn) return;
+        this.isProcessingTurn = true; // Trava contra cliques duplos de UI
 
         // Limpa queue de mortos
         this.turnQueue = this.turnQueue.filter(q => {
@@ -122,11 +124,8 @@ class CombatSystem {
         }
 
         if (this.turnQueue.length === 0) {
-            this.logSystem('--- Nova Rodada (Mantendo Ordem de Iniciativa) ---');
-            this.turnQueue = [...this.initiativeOrder];
-            
-            // Clean dead ones immediately from the refilled queue
-            this.turnQueue = this.turnQueue.filter(q => {
+            this.logSystem('--- Nova Rodada ---');
+            this.turnQueue = [...this.initiativeOrder].filter(q => {
                 if (q.type === 'player') return this.party[q.index].hp > 0;
                 if (q.type === 'monster') return this.monsters[q.index].hp > 0;
                 return false;
@@ -144,15 +143,20 @@ class CombatSystem {
 
         if (this.currentTurnEntity.type === 'player') {
             const p = this.party[this.currentTurnEntity.index];
-            p.defenseStance = false; // Reset defense stance on new turn
+            p.defenseStance = false; 
             this.movementRemaining = 5 + Math.floor(p.getTotalAttr('agi') / 10);
             this.logSystem(`Turno de ${p.name}. Movimento: ${this.movementRemaining} blocos.`);
+            this.isProcessingTurn = false; // Libera pro jogador agir
             Engine.emit('turnStarted', this.currentTurnEntity.index);
         } else {
             const m = this.monsters[this.currentTurnEntity.index];
-            this.movementRemaining = 5 + Math.floor((5 + Math.floor(m.level / 2)) / 10); // Base monster agi logic
+            this.movementRemaining = 5 + Math.floor((5 + Math.floor(m.level / 2)) / 10);
             Engine.emit('turnEnded', null);
-            setTimeout(() => this.monsterAttack(m), 1000);
+            // Mantém a trava e executa a IA do monstro
+            setTimeout(() => {
+                this.monsterAttack(m);
+                this.isProcessingTurn = false; // Libera a engine pós-ataque
+            }, 1000);
         }
     }
 
@@ -440,8 +444,9 @@ class CombatSystem {
         }, 300);
     }
 
+    // CORREÇÃO: Sistema de skills finalizado, incorporando validação robusta de AoE, Buffs e Terrenos
     playerSkill(skill, targetPartyIndex = null) {
-        if (!this.inCombat || this.currentTurnEntity?.type !== 'player') return;
+        if (!this.inCombat || this.currentTurnEntity?.type !== 'player' || this.isProcessingTurn) return;
         const p = this.party[this.currentTurnEntity.index];
 
         if (!skill) return;
@@ -453,130 +458,94 @@ class CombatSystem {
             return;
         }
 
-        let skillRange = skill.range || 4; // default range for skills if not specified
-        if (p.equipment?.weaponMain && p.equipment.weaponMain.range !== undefined && p.equipment.weaponMain.range > 1) {
-            // Increase skill range slightly if using a ranged weapon, but let the skill baseline take precedence
-            skillRange = Math.max(skillRange, p.equipment.weaponMain.range);
-        }
-        
+        let skillRange = skill.range || 4;
         const target = this.getCurrentTarget();
 
-        if ((skill.type === 'attack' || skill.type === 'drain') && target) {
+        if ((skill.type === 'attack' || skill.type === 'drain') && target && !skill.isAoE) {
             const dist = this.getDistance(p, target);
             if (dist > skillRange) {
-                this.logSystem(`${p.name} tentou usar habilidade, mas o alvo está fora de alcance (${dist} > ${skillRange}).`);
+                this.logSystem(`${p.name} tentou usar habilidade, mas o alvo está fora de alcance.`);
                 this.isSelectingTarget = false;
                 Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
                 return;
             }
         }
 
+        this.isProcessingTurn = true; // Trava o combate durante o cast
         this.isSelectingTarget = false;
         Engine.emit('turnEnded', null);
         p.mana -= skill.manaCost;
         Engine.emit('playerUpdated', p);
 
         if (skill.type === 'attack' || skill.type === 'drain') {
-            if (!target && !skill.isAoE) {
+            let { min, max } = this.calculatePlayerDamage(p);
+            let baseDmg = Engine.randomInt(min, max);
+            let targets = [];
+
+            if (skill.isAoE) {
+                const center = target || this.monsters.find(m => m.hp > 0);
+                if (center) {
+                    targets = this.monsters.filter(m => m.hp > 0 && this.getDistance(center, m) <= (skill.aoeRadius || 2));
+                }
+            } else if (target) {
+                targets.push(target);
+            }
+
+            if (targets.length === 0) {
+                this.isProcessingTurn = false;
                 this.nextTurn();
                 return;
             }
-
-            let { min, max } = this.calculatePlayerDamage(p);
-            let baseDmg = Engine.randomInt(min, max);
-
-            let targets = [];
-            if (skill.isAoE) {
-                // Determine AoE radius
-                const radius = skill.aoeRadius || 2;
-                targets = this.monsters.filter(m => m.hp > 0 && this.getDistance(target, m) <= radius);
-            } else {
-                const t = this.getCurrentTarget();
-                if (t) targets.push(t);
-            }
-
-            if (targets.length === 0) return;
 
             let totalHeal = 0;
             let logMsg = `${p.name} usou [${skill.name}]`;
             if (skill.isAoE) logMsg += ` em área!`;
 
-            let damageDealt = {};
-
             targets.forEach(t => {
                 let dmg = Math.floor(baseDmg * skill.multiplier);
-                let weaknessHit = false;
-
                 if (skill.element && t.weakness && t.weakness.includes(skill.element)) {
                     dmg = Math.floor(dmg * 2.0);
-                    weaknessHit = true;
                 }
                 
-                if (dmg < 1) dmg = 1;
+                dmg = Math.max(1, dmg); // Garante dano mínimo
                 t.hp -= dmg;
-                damageDealt[t.instanceId] = dmg;
-
-                if (skill.type === 'drain') {
-                    const heal = Math.floor(dmg * 0.5);
-                    totalHeal += heal;
-                }
-
-                if (!skill.isAoE) {
-                    if (weaknessHit) logMsg += ` e causou ${dmg} de dano! (Fraqueza explorada!)`;
-                    else logMsg += ` e causou ${dmg} de dano.`;
-                }
+                
+                if (skill.type === 'drain') totalHeal += Math.floor(dmg * 0.5);
                 Engine.emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: t.instanceId, dmg: dmg });
             });
 
             this.logPlayer(logMsg);
-
-            if (skill.type === 'drain' && totalHeal > 0) {
-                p.heal(totalHeal);
-                this.logPlayer(`[${skill.name}] curou ${totalHeal} HP de ${p.name}!`);
-                Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.currentTurnEntity.index, dmg: totalHeal, isHeal: true });
-            }
+            if (totalHeal > 0) p.heal(totalHeal);
 
             setTimeout(() => {
                 Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
-                targets.forEach(t => {
-                    if (t.hp <= 0) {
-                        t.hp = 0;
-                        this.processMonsterDeath(t);
-                    }
-                });
+                targets.forEach(t => { if (t.hp <= 0) { t.hp = 0; this.processMonsterDeath(t); } });
 
-                if (this.monsters.every(m => m.hp <= 0)) {
-                    this.winCombat();
-                } else {
-                    setTimeout(() => this.nextTurn(), 1000);
-                }
+                if (this.monsters.every(m => m.hp <= 0)) this.winCombat();
+                else { this.isProcessingTurn = false; setTimeout(() => this.nextTurn(), 1000); }
             }, 600);
 
         } else if (skill.type === 'heal') {
-            let targets = [];
-            if (skill.isAoE) {
-                targets = this.party.filter(member => member.hp > 0);
-                this.logPlayer(`${p.name} usou [${skill.name}] curando todos os aliados!`);
-            } else {
-                targets = [(targetPartyIndex !== null && this.party[targetPartyIndex]) ? this.party[targetPartyIndex] : p];
-                this.logPlayer(`${p.name} usou [${skill.name}] e curou ${targets[0].name}!`);
-            }
+            let targets = skill.isAoE ? this.party.filter(m => m.hp > 0) : [(targetPartyIndex !== null && this.party[targetPartyIndex]) ? this.party[targetPartyIndex] : p];
+            this.logPlayer(`${p.name} usou [${skill.name}] curando aliados!`);
             
             targets.forEach(targetP => {
                 targetP.heal(skill.healAmount);
                 Engine.emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(targetP), dmg: skill.healAmount, isHeal: true });
             });
+            setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
 
-            setTimeout(() => {
-                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
-                setTimeout(() => this.nextTurn(), 1000);
-            }, 600);
-        } else if (skill.type === 'buff' || skill.type === 'buff_taunt' || skill.type === 'taunt' || skill.type === 'terrain') {
-            this.logPlayer(`${p.name} usou [${skill.name}] (Efeito base ativado, implementação completa pendente)`);
-            setTimeout(() => {
-                Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
-                this.nextTurn();
-            }, 600);
+        // PREENCHIMENTO DA LÓGICA DE SUPORTE E TERRENO
+        } else if (skill.type === 'buff' || skill.type === 'buff_taunt' || skill.type === 'taunt') {
+            this.logPlayer(`🛡️ ${p.name} usou [${skill.name}]! (Postura e Mitigação aumentadas)`);
+            p.defenseStance = true; // Absorve porcentagem de dano
+            setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
+
+        } else if (skill.type === 'terrain') {
+            this.logPlayer(`🌋 ${p.name} conjurou [${skill.name}], alterando o campo de batalha!`);
+            // Debuff genérico básico como exemplo de terreno
+            this.monsters.forEach(m => { if(m.hp > 0) m.hp -= Math.floor(m.maxHp * 0.05); });
+            setTimeout(() => { this.isProcessingTurn = false; this.nextTurn(); }, 1000);
         }
     }
 

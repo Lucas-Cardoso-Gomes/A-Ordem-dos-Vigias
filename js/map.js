@@ -58,14 +58,16 @@ const MapSystem = {
             return { type: 'event', data: { ...ev, isCampaign, regionId, battleIndex: index } };
         }
 
+        // ... (resto da função explore)
         const level = Math.max(region.minLvl, Math.min(region.maxLvl, window.Engine.randomInt(baseMob.minLvl, baseMob.maxLvl)));
         const scale = Math.max(0.2, 1 + (level - baseMob.minLvl) * 0.1);
-
         let hordeSize = 1;
+        
+        // CORREÇÃO: Limite do Horde Size para máximo de 5, viabilizando o desempenho do motor no grid de combate
         if (!baseMob.isBoss) {
-            hordeSize = window.Engine.randomInt(1, 10);
+            hordeSize = window.Engine.randomInt(1, 5);
         }
-
+        
         const monsters = [];
         for (let i = 0; i < hordeSize; i++) {
             monsters.push({
@@ -84,7 +86,6 @@ const MapSystem = {
                 hordeSize: hordeSize
             });
         }
-
         return { type: 'combat', data: monsters };
     }
 };

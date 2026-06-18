@@ -53,17 +53,22 @@ class UIManager {
             Engine.on('combatStarted', m => this.combatUI.showCombatScreen(m));
             Engine.on('combatEnded', v => this.combatUI.hideCombatScreen(v));
             Engine.on('combatAnimation', a => this.combatUI.playCombatAnimation(a));
-            Engine.on('turnStarted', () => {
+Engine.on('turnStarted', () => {
                 if (this.combatUI.btnAttack) this.combatUI.btnAttack.disabled = false;
                 if (this.combatUI.btnSkill) this.combatUI.btnSkill.disabled = false;
                 if (this.combatUI.btnPotion) this.combatUI.btnPotion.disabled = false;
                 if (this.combatUI.btnFlee) this.combatUI.btnFlee.disabled = false;
+                // CORREÇÃO: Garantindo que o Fim de Turno obedeça ao estado
+                if (this.combatUI.btnEndTurn) this.combatUI.btnEndTurn.disabled = false; 
             });
+            
             Engine.on('turnEnded', () => {
                 if (this.combatUI.btnAttack) this.combatUI.btnAttack.disabled = true;
                 if (this.combatUI.btnSkill) this.combatUI.btnSkill.disabled = true;
                 if (this.combatUI.btnPotion) this.combatUI.btnPotion.disabled = true;
                 if (this.combatUI.btnFlee) this.combatUI.btnFlee.disabled = true;
+                // CORREÇÃO: Travando o botão Fim de Turno no turno do inimigo
+                if (this.combatUI.btnEndTurn) this.combatUI.btnEndTurn.disabled = true; 
             });
         }
 
@@ -903,6 +908,9 @@ showToast(msg) {
             noI.innerText = 'Não tens equipamento na mochila para refinar. (Desequipa um item primeiro)';
             noI.style.color = '#777';
             this.elCraftingUpgradeList.appendChild(noI);
+            btn.onclick = () => {
+                CraftingSystem.refineEquipment(item.instanceId, inventory, player);
+            };
         }
 
         upgItems.forEach(item => {

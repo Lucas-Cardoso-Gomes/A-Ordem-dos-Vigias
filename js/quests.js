@@ -189,29 +189,28 @@ class QuestSystem {
         if (updated) Engine.emit('questsUpdated', this);
     }
 
+    // CORREÇÃO: Lógica de contagem de itens em múltiplas pilhas e sanitização de recompensas
     completeQuest(id) {
         const index = this.activeQuests.findIndex(q => q.id === id);
         if (index === -1) return false;
-
         const quest = this.activeQuests[index];
 
-        // Special check for gather quests (check inventory at completion time)
         if (quest.type === 'gather') {
-            const item = window.gameInventory.items.find(i => i.id === quest.targetId);
-            if (!item || item.count < quest.requiredQty) {
+            const totalCount = window.gameInventory.countItem(quest.targetId);
+            if (totalCount < quest.requiredQty) {
                 Engine.emit('systemLog', `Itens insuficientes. Você precisa de ${quest.requiredQty}x ${quest.targetName}.`);
                 return false;
             } else {
-                // Consume the items
-                window.gameInventory.removeItem(item.instanceId, quest.requiredQty);
-                quest.currentQty = quest.requiredQty; // Mark complete for rewards processing
+                // Consome os itens de forma segura, mesmo que estejam em várias pilhas
+                window.gameInventory.removeItemsById(quest.targetId, quest.requiredQty);
+                quest.currentQty = quest.requiredQty; 
             }
         } else if (quest.currentQty < quest.requiredQty) {
             Engine.emit('systemLog', 'Missão ainda não concluída.');
             return false;
         }
 
-        // Rewards
+        // Distribuição de Recompensas
         if (window.gameParty) {
             const livingPlayers = window.gameParty.filter(p => p.hp > 0);
             if (livingPlayers.length > 0) {
@@ -219,20 +218,19 @@ class QuestSystem {
                 livingPlayers.forEach(p => p.gainXp(xpPerMember));
                 window.gameParty[0].gainGold(quest.rewards.gold);
             } else {
-                 // Fallback if all dead (shouldn't happen, but just in case)
-                 window.gameParty[0].gainXp(quest.rewards.xp);
-                 window.gameParty[0].gainGold(quest.rewards.gold);
+                window.gameParty[0].gainXp(quest.rewards.xp);
+                window.gameParty[0].gainGold(quest.rewards.gold);
             }
         } else {
             this.player.gainXp(quest.rewards.xp);
             this.player.gainGold(quest.rewards.gold);
         }
         
-        // Potion or Material bonus 30% chance
+        // Chance de bônus
         if (Engine.randomChance(30)) {
             Engine.emit('systemLog', 'O cliente enviou um item extra como agradecimento!');
             const bonus = Math.random() > 0.5 ? ItemDatabase.getPotion('p1') : ItemDatabase.getMaterial('m1');
-            window.gameInventory.addItem(bonus); // Requires access to inventory
+            window.gameInventory.addItem(bonus); 
         }
 
         this.activeQuests.splice(index, 1);

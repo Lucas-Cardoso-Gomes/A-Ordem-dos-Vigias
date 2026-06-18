@@ -1,12 +1,6 @@
-/**
- * engine.js
- * Core event system and LocalStorage save/load functionality.
- */
-
 const Engine = {
     events: {},
 
-    // Simple Pub/Sub event system
     on(event, listener) {
         if (!this.events[event]) {
             this.events[event] = [];
@@ -14,13 +8,19 @@ const Engine = {
         this.events[event].push(listener);
     },
 
+    // CORREÇÃO: Tratamento defensivo no disparo de eventos
     emit(event, data) {
         if (this.events[event]) {
-            this.events[event].forEach(listener => listener(data));
+            this.events[event].forEach(listener => {
+                try {
+                    listener(data);
+                } catch (err) {
+                    console.error(`[Engine] Erro crítico ao processar o evento '${event}':`, err);
+                }
+            });
         }
     },
 
-    // Save state to LocalStorage
     saveGame(state) {
         try {
             const serializedState = JSON.stringify(state);
@@ -32,13 +32,10 @@ const Engine = {
         }
     },
 
-    // Load state from LocalStorage
     loadGame() {
         try {
             const serializedState = localStorage.getItem('a_ordem_dos_vigias_save');
-            if (serializedState === null) {
-                return null;
-            }
+            if (serializedState === null) return null;
             return JSON.parse(serializedState);
         } catch (e) {
             console.error("Failed to load game", e);
@@ -46,17 +43,17 @@ const Engine = {
         }
     },
 
-    // Clear saved game
     clearSave() {
         localStorage.removeItem('a_ordem_dos_vigias_save');
         this.emit('systemLog', 'Progresso resetado.');
     },
 
+    // CORREÇÃO: Utilizando encodeURIComponent sem as funções depreciadas escape/unescape
     exportSave() {
         try {
             const serializedState = localStorage.getItem('a_ordem_dos_vigias_save');
-            if (serializedState === null) return null;
-            return btoa(unescape(encodeURIComponent(serializedState)));
+            if (!serializedState) return null;
+            return btoa(encodeURIComponent(serializedState));
         } catch (e) {
             console.error("Failed to export game", e);
             return null;
@@ -65,9 +62,8 @@ const Engine = {
 
     importSave(base64Str) {
         try {
-            const serializedState = decodeURIComponent(escape(atob(base64Str)));
-            // Quick test to ensure it's valid JSON
-            JSON.parse(serializedState);
+            const serializedState = decodeURIComponent(atob(base64Str));
+            JSON.parse(serializedState); // Valida se é um JSON válido antes de salvar
             localStorage.setItem('a_ordem_dos_vigias_save', serializedState);
             return true;
         } catch (e) {
@@ -75,12 +71,11 @@ const Engine = {
             return false;
         }
     },
-    
-    // RNG Utilities
+
     randomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     },
-    
+
     randomChance(percent) {
         return Math.random() * 100 <= percent;
     }
