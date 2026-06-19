@@ -60,46 +60,46 @@ class CombatSystem {
         this.infiniteWave = 1;
         this.waitingNextWave = false;
         this.freeTurnsRemaining = 0;
-
+        
         this.spawnNextInfiniteWave();
     }
-
+    
     spawnNextInfiniteWave() {
         this.logSystem(`🔥 Iniciando Onda ${this.infiniteWave}...`);
-
+        
         const avgPartyLvl = Math.max(1, Math.floor(this.party.reduce((sum, p) => sum + p.level, 0) / this.party.length));
-
+        
         // Quantidade de inimigos cresce a cada dezena de ondas (Onda 1 = 1~2, Onda 10 = 2~3...)
         const minHorde = 1 + Math.floor(this.infiniteWave / 10);
-
+        
         // Define quantos inimigos vão aparecer baseados na wave e rolagens aleatórias
         let maxHordeCap = 3 + Math.floor(this.infiniteWave / 5);
         let numEnemies = Engine.randomInt(minHorde, maxHordeCap);
-
+        
         // Se for chefe (A cada 5 ondas)
         let isBossWave = (this.infiniteWave % 5 === 0);
         if (isBossWave) {
             numEnemies = Math.max(1, Math.floor(numEnemies / 2));
         }
-
+        
         // Pick random base monsters suitable for the level
         const allMobs = window.MonsterDatabase.monsters;
         let eligibleMobs = allMobs.filter(m => !m.isBoss && Math.abs((m.maxLvl || m.level) - avgPartyLvl) <= 15);
         if (eligibleMobs.length === 0) eligibleMobs = allMobs.filter(m => !m.isBoss);
-
+        
         let eligibleBosses = allMobs.filter(m => m.isBoss);
-
+        
         const monstersArray = [];
         for (let i = 0; i < numEnemies; i++) {
             let baseMob = eligibleMobs[Engine.randomInt(0, eligibleMobs.length - 1)];
-
+            
             if (isBossWave && i === 0 && eligibleBosses.length > 0) {
                 baseMob = eligibleBosses[Engine.randomInt(0, eligibleBosses.length - 1)];
             }
-
+            
             const lvlScale = avgPartyLvl + Math.floor(this.infiniteWave / 3);
             const scale = Math.max(0.5, 1 + (lvlScale - baseMob.minLvl) * 0.15);
-
+            
             monstersArray.push({
                 ...baseMob,
                 name: numEnemies > 1 ? `${baseMob.name} ${String.fromCharCode(65 + (i % 26))}` : baseMob.name,
@@ -114,7 +114,7 @@ class CombatSystem {
                 hordeSize: numEnemies
             });
         }
-
+        
         this.startCombat(monstersArray);
     }
 
@@ -215,10 +215,10 @@ class CombatSystem {
                     this.spawnNextInfiniteWave();
                     return;
                 }
-
+                
                 // Em modo de espera, os monstros estão mortos/vazios e queremos só a party agindo livremente.
                 this.turnQueue = this.initiativeOrder.filter(q => q.type === 'player' && this.party[q.index].hp > 0);
-
+                
                 if (this.turnQueue.length === 0) {
                     // Party toda morta no meio da rodada livre?
                     this.loseCombat();
@@ -243,7 +243,7 @@ class CombatSystem {
         }
 
         this.currentTurnEntity = this.turnQueue.shift();
-
+        
         if (this.waitingNextWave) {
             this.freeTurnsRemaining--;
             if (this.freeTurnsRemaining <= 0) {
@@ -1399,16 +1399,16 @@ class CombatSystem {
             this.waitingNextWave = true;
             this.freeTurnsRemaining = this.party.filter(p => p.hp > 0).length * 2; // 2 turnos inteiros do grupo
             this.monsters = []; // Limpar monstros para as rodadas livres
-
+            
             // Força reset na queue para apenas players agirem
             this.turnQueue = [];
             this.isProcessingTurn = false;
-
+            
             Engine.emit('combatUpdated', { party: this.party, monsters: this.monsters });
             setTimeout(() => this.nextTurn(), 1000);
             return;
         }
-
+        
         const repMonster = this.monsters.find(m => m.regionId);
 
         if (repMonster && repMonster.regionId) {
