@@ -63,22 +63,29 @@ const MapSystem = {
         const scale = Math.max(0.2, 1 + (level - baseMob.minLvl) * 0.1);
         let hordeSize = 1;
         
+        let isHighLevelMap = region.minLvl >= 50;
+
         // CORREÇÃO: Limite do Horde Size para máximo de 5, viabilizando o desempenho do motor no grid de combate
         if (!baseMob.isBoss) {
             hordeSize = window.Engine.randomInt(1, 5);
+            if (isHighLevelMap) {
+                hordeSize = Math.max(5, window.Engine.randomInt(5, 8)); // mínimo de 5 em mapas lvl 50+
+            }
         }
         
+        const xpMultiplier = isHighLevelMap ? 2 : 1; // Mapas difíceis dão o dobro de XP
+
         const monsters = [];
         for (let i = 0; i < hordeSize; i++) {
             monsters.push({
                 ...baseMob,
-                name: hordeSize > 1 ? `${baseMob.name} ${String.fromCharCode(65 + i)}` : baseMob.name,
+                name: hordeSize > 1 ? `${baseMob.name} ${String.fromCharCode(65 + (i % 26))}` : baseMob.name,
                 instanceId: 'mon_' + Date.now() + '_' + i,
                 level: level,
                 maxHp: Math.floor(baseMob.hp * scale),
                 hp: Math.floor(baseMob.hp * scale),
                 dmg: Math.floor(baseMob.dmg * scale),
-                xp: Math.floor(baseMob.xp * scale),
+                xp: Math.floor(baseMob.xp * scale) * xpMultiplier,
                 gold: Math.floor(baseMob.gold * scale),
                 isCampaign: isCampaign,
                 regionId: regionId,

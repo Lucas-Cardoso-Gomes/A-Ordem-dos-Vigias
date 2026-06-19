@@ -293,11 +293,28 @@ class CombatUIManager {
     showCombatScreen(monsters) {
         document.querySelector('[data-target="screen-combat"]').click();
         this.hideCombatMenus();
-        this.elCombatLog.innerHTML = '';
+
+        // Em modo infinito mantemos o log pra não perder a onda
+        if (!window.gameCombat || !window.gameCombat.isInfiniteMode || window.gameCombat.infiniteWave === 1) {
+            this.elCombatLog.innerHTML = '';
+        }
+
         if (this.elCombatActiveEffects) {
             this.elCombatActiveEffects.innerHTML = '';
             this.elCombatActiveEffects.style.display = 'none';
         }
+
+        const combatTitle = document.getElementById('combat-title');
+        if (combatTitle) {
+            if (window.gameCombat && window.gameCombat.isInfiniteMode) {
+                combatTitle.innerText = `🔥 Batalha de Ondas Infinitas - Onda ${window.gameCombat.infiniteWave} 🔥`;
+                combatTitle.style.color = "var(--rarity-legendary)";
+            } else {
+                combatTitle.innerText = "Combate";
+                combatTitle.style.color = "inherit";
+            }
+        }
+
         this.renderCombatMonsters(monsters);
 
         this.btnAttack.disabled = false;
@@ -598,6 +615,17 @@ class CombatUIManager {
     renderCombatStats(data) {
         const party = data.party || window.gameParty;
         const monsters = data.monsters;
+
+        const combatTitle = document.getElementById('combat-title');
+        if (combatTitle) {
+            if (window.gameCombat && window.gameCombat.isInfiniteMode) {
+                combatTitle.innerText = `🔥 Batalha de Ondas Infinitas - Onda ${window.gameCombat.infiniteWave} 🔥`;
+                combatTitle.style.color = "var(--rarity-legendary)";
+            } else {
+                combatTitle.innerText = "Combate";
+                combatTitle.style.color = "inherit";
+            }
+        }
 
         this.elCombatPartyContainer.innerHTML = '';
         

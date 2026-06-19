@@ -119,6 +119,7 @@ Engine.on('turnStarted', () => {
         this.elLocDetails = document.getElementById('location-details');
         this.elLocName = document.getElementById('loc-name');
         this.btnExplore = document.getElementById('btn-explore');
+        this.btnInfiniteMode = document.getElementById('btn-infinite-mode');
 
         // Quests
         this.elActiveQuests = document.getElementById('active-quests-list');
@@ -265,6 +266,28 @@ Engine.on('turnStarted', () => {
                 this.renderRegionDetails(locId);
             });
         });
+
+        if (this.btnInfiniteMode) {
+            this.btnInfiniteMode.addEventListener('click', () => {
+                if (window.gameCombat) {
+                    window.gameCombat.startInfiniteMode();
+
+                    // Switch to combat screen
+                    this.screens.forEach(s => {
+                        s.classList.remove('active');
+                        s.classList.add('hidden');
+                    });
+
+                    this.navButtons.forEach(b => b.classList.remove('active'));
+                    const targetBtn = Array.from(this.navButtons).find(b => b.getAttribute('data-target') === 'screen-combat');
+                    if (targetBtn) targetBtn.classList.add('active');
+
+                    const targetScreen = document.getElementById('screen-combat');
+                    targetScreen.classList.remove('hidden');
+                    targetScreen.classList.add('active');
+                }
+            });
+        }
 
         this.btnSave.addEventListener('click', () => window.game.save());
         this.btnLoad.addEventListener('click', () => {
