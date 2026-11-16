@@ -1,0 +1,20 @@
+{
+  "width": 100,
+  "height": 100,
+  "tileSize": 8,
+  "objects": [
+    { "type": "city", "id": "alvorada",   "name": "Alvorada",         "x": 15, "y": 20, "regionId": "floresta" },
+    { "type": "city", "id": "helgen_city","name": "Helgen",           "x": 20, "y": 70, "regionId": "helgen" },
+    { "type": "city", "id": "ironhold",   "name": "Ironhold",         "x": 55, "y": 30, "regionId": "montanhas" },
+    { "type": "city", "id": "pantano_city","name": "Pântano Maldito", "x": 60, "y": 65, "regionId": "pantano" },
+    { "type": "city", "id": "fortaleza_city","name": "A Fortaleza",  "x": 80, "y": 20, "regionId": "fortaleza" },
+    { "type": "city", "id": "vale_city",  "name": "Vale dos Dragões", "x": 88, "y": 80, "regionId": "vale" },
+
+    { "type": "npc", "id": "npc_guia",     "name": "Guia da Floresta", "dialogue": "Recruta! Bem-vindo à Floresta Sombria. Apenas os mais corajosos sobrevivem aqui. Siga para Alvorada se precisar de descanso.", "x": 12, "y": 18 },
+    { "type": "npc", "id": "npc_velho",    "name": "Velho Pescador",   "dialogue": "Essas águas escondem criaturas terríveis. Já vi muitos aventureiros desaparecerem nessas margens...", "x": 32, "y": 48 },
+    { "type": "npc", "id": "npc_soldado",  "name": "Soldado Ferido",   "dialogue": "A Fortaleza... não entres lá. Meus companheiros... todos caíram. Apenas os mais fortes sobrevivem.", "x": 75, "y": 22 },
+    { "type": "npc", "id": "npc_feiticeira","name": "Feiticeira Errante","dialogue": "O Vale dos Dragões chama por sangue. Se és louco o suficiente para entrar, leva isto em mente: fogo não os assusta.", "x": 85, "y": 75 },
+    { "type": "npc", "id": "npc_mercador", "name": "Mercador Itinerante","dialogue": "Compro e vendo de tudo! Passou por Helgen recentemente? Dizem que novas criaturas estão emergindo das masmorras.", "x": 22, "y": 68 },
+    { "type": "npc", "id": "npc_monge",    "name": "Monge das Montanhas","dialogue": "O silêncio das montanhas esconde verdades. Os Minotauros que habitam aqui são guardiões de um segredo muito antigo.", "x": 52, "y": 28 }
+  ]
+}

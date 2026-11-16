@@ -24,7 +24,8 @@ const MonsterDatabase = {
 
         // Chefes (Level 80-100+)
         { id: 'boss1', name: 'Rei Vampiro', type: 'Chefe Morto-vivo', tier: 4, minLvl: 80, maxLvl: 90, hp: 3000, dmg: 150, weakness: ['luz sagrada', 'estaca'], xp: 2000, gold: 1000, dropChance: 100, isBoss: true, ai: { targetPriority: 'ISOLATED', moveType: 'ASTAR' } },
-        { id: 'boss2', name: 'Dragão Negro', type: 'Chefe Dragão', tier: 4, minLvl: 90, maxLvl: 100, hp: 5000, dmg: 250, weakness: ['armas lendárias', 'gelo'], xp: 5000, gold: 3000, dropChance: 100, isBoss: true, ai: { targetPriority: 'CLOSEST', moveType: 'ASTAR' } }
+        { id: 'boss2', name: 'Dragão Negro', type: 'Chefe Dragão', tier: 4, minLvl: 90, maxLvl: 100, hp: 5000, dmg: 250, weakness: ['armas lendárias', 'gelo'], xp: 5000, gold: 3000, dropChance: 100, isBoss: true, ai: { targetPriority: 'CLOSEST', moveType: 'ASTAR' } },
+        { id: 'boss3', name: 'Lorde Supremo do Caos', type: 'Chefe do Vazio', tier: 4, minLvl: 95, maxLvl: 120, hp: 6500, dmg: 320, weakness: ['luz sagrada'], xp: 8000, gold: 5000, dropChance: 100, isBoss: true, ai: { targetPriority: 'LOWEST_HP', moveType: 'ASTAR' } }
     ],
 
     generateMonster(regionLevelMin, regionLevelMax, isBoss = false) {

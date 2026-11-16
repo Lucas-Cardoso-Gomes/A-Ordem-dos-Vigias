@@ -114,12 +114,14 @@ Engine.on('turnStarted', () => {
         // Equipment slots
         this.eqSlots = document.querySelectorAll('.eq-slot');
 
-        // Map
+        // Map & World
         this.mapLocations = document.querySelectorAll('.map-location');
         this.elLocDetails = document.getElementById('location-details');
         this.elLocName = document.getElementById('loc-name');
         this.btnExplore = document.getElementById('btn-explore');
         this.btnInfiniteMode = document.getElementById('btn-infinite-mode');
+        this.mapTabBtns = document.querySelectorAll('.map-tab-btn');
+        this.btnWorldRest = document.getElementById('btn-world-rest');
 
         // Quests
         this.elActiveQuests = document.getElementById('active-quests-list');
@@ -358,6 +360,27 @@ Engine.on('turnStarted', () => {
                 this.showToast('Save copiado para a área de transferência.');
             });
         }
+
+        // Map Tabs & World Controls
+        if (this.mapTabBtns) {
+            this.mapTabBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const mapId = e.currentTarget.getAttribute('data-map');
+                    if (window.gameTileMap) {
+                        window.gameTileMap.switchMap(mapId);
+                    }
+                });
+            });
+        }
+
+        if (this.btnWorldRest) {
+            this.btnWorldRest.addEventListener('click', () => {
+                if (window.gameTileMap) {
+                    window.gameTileMap.restAtCamp();
+                    this.showToast('🏕️ O grupo descansou no acampamento. HP e Mana recuperados!');
+                }
+            });
+        }
     }
 
     setupNavigation() {
@@ -368,6 +391,15 @@ Engine.on('turnStarted', () => {
                 if (window.gameCombat.inCombat && target !== 'screen-combat') {
                     this.showToast('Você não pode sair enquanto estiver em combate!');
                     return;
+                }
+
+                // Loja e Forja só disponíveis se o player estiver na base (Floresta)
+                if (target === 'screen-shop' || target === 'screen-crafting') {
+                    const currentMap = window.gameTileMap ? window.gameTileMap.currentMapId : 'floresta';
+                    if (currentMap !== 'floresta') {
+                        this.showToast('🔒 A Loja e a Forja só estão disponíveis na Base (Cidade na Floresta)! Caminhe de volta até a base para acessá-las.');
+                        return;
+                    }
                 }
 
                 this.navButtons.forEach(b => b.classList.remove('active'));
@@ -389,6 +421,11 @@ Engine.on('turnStarted', () => {
                 // Explicitly render crafting if navigating to it
                 if (target === 'screen-crafting') {
                     this.renderCrafting(window.gameInventory, window.gameParty[0]);
+                }
+
+                // Explicitly show and refresh World Map if navigating to it
+                if (target === 'screen-map' && window.gameTileMap) {
+                    window.gameTileMap.onShow();
                 }
             });
         });
@@ -855,6 +892,9 @@ showToast(msg) {
     }
 
     renderMap() {
+        if (window.gameTileMap) {
+            window.gameTileMap.updateHUD();
+        }
         if (!this.mapLocations) return;
         this.mapLocations.forEach(btn => {
             const locId = btn.getAttribute('data-loc');
@@ -1260,6 +1300,7 @@ handleMapEvent(ev) {
     }
 
     renderRegionDetails(locId) {
+        if (!this.elLocDetails) return;
         const loc = window.MapSystem.getRegionDetails(locId);
         if (!loc) return;
 

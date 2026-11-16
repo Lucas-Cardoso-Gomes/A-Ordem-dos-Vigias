@@ -238,6 +238,43 @@ button.danger:hover {
     text-align: center;
 }
 
+/* World canvas & Map UI */
+.journey-badge {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    background: #181818;
+    border: 1px solid var(--border-color);
+    color: #888;
+    border-radius: 4px;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.journey-badge.active {
+    background: #2a220c;
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    font-weight: bold;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.25);
+}
+
+#world-canvas {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 2 / 1;
+    border: 1px solid var(--border-color);
+    background: #0d0d0d;
+    cursor: crosshair;
+    image-rendering: pixelated;
+    margin-bottom: 0.5rem;
+}
+
+/* NPC / World dialog */
+#world-dialog {
+    animation: fadeIn 0.15s ease;
+}
+
 /* Combat Animations */
 @keyframes attack-anim {
     0% { transform: translateX(0) scale(1); }

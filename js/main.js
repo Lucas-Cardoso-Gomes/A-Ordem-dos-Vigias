@@ -49,6 +49,47 @@ class Game {
     init() {
         this.ui = new UIManager();
         this.load();
+
+        // Initialize world TileMap
+        this.tileMap = new TileMap('world-canvas');
+        window.gameTileMap = this.tileMap;
+
+        // Restore saved world map state if exists
+        if (this._pendingWorldMapState) {
+            const s = this._pendingWorldMapState;
+            if (s.currentMapId && window.TileMap && window.TileMap.MAPS && window.TileMap.MAPS[s.currentMapId]) {
+                this.tileMap.switchMap(s.currentMapId, s.playerX, s.playerY);
+            } else {
+                this.tileMap.playerX = s.playerX !== undefined ? s.playerX : this.tileMap.playerX;
+                this.tileMap.playerY = s.playerY !== undefined ? s.playerY : this.tileMap.playerY;
+            }
+            if (Array.isArray(s.revealed)) {
+                this.tileMap.revealed = new Set(s.revealed);
+                if (this.tileMap.revealedByMap) {
+                    this.tileMap.revealedByMap[this.tileMap.currentMapId] = this.tileMap.revealed;
+                }
+            }
+            if (s.defeatedEnemies && this.tileMap.enemiesByMap) {
+                for (const [mId, defIds] of Object.entries(s.defeatedEnemies)) {
+                    if (this.tileMap.enemiesByMap[mId] && Array.isArray(defIds)) {
+                        this.tileMap.enemiesByMap[mId].forEach(e => {
+                            if (defIds.includes(e.id)) e.defeated = true;
+                        });
+                    }
+                }
+            }
+            if (s.quickRestsRemaining !== undefined) {
+                this.tileMap.quickRestsRemaining = s.quickRestsRemaining;
+            }
+            this.tileMap._centerCamOn(this.tileMap.playerX, this.tileMap.playerY);
+            this.tileMap.updateHUD();
+            this._pendingWorldMapState = null;
+        }
+
+        // Keep the tilemap in sync when regions unlock
+        Engine.on('regionProgressUpdated', () => {
+            if (this.tileMap) this.tileMap.onRegionsUpdated();
+        });
         
         // Trigger initial renders
         Engine.emit('partyUpdated', this.party);
@@ -68,7 +109,7 @@ class Game {
         // Auto-save loop
         setInterval(() => this.loop(), 1000);
         
-        Engine.emit('systemLog', 'Bem-vindo à Aegis Nocturna, recruta!');
+        Engine.emit('systemLog', 'Bem-vindo à Aegis Nocturna, recruta! Visite o Mapa para explorar o mundo.');
     }
 
     loop() {
@@ -81,13 +122,23 @@ class Game {
     }
 
     save() {
+        const tileMap = window.gameTileMap;
         const state = {
             party: this.party.map(p => p.save()),
             inventory: this.inventory.save(),
             quests: this.quests.save(),
             mapProgress: MapSystem.progress,
-            unlockedRegions: MapSystem.unlockedRegions
-            // In a larger scale, we'd save bestiary, achievements, map unlocks, etc.
+            unlockedRegions: MapSystem.unlockedRegions,
+            worldMap: tileMap ? {
+                currentMapId: tileMap.currentMapId,
+                playerX: tileMap.playerX,
+                playerY: tileMap.playerY,
+                quickRestsRemaining: tileMap.quickRestsRemaining,
+                revealed: Array.from(tileMap.revealed),
+                defeatedEnemies: tileMap.enemiesByMap ? Object.fromEntries(
+                    Object.entries(tileMap.enemiesByMap).map(([mId, list]) => [mId, list.filter(e => e.defeated).map(e => e.id)])
+                ) : {}
+            } : null
         };
         Engine.saveGame(state);
     }
@@ -120,12 +171,17 @@ class Game {
             if (state.unlockedRegions) {
                 MapSystem.unlockedRegions = state.unlockedRegions;
             }
+
+            // Restore world map state after tilemap is initialized
+            if (state.worldMap) {
+                this._pendingWorldMapState = state.worldMap;
+            }
         } else {
             // New game initial items
-            this.inventory.addItem(ItemDatabase.generateItem(1, 'comum')); // Give a starting item
+            this.inventory.addItem(ItemDatabase.generateItem(1, 'comum'));
             this.inventory.addItem(ItemDatabase.getPotion('p1'));
-            this.quests.load(null); // Generates starting contracts
-            MapSystem.unlockedRegions = ['floresta', 'helgen']; // Default initial regions
+            this.quests.load(null);
+            MapSystem.unlockedRegions = ['floresta', 'helgen'];
         }
     }
 }
