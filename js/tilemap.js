@@ -544,12 +544,24 @@ class TileMap {
     }
 
     // ---------------------------------------------------------
-    // Resting System (Base in Floresta only)
+    // City Check (Base in Floresta Camp at x:2, y:2)
+    // ---------------------------------------------------------
+    isPlayerInCity() {
+        if (this.currentMapId !== 'floresta') return false;
+        const camp = this.currentMap && this.currentMap.camp;
+        if (!camp) return false;
+        // In Floresta, the city / camp clearing is at (2, 2)
+        const dist = Math.hypot(this.playerX - camp.x, this.playerY - camp.y);
+        return dist <= 2.2;
+    }
+
+    // ---------------------------------------------------------
+    // Resting System (Base City in Floresta only)
     // ---------------------------------------------------------
     quickRest() {
-        if (this.currentMapId !== 'floresta') {
+        if (!this.isPlayerInCity()) {
             if (typeof Engine !== 'undefined') {
-                Engine.emit('systemLog', '🔒 O descanso só é seguro na base (Acampamento da Floresta)!');
+                Engine.emit('systemLog', '🔒 O descanso só é seguro dentro da Cidade (Acampamento de Alvorada na Floresta)!');
             }
             return false;
         }
@@ -582,9 +594,9 @@ class TileMap {
     }
 
     longRest() {
-        if (this.currentMapId !== 'floresta') {
+        if (!this.isPlayerInCity()) {
             if (typeof Engine !== 'undefined') {
-                Engine.emit('systemLog', '🔒 O descanso só é seguro na base (Acampamento da Floresta)!');
+                Engine.emit('systemLog', '🔒 O descanso só é seguro dentro da Cidade (Acampamento de Alvorada na Floresta)!');
             }
             return false;
         }

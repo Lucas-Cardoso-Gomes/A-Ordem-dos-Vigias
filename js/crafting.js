@@ -85,6 +85,11 @@ const CraftingSystem = {
     },
 
     craft(recipeId, inventory, player) {
+        if (typeof window !== 'undefined' && window.gameTileMap && !window.gameTileMap.isPlayerInCity()) {
+            Engine.emit('systemLog', '🔒 Ação bloqueada: A Forja só funciona na Cidade de Alvorada (na Floresta)!');
+            return false;
+        }
+
         const recipe = this.recipes.find(r => r.id === recipeId);
         if (!recipe) return false;
 
