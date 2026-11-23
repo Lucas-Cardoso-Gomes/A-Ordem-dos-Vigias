@@ -122,6 +122,7 @@ class QuestSystem {
         if (!eng || typeof eng.on !== 'function' || this._boundEngine === eng) return;
         this._boundEngine = eng;
         eng.on('relicGranted', (relic) => {
+            if (typeof window !== 'undefined' && window.gameQuests && window.gameQuests !== this) return;
             if (relic && relic.id) {
                 this.processRelicEvent(relic.id);
             }

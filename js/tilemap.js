@@ -1934,7 +1934,7 @@ class TileMap {
                             if (presetBtn) {
                                 presetBtn.click();
                             } else {
-                                const addBtn = document.getElementById('btn-add-party-member');
+                                const addBtn = document.getElementById('btn-add-member') || document.getElementById('btn-add-party-member');
                                 if (addBtn) addBtn.click();
                             }
                         }

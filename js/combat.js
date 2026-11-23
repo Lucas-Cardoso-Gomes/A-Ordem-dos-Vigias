@@ -194,7 +194,7 @@ class CombatSystem {
 
         target.hp = Math.max(0, target.hp - remaining);
         if (attacker && this.party.includes(attacker)) {
-            this._recordStat('totalDamageDealt', remaining);
+            this._recordStat('damageDealt', remaining);
         }
         if (target.hp > 0) {
             this.checkBossPhase2(target);
@@ -236,6 +236,7 @@ class CombatSystem {
         const gm = this._getGM();
         if (!gm || typeof gm.checkElementalReaction !== 'function') return null;
 
+        const combosBefore = gm.state?.stats?.elementalCombos || 0;
         const reaction = gm.checkElementalReaction(target, incomingElement, caster, baseDmg);
         if (!reaction) return null;
 
@@ -247,19 +248,22 @@ class CombatSystem {
         }
         if (reaction.healCaster && caster && typeof caster.heal === 'function') {
             caster.heal(reaction.healCaster);
-            this._recordStat('totalHealingDone', reaction.healCaster);
+            this._recordStat('healingDone', reaction.healCaster);
             const pIdx = this.party.indexOf(caster);
             if (pIdx !== -1) {
                 this._emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: pIdx, dmg: reaction.healCaster, isHeal: true });
             }
         }
 
+        const casterIdx = caster ? this.party.indexOf(caster) : -1;
         this.logPlayer(`💥 REAÇÃO ELEMENTAL: [${reaction.name}] em ${target.name}! (+${res.dmg} de dano!)`);
         this._emit('combatAnimation', { target: 'monster', anim: 'damage', monsterId: target.instanceId, dmg: res.dmg, isCombo: true, label: reaction.name });
         this._emit('combatVFX', {
             type: 'combo',
             reaction: reaction.name,
             element: incomingElement,
+            sourceId: casterIdx !== -1 ? `player_${casterIdx}` : undefined,
+            targetId: target.instanceId,
             from: caster ? { x: caster.gridX, y: caster.gridY } : { x: target.gridX, y: target.gridY },
             to: { x: target.gridX, y: target.gridY },
             monsterId: target.instanceId,
@@ -267,7 +271,10 @@ class CombatSystem {
             dmg: res.dmg
         });
         this._getAudio()?.play?.('combo');
-        this._recordStat('elementalCombos', 1);
+        const combosAfter = gm.state?.stats?.elementalCombos || 0;
+        if (combosAfter === combosBefore) {
+            this._recordStat('elementalCombos', 1);
+        }
         return { ...reaction, appliedDmg: res.dmg };
     }
 
@@ -361,7 +368,7 @@ class CombatSystem {
                 const healAmt = t.heal || 15;
                 if (typeof entity.heal === 'function') entity.heal(healAmt);
                 else entity.hp += healAmt;
-                this._recordStat('totalHealingDone', healAmt);
+                this._recordStat('healingDone', healAmt);
                 if ((t.type === 'holy' || t.type === 'blessing') && gm && typeof gm.applyStatus === 'function') {
                     gm.applyStatus(entity, 'blessing', { duration: 2, caster: t.casterId });
                 }
@@ -1062,7 +1069,8 @@ class CombatSystem {
         let dmg = this._randomInt(min, max);
 
         const gm = this._getGM();
-        const critBonus = gm?.getPartyBonuses?.()?.critChance || 0;
+        const bonuses = gm?.getPartyBonuses?.();
+        const critBonus = (bonuses?.critBonus ?? bonuses?.critChance) || 0;
         const critChance = 5 + (p.getTotalAttr('luk') * 0.2) + (p.getTotalAttr('agi') * 0.1) + critBonus;
         let isCrit = false;
         if (this._randomChance(critChance)) {
@@ -1105,6 +1113,8 @@ class CombatSystem {
             type: vfxType,
             style: vfxType,
             element: elem || 'fisico',
+            sourceId: `player_${pIndex}`,
+            targetId: target.instanceId,
             from: { x: p.gridX, y: p.gridY },
             to: { x: target.gridX, y: target.gridY },
             playerIndex: pIndex,
@@ -1219,6 +1229,8 @@ class CombatSystem {
             this._emit('combatVFX', {
                 type: skill.isAoE ? 'aoe_burst' : 'projectile',
                 element: skill.element || 'arcano',
+                sourceId: `player_${pIndex}`,
+                targetId: !skill.isAoE ? targets[0].instanceId : (center?.instanceId || targets[0].instanceId),
                 from: { x: p.gridX, y: p.gridY },
                 to: center ? { x: center.gridX, y: center.gridY } : { x: targets[0].gridX, y: targets[0].gridY },
                 targets: targets.map(t => ({ x: t.gridX, y: t.gridY, id: t.instanceId })),
@@ -1248,8 +1260,9 @@ class CombatSystem {
                 if (t.hp > 0 && gm && typeof gm.applyStatus === 'function') {
                     const statusId = skill.statusEffect || this._mapElementToStatus(skill.element);
                     if (statusId) {
-                        const chance = skill.statusChance ?? (skill.statusEffect ? 100 : 80);
-                        if (chance >= 100 || this._randomChance(chance)) {
+                        let chance = skill.statusChance ?? (skill.statusEffect ? 100 : 80);
+                        if (chance > 0 && chance <= 1) chance = chance * 100;
+                        if (chance >= 100 || (chance > 0 && this._randomChance(chance))) {
                             gm.applyStatus(t, statusId, {
                                 duration: skill.statusDuration || 3,
                                 caster: p,
@@ -1264,7 +1277,7 @@ class CombatSystem {
             this.logPlayer(logMsg);
             if (totalHeal > 0) {
                 p.heal(totalHeal);
-                this._recordStat('totalHealingDone', totalHeal);
+                this._recordStat('healingDone', totalHeal);
             }
 
             setTimeout(() => {
@@ -1283,6 +1296,8 @@ class CombatSystem {
             this._emit('combatVFX', {
                 type: 'heal',
                 element: 'sagrado',
+                sourceId: `player_${pIndex}`,
+                targetId: targets[0] ? `player_${this.party.indexOf(targets[0])}` : `player_${pIndex}`,
                 from: { x: p.gridX, y: p.gridY },
                 to: targets[0] ? { x: targets[0].gridX, y: targets[0].gridY } : { x: p.gridX, y: p.gridY },
                 targets: targets.map(tp => ({ x: tp.gridX, y: tp.gridY, playerIndex: this.party.indexOf(tp) })),
@@ -1292,7 +1307,18 @@ class CombatSystem {
             targets.forEach(targetP => {
                 const healAmt = Math.floor(skill.healAmount || 50);
                 targetP.heal(healAmt);
-                this._recordStat('totalHealingDone', healAmt);
+                this._recordStat('healingDone', healAmt);
+                if (skill.statusEffect && gm && typeof gm.applyStatus === 'function') {
+                    let chance = skill.statusChance ?? 100;
+                    if (chance > 0 && chance <= 1) chance = chance * 100;
+                    if (chance >= 100 || (chance > 0 && this._randomChance(chance))) {
+                        gm.applyStatus(targetP, skill.statusEffect, {
+                            duration: skill.statusDuration || 2,
+                            shieldAmount: skill.shieldAmount || Math.round((targetP.getMaxHp ? targetP.getMaxHp() : 100) * 0.15),
+                            caster: p
+                        });
+                    }
+                }
                 this._emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: this.party.indexOf(targetP), dmg: healAmt, isHeal: true });
             });
             this._emit('combatUpdated', { party: this.party, monsters: this.monsters });
@@ -1305,6 +1331,8 @@ class CombatSystem {
             this._emit('combatVFX', {
                 type: 'shield',
                 element: 'sagrado',
+                sourceId: `player_${pIndex}`,
+                targetId: `player_${pIndex}`,
                 from: { x: p.gridX, y: p.gridY },
                 to: { x: p.gridX, y: p.gridY },
                 playerIndex: pIndex,
@@ -1328,7 +1356,7 @@ class CombatSystem {
                 p.defenseBuffAmount = skill.amount || 0.5;
                 p.defenseBuffDuration = skill.buffDuration || skill.duration || 3;
                 if (gm && typeof gm.applyStatus === 'function') {
-                    gm.applyStatus(p, 'shield', { duration: p.defenseBuffDuration, shieldAmount: Math.round(p.getMaxHp() * 0.2) });
+                    gm.applyStatus(p, 'shield', { duration: p.defenseBuffDuration, shieldAmount: skill.shieldAmount || Math.round(p.getMaxHp() * 0.2) });
                 }
             }
 
@@ -1351,6 +1379,8 @@ class CombatSystem {
                 type: 'terrain',
                 terrainType: skill.terrainType,
                 element: terrainElem,
+                sourceId: `player_${pIndex}`,
+                playerIndex: pIndex,
                 from: { x: p.gridX, y: p.gridY },
                 to: { x: coords.x, y: coords.y },
                 radius: terrainRadius,
@@ -1529,7 +1559,7 @@ class CombatSystem {
                 }
                 const healAmt = Math.max(80, Math.round(ally.getMaxHp() * 0.45) + (p.getTotalAttr ? p.getTotalAttr('int') * 4 : 40));
                 ally.heal(healAmt);
-                this._recordStat('totalHealingDone', healAmt);
+                this._recordStat('healingDone', healAmt);
                 if (gm?.cleanseNegativeStatuses) gm.cleanseNegativeStatuses(ally);
                 if (gm?.applyStatus) gm.applyStatus(ally, 'blessing', { duration: 3, caster: p });
                 this._emit('combatAnimation', { target: 'player', anim: 'damage', playerIndex: idx, dmg: healAmt, isHeal: true });
@@ -1558,6 +1588,8 @@ class CombatSystem {
             ultimateName: ultName,
             playerClass: p.playerClass,
             element: ultElem,
+            sourceId: `player_${pIndex}`,
+            targetId: primary ? primary.instanceId : `player_${pIndex}`,
             playerIndex: pIndex,
             from: { x: p.gridX, y: p.gridY },
             to: primary ? { x: primary.gridX, y: primary.gridY } : { x: p.gridX, y: p.gridY },
@@ -1593,7 +1625,7 @@ class CombatSystem {
         this.logSystem(`${monster.name} foi derrotado!`);
         this._emit('combatAnimation', { target: 'monster', anim: 'death', monsterId: monster.instanceId });
         this._getAudio()?.play?.('death');
-        this._recordStat('enemiesDefeated', 1);
+        this._recordStat('kills', 1);
         if (monster.isBoss) this._recordStat('bossesDefeated', 1);
 
         const loot = (typeof window !== 'undefined' && window.MonsterDatabase)
@@ -2127,6 +2159,8 @@ class CombatSystem {
         this._emit('combatVFX', {
             type: attacker.isBoss ? 'magic_bolt' : 'slash',
             element: attacker.isBoss ? 'trevas' : 'fisico',
+            sourceId: attacker.instanceId,
+            targetId: `player_${targetPIndex}`,
             from: { x: attacker.gridX, y: attacker.gridY },
             to: { x: targetP.gridX, y: targetP.gridY },
             monsterId: attacker.instanceId,
@@ -2278,7 +2312,18 @@ class CombatSystem {
             this._getAudio()?.play?.('potion');
             this._emit('turnEnded', null);
             this.logPlayer(`${this.party[pIndex].name} usou uma poção.`);
-            setTimeout(() => this.nextTurn(), 1000);
+            this.monsters.forEach(m => {
+                if (m.hp > 0) this.checkBossPhase2(m);
+                else if (m.hp <= 0) {
+                    m.hp = 0;
+                    this.processMonsterDeath(m);
+                }
+            });
+            if (this.monsters.length > 0 && this.monsters.every(m => m.hp <= 0) && !this.waitingNextWave) {
+                setTimeout(() => this.winCombat(), 400);
+            } else {
+                setTimeout(() => this.nextTurn(), 1000);
+            }
         }
     }
 
@@ -2354,6 +2399,8 @@ class CombatSystem {
                 this.logSystem(`(De ${monster.name}) Recebeu ${loot.xp} XP (${xpPerMember} p/ cada) e ${loot.gold} Ouro.`);
 
                 loot.items.forEach(item => this.inventory.addItem(item));
+                this._recordStat('kills', 1);
+                if (monster.isBoss) this._recordStat('bossesDefeated', 1);
                 this._emit('bestiaryUpdate', monster);
                 this._emit('questUpdate', { type: 'kill', monsterId: monster.id, qty: 1 });
             });

@@ -288,6 +288,8 @@ class UIManager {
                         if (window.gameTileMap) {
                             window.gameTileMap.revealedByMap = {};
                             window.gameTileMap.enemiesByMap = {};
+                            window.gameTileMap.openedChests?.clear?.();
+                            window.gameTileMap.usedShrines?.clear?.();
                             window.gameTileMap.quickRestsRemaining = 2;
                             window.gameTileMap.switchMap('floresta', null, null, true);
                         }
@@ -436,10 +438,14 @@ class UIManager {
                         const qty = parseInt(qtyStr, 10);
                         if (!isNaN(qty) && qty > 0) {
                             const toUse = Math.min(qty, item.count);
+                            let usedCount = 0;
                             for (let i = 0; i < toUse; i++) {
-                                window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex);
+                                if (!window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex)) break;
+                                usedCount++;
                             }
-                            this.showToast(`Você consumiu ${toUse}x ${item.name}!`);
+                            if (usedCount > 0) {
+                                this.showToast(`Você consumiu ${usedCount}x ${item.name}!`);
+                            }
                         }
                     } else {
                         window.gameInventory.useItem(this.selectedItemInstanceId, this.selectedPartyIndex);
@@ -2078,6 +2084,8 @@ class UIManager {
         });
 
         if (window.gameTileMap) {
+            window.gameTileMap.openedChests?.clear?.();
+            window.gameTileMap.usedShrines?.clear?.();
             if (window.gameTileMap.enemiesByMap) {
                 Object.keys(window.gameTileMap.enemiesByMap).forEach(mId => {
                     window.gameTileMap.respawnMapEnemies?.(mId);

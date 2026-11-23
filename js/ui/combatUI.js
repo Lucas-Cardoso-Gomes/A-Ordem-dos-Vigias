@@ -895,10 +895,24 @@ class CombatUIManager {
     handleCombatVFX(vfx) {
         if (!vfx) return;
 
-        // Forward to 3D Arena if active (normalize aliases for Scene3D.CombatArena)
+        // Forward to 3D Arena if active (normalize aliases and unit IDs for Scene3D.CombatArena)
         if (this.use3D && this.arena3D) {
             const type3dMap = { aoe_burst: 'aoe', magic_bolt: 'projectile' };
-            const mappedVfx = type3dMap[vfx.type] ? { ...vfx, type: type3dMap[vfx.type] } : vfx;
+            const mappedVfx = { ...vfx };
+            if (type3dMap[vfx.type]) {
+                mappedVfx.type = type3dMap[vfx.type];
+            }
+            if (!mappedVfx.sourceId) {
+                const isMonsterSource = window.gameCombat?.currentTurnEntity?.type === 'monster' && vfx.monsterId;
+                if (isMonsterSource) mappedVfx.sourceId = vfx.monsterId;
+                else if (vfx.playerIndex !== undefined) mappedVfx.sourceId = `player_${vfx.playerIndex}`;
+                else if (vfx.monsterId) mappedVfx.sourceId = vfx.monsterId;
+            }
+            if (!mappedVfx.targetId) {
+                const isMonsterSource = mappedVfx.sourceId === vfx.monsterId;
+                if (isMonsterSource && vfx.playerIndex !== undefined) mappedVfx.targetId = `player_${vfx.playerIndex}`;
+                else if (!isMonsterSource && vfx.monsterId) mappedVfx.targetId = vfx.monsterId;
+            }
             this.arena3D.playVFX?.(mappedVfx);
         }
 

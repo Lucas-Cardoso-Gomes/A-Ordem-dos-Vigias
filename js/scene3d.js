@@ -1923,7 +1923,7 @@
         }
 
         // Reconcile Map NPCs (within current map bounds)
-        const mapNpcs = (typeof tm.getActiveNpcs === 'function' ? tm.getActiveNpcs() : null)
+        const mapNpcs = (typeof tm.getActiveNPCs === 'function' ? tm.getActiveNPCs() : (typeof tm.getActiveNpcs === 'function' ? tm.getActiveNpcs() : null))
             || tm.npcsByMap?.[tm.currentMapId]
             || tm.currentMap?.npcs
             || [];
@@ -1966,7 +1966,7 @@
         const interactables = [
             ...rawChests.map(c => ({
                 ...c,
-                kind: (c.opened || (c.id && openedSet.includes && openedSet.includes(c.id))) ? 'chest_open' : 'chest'
+                kind: (c.opened || (c.id && (tm.isChestOpened?.(c.id) || (openedSet.includes && openedSet.includes(c.id))))) ? 'chest_open' : 'chest'
             })),
             ...rawShrines.map(s => ({ ...s, kind: 'shrine' }))
         ];
