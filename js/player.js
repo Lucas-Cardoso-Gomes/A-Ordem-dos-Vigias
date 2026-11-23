@@ -1,11 +1,24 @@
 /**
  * player.js
- * Player logic, stats, leveling and classes.
+ * Player logic, stats, leveling, classes, Fury, statuses, and Relic bonus integration.
  */
 
 class Player {
     constructor() {
         this.reset();
+    }
+
+    _emit(event, payload) {
+        const eng = (typeof Engine !== 'undefined' ? Engine : (typeof window !== 'undefined' ? window.Engine : null));
+        if (eng && typeof eng.emit === 'function') {
+            eng.emit(event, payload);
+        }
+    }
+
+    _getMechanics() {
+        if (typeof GameMechanics !== 'undefined') return GameMechanics;
+        if (typeof window !== 'undefined' && window.GameMechanics) return window.GameMechanics;
+        return null;
     }
 
     reset() {
@@ -25,6 +38,11 @@ class Player {
         this.statPoints = 0;
         this.playerClass = 'Nenhuma'; // Guerreiro, Caçador, Guardião, Mago, Clérigo
         this.classLocked = false;
+        this.roleTitle = '';
+
+        this.fury = 0;
+        this.statusEffects = [];
+        this.shield = 0;
 
         this.equipment = {
             head: null,
@@ -45,28 +63,32 @@ class Player {
         this.bestiary = [];
     }
 
-    // CORREÇÃO: Cópia profunda (Spread) de objetos e sanitização de HP/Mana ao carregar
+    // Cópia profunda de objetos e sanitização de HP/Mana/novos campos ao carregar
     load(data) {
         if (!data) return;
         this.name = data.name || 'Herói';
         this.level = Math.max(1, data.level || 1);
         this.xp = Math.max(0, data.xp || 0);
         this.gold = Math.max(0, data.gold || 0);
-        
-        // Evita vazamento de referência de memória entre personagens
+
         this.attributes = { ...this.attributes, ...(data.attributes || {}) };
         this.statPoints = Math.max(0, data.statPoints || 0);
-        
+
         this.playerClass = data.playerClass || 'Nenhuma';
         this.classLocked = data.classLocked || false;
         if (this.playerClass !== 'Nenhuma' && data.classLocked === undefined) this.classLocked = true;
-        
+        this.roleTitle = data.roleTitle || '';
+
+        this.fury = Math.max(0, Math.min(100, Number(data.fury) || 0));
+        this.statusEffects = Array.isArray(data.statusEffects) ? data.statusEffects.map(s => ({ ...s })) : [];
+        this.shield = Math.max(0, Number(data.shield) || 0);
+
         this.equipment = { ...this.equipment, ...(data.equipment || {}) };
-        
+
         // Garante que o HP/Mana carregados nunca ultrapassem o limite real do personagem
         this.hp = Math.min(this.getMaxHp(), Math.max(0, data.hp ?? this.getMaxHp()));
         this.mana = Math.min(this.getMaxMana(), Math.max(0, data.mana ?? this.getMaxMana()));
-        
+
         this.bestiary = Array.isArray(data.bestiary) ? [...data.bestiary] : [];
     }
 
@@ -76,14 +98,18 @@ class Player {
             level: this.level,
             xp: this.xp,
             gold: this.gold,
-            attributes: this.attributes,
+            attributes: { ...this.attributes },
             statPoints: this.statPoints,
             playerClass: this.playerClass,
             classLocked: this.classLocked,
-            equipment: this.equipment,
+            roleTitle: this.roleTitle,
+            fury: this.fury,
+            statusEffects: Array.isArray(this.statusEffects) ? this.statusEffects.map(s => ({ ...s })) : [],
+            shield: this.shield,
+            equipment: { ...this.equipment },
             hp: this.hp,
             mana: this.mana,
-            bestiary: this.bestiary
+            bestiary: [...this.bestiary]
         };
     }
 
@@ -96,32 +122,38 @@ class Player {
         }
     }
 
-    // CORREÇÃO: Verificação rigorosa contra NaN e números negativos
     gainGold(amount) {
         if (typeof amount !== 'number' || isNaN(amount)) return;
         this.gold = Math.max(0, (this.gold || 0) + amount);
-        Engine.emit('playerUpdated', this);
+        this._emit('playerUpdated', this);
     }
 
-    // CORREÇÃO: Verificação rigorosa de dados de XP
     gainXp(amount) {
         if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) return;
-        
-        this.xp += amount;
+
+        let effectiveXp = amount;
+        const gm = this._getMechanics();
+        if (gm && typeof gm.getPartyBonuses === 'function') {
+            const bonuses = gm.getPartyBonuses();
+            if (bonuses && bonuses.xpMult && bonuses.xpMult > 1) {
+                effectiveXp = Math.floor(effectiveXp * bonuses.xpMult);
+            }
+        }
+
+        this.xp += effectiveXp;
         let leveledUp = false;
-        
+
         while (this.xp >= this.getXpNeeded() && this.level < 100) {
             this.xp -= this.getXpNeeded();
             this.levelUp();
             leveledUp = true;
         }
-        
-        if (leveledUp) {
-            Engine.emit('systemLog', `${this.name} alcançou o nível ${this.level}! (+5 Pontos de Atributo)`);
-        }
-        Engine.emit('playerUpdated', this);
-    }
 
+        if (leveledUp) {
+            this._emit('systemLog', `${this.name} alcançou o nível ${this.level}! (+5 Pontos de Atributo)`);
+        }
+        this._emit('playerUpdated', this);
+    }
 
     levelUp() {
         this.level++;
@@ -129,9 +161,13 @@ class Player {
         this.hp = this.getMaxHp();
         this.mana = this.getMaxMana();
 
+        if (typeof window !== 'undefined' && window.gameAudio && typeof window.gameAudio.play === 'function') {
+            window.gameAudio.play('levelup');
+        }
+        this._emit('levelUp', { player: this, level: this.level });
+
         if (this.level === 5 && this.playerClass === 'Nenhuma') {
-            // Unlock class selection (simplified for now to set a default or wait for UI)
-            Engine.emit('systemLog', 'Você agora pode escolher uma classe na tela de Personagem!');
+            this._emit('systemLog', 'Você agora pode escolher uma classe na tela de Personagem!');
         }
     }
 
@@ -140,15 +176,14 @@ class Player {
             this.attributes[attr]++;
             this.statPoints--;
 
-            // Adjust max stats if needed
             if (attr === 'str' || attr === 'def') {
-                this.hp += 5; // Simple bump, but real max relies on getMaxHp
+                this.hp = Math.min(this.getMaxHp(), this.hp + 5);
             }
             if (attr === 'int') {
-                this.mana += 5;
+                this.mana = Math.min(this.getMaxMana(), this.mana + 5);
             }
 
-            Engine.emit('playerUpdated', this);
+            this._emit('playerUpdated', this);
         }
     }
 
@@ -161,6 +196,16 @@ class Player {
                 }
             });
         }
+
+        const gm = this._getMechanics();
+        if (gm && typeof gm.getPartyBonuses === 'function') {
+            const bonuses = gm.getPartyBonuses();
+            const mult = bonuses?.attrMults?.[attr] ?? ((bonuses?.allAttrMult || 1) + (attr === 'agi' ? (bonuses?.agiPct || 0) : 0));
+            if (mult && mult !== 1) {
+                val = Math.floor(val * mult);
+            }
+        }
+
         return val;
     }
 
@@ -175,6 +220,15 @@ class Player {
                 }
             });
         }
+
+        const gm = this._getMechanics();
+        if (gm && typeof gm.getPartyBonuses === 'function') {
+            const bonuses = gm.getPartyBonuses();
+            if (bonuses && bonuses.maxHpMult && bonuses.maxHpMult !== 1) {
+                max = Math.floor(max * bonuses.maxHpMult);
+            }
+        }
+
         return max;
     }
 
@@ -193,33 +247,57 @@ class Player {
     }
 
     heal(amount) {
+        if (typeof amount !== 'number' || isNaN(amount)) return;
         this.hp = Math.min(this.hp + amount, this.getMaxHp());
-        Engine.emit('playerUpdated', this);
+        this._emit('playerUpdated', this);
     }
 
     restoreMana(amount) {
+        if (typeof amount !== 'number' || isNaN(amount)) return;
         this.mana = Math.min(this.mana + amount, this.getMaxMana());
-        Engine.emit('playerUpdated', this);
+        this._emit('playerUpdated', this);
     }
 
-    setClass(newClass) {
-        const validClasses = ['Guerreiro', 'Caçador', 'Guardião', 'Mago', 'Clérigo'];
+    setClass(newClass, forceRespec = false) {
         const inputClass = newClass ? newClass.trim().toLowerCase() : '';
+
+        if (forceRespec && inputClass === 'nenhuma') {
+            this.playerClass = 'Nenhuma';
+            this.classLocked = false;
+            this._emit('playerUpdated', this);
+            this._emit('systemLog', `${this.name} redefiniu sua classe e pode escolher um novo caminho.`);
+            return true;
+        }
+
+        if (this.classLocked && !forceRespec) {
+            return false;
+        }
+
+        const validClasses = ['Guerreiro', 'Caçador', 'Guardião', 'Mago', 'Clérigo'];
         const match = validClasses.find(c => c.toLowerCase() === inputClass);
         if (match) {
             this.playerClass = match;
             this.classLocked = true;
-            Engine.emit('playerUpdated', this);
-            Engine.emit('systemLog', `${this.name} se tornou um ${match}!`);
+            this._emit('playerUpdated', this);
+            this._emit('systemLog', `${this.name} se tornou um ${match}!`);
+            return true;
         }
+        return false;
     }
 
     getSkills() {
-        if (window.SkillDatabase) {
-            return window.SkillDatabase.getSkillsForClass(this.playerClass, this.level, (attr) => this.getTotalAttr(attr));
+        const skillDb = (typeof SkillDatabase !== 'undefined' ? SkillDatabase : (typeof window !== 'undefined' ? window.SkillDatabase : null));
+        if (skillDb) {
+            return skillDb.getSkillsForClass(this.playerClass, this.level, (attr) => this.getTotalAttr(attr));
         }
         return [];
     }
 }
 
-window.Player = Player;
+if (typeof window !== 'undefined') {
+    window.Player = Player;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Player;
+}
