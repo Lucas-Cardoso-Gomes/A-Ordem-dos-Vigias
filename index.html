@@ -4,38 +4,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A Ordem dos Vigias</title>
+    <title>A Ordem dos Vigias — Aegis Nocturna</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .inv-tab-btn.active, .shop-tab-btn.active {
-            background-color: var(--accent-gold);
-            color: black;
-            border-color: var(--accent-gold);
-        }
-        .inv-tab-btn, .shop-tab-btn {
-            background-color: var(--bg-panel);
-            color: white;
-            border: 1px solid var(--border-color);
-            padding: 0.3rem 0.6rem;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .inv-tab-btn:hover, .shop-tab-btn:hover {
-            border-color: var(--accent-gold);
-        }
-    </style>
 </head>
 
 <body>
-    <div id="game-container">
-        <header>
-            <h1>A Ordem dos Vigias</h1>
-            <div class="player-summary">
-                <span id="header-level">Nível: 1</span> |
-                <span id="header-hp">HP: 100/100</span> |
-                <span id="header-mana">Mana: 50/50</span> |
-                <span id="header-gold">Ouro: 0</span>
+    <!-- Title / Intro Overlay -->
+    <div id="title-overlay" class="title-overlay">
+        <div class="title-card gothic-frame">
+            <div class="title-crest">⚔️ 🛡️ 🔮</div>
+            <p class="title-eyebrow">CRÔNICAS DA VIGÍLIA ETERNA</p>
+            <h1 class="title-main">A Ordem dos Vigias</h1>
+            <h2 class="title-sub">Aegis Nocturna</h2>
+            <p class="title-lore">
+                As brumas do Abismo avançam sobre os cinco reinos antigos. Reúna seus campeões,
+                recupere as Cinco Relíquias da Ordem e acenda novamente a chama de Alvorada antes que a noite eterna consuma o mundo.
+            </p>
+            <div class="title-actions">
+                <button id="btn-title-continue" class="btn-ornate btn-gold hidden">Continuar Jornada</button>
+                <button id="btn-title-new" class="btn-ornate btn-crimson">Nova Aventura</button>
             </div>
+            <p class="title-hint">Clique para despertar o som e adentrar a fortaleza</p>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <header class="game-header">
+            <div class="header-top-row">
+                <div class="header-brand">
+                    <h1>A Ordem dos Vigias</h1>
+                    <span class="header-subtitle">Aegis Nocturna</span>
+                </div>
+                <div class="header-quick-controls">
+                    <div id="header-relics" class="header-relics" title="Relíquias da Ordem">
+                        <!-- 5 Relic slots injected by JS -->
+                    </div>
+                    <button id="btn-audio-mute" class="btn-audio-quick" title="Alternar Som / Mudo">🔊 Som</button>
+                </div>
+            </div>
+
+            <div class="player-summary">
+                <span id="header-level">Nível Médio: 1</span>
+                <span class="summary-sep">|</span>
+                <span id="header-hp">Grupo HP: 100/100</span>
+                <span class="summary-sep">|</span>
+                <span id="header-mana">Grupo Mana: 50/50</span>
+                <span class="summary-sep">|</span>
+                <span id="header-gold">Ouro: 0</span>
+                <span id="header-ngplus" class="ngplus-badge hidden">NG+0</span>
+            </div>
+
             <nav id="main-nav">
                 <button data-target="screen-character" class="nav-btn active">Personagem</button>
                 <button data-target="screen-inventory" class="nav-btn">Inventário</button>
@@ -52,24 +70,45 @@
         <main id="screens">
             <!-- Screen: Character -->
             <section id="screen-character" class="screen active">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2>Grupo</h2>
-                    <div>
+                <div class="section-header-bar">
+                    <h2>Grupo da Ordem</h2>
+                    <div class="header-btn-group">
+                        <button id="btn-recruit-preset" class="btn-ornate btn-gold">⭐ Recrutar Companheiro</button>
                         <button id="btn-add-member">+ Membro</button>
                     </div>
                 </div>
+
+                <!-- 3D Party Showcase Stage -->
+                <div class="showcase-panel gothic-frame">
+                    <div class="showcase-top-bar">
+                        <div id="showcase-hero-selector" class="showcase-hero-selector">
+                            <!-- Hero selector buttons populated dynamically -->
+                        </div>
+                        <div class="showcase-anim-controls">
+                            <span class="anim-label">Prévia 3D:</span>
+                            <button type="button" class="showcase-anim-btn active" data-anim="idle">Idle</button>
+                            <button type="button" class="showcase-anim-btn" data-anim="attack">Atacar</button>
+                            <button type="button" class="showcase-anim-btn" data-anim="cast">Magia</button>
+                            <button type="button" class="showcase-anim-btn" data-anim="celebrate">Celebrar</button>
+                        </div>
+                    </div>
+                    <div id="hero-3d-showcase" class="viewport-3d hero-showcase-stage">
+                        <div class="viewport-fallback">Carregando palco 3D dos Vigias...</div>
+                    </div>
+                </div>
+
                 <!-- Dynamic Character Cards container -->
-                <div id="character-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <div id="character-list" class="character-cards-grid">
                 </div>
             </section>
 
             <!-- Screen: Inventory -->
             <section id="screen-inventory" class="screen hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2>Inventário (<span id="inv-count">0</span>/50)</h2>
-                    <select id="inv-party-selector" style="padding: 0.3rem;"></select>
+                <div class="section-header-bar">
+                    <h2>Inventário (<span id="inv-count">0</span>/<span id="inv-capacity">100</span>)</h2>
+                    <select id="inv-party-selector" style="padding: 0.35rem 0.6rem;"></select>
                 </div>
-                <div class="equipment-panel" style="margin-bottom: 1rem;">
+                <div class="equipment-panel gothic-frame" style="margin-bottom: 1rem;">
                     <h3>Equipamento</h3>
                     <div class="eq-slots">
                         <div class="eq-slot" id="eq-head" data-slot="head" tabindex="0" role="button">Cabeça</div>
@@ -84,7 +123,7 @@
                         <div class="eq-slot" id="eq-ring2" data-slot="ring2" tabindex="0" role="button">Anel 2</div>
                     </div>
                 </div>
-                <div class="inventory-controls" id="inv-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <div class="inventory-controls" id="inv-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
                     <button class="inv-tab-btn active" data-filter="all">Todos</button>
                     <button class="inv-tab-btn" data-filter="weapon">Armas</button>
                     <button class="inv-tab-btn" data-filter="armor">Armaduras</button>
@@ -92,16 +131,16 @@
                     <button class="inv-tab-btn" data-filter="potion">Poções</button>
                     <button class="inv-tab-btn" data-filter="material">Materiais</button>
                 </div>
-                <div style="display: flex; gap: 1rem;">
+                <div class="inventory-layout">
                     <div class="inventory-grid" id="inventory-list" style="flex: 1;">
                         <!-- Items populated dynamically -->
                     </div>
 
-                    <div id="inventory-action-panel" class="hidden"
-                        style="flex: 1; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-panel); display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div id="inventory-action-panel" class="hidden gothic-frame"
+                        style="flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
                         <h3 id="action-panel-name">Item Name</h3>
                         <p id="action-panel-desc" style="font-size: 0.9rem; flex-grow: 1;">Details here.</p>
-                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                             <button id="btn-equip-item" class="hidden">Equipar</button>
                             <button id="btn-equip-item-main" class="hidden">Equipar Principal</button>
                             <button id="btn-equip-item-off" class="hidden">Equipar Secundária</button>
@@ -114,21 +153,21 @@
             <!-- Screen: Crafting -->
             <section id="screen-crafting" class="screen hidden">
                 <h2 style="text-align: center; color: var(--accent-gold);">⚒️ Forja e Refinamento</h2>
-                <p style="text-align: center; margin-bottom: 2rem;">Crie novos equipamentos poderosos usando materiais encontrados no mundo ou refine seus itens atuais para aumentar seu poder!</p>
-                
+                <p style="text-align: center; margin-bottom: 1.5rem; color: var(--text-muted);">Crie novos equipamentos poderosos usando materiais encontrados no mundo ou refine seus itens atuais para aumentar seu poder!</p>
+
                 <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
                     <!-- Forja -->
-                    <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem;">
+                    <div class="gothic-frame" style="flex: 1; min-width: 300px; padding: 1rem;">
                         <h3 style="color: var(--rarity-legendary); margin-bottom: 1rem;">⚔️ Forjar Equipamento</h3>
                         <div id="crafting-recipes" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
                             <!-- Recipes dynamically populated -->
                         </div>
                     </div>
-                    
+
                     <!-- Refinamento -->
-                    <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem;">
+                    <div class="gothic-frame" style="flex: 1; min-width: 300px; padding: 1rem;">
                         <h3 style="color: var(--rarity-epic); margin-bottom: 1rem;">🛠️ Refinar Equipamento (Inventário)</h3>
-                        <p style="font-size: 0.8rem; margin-bottom: 1rem; color: var(--rarity-common);">Desequipe um item para que ele apareça aqui.</p>
+                        <p style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-muted);">Desequipe um item para que ele apareça aqui.</p>
                         <div id="crafting-upgrade-list" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
                             <!-- Upgrade items dynamically populated -->
                         </div>
@@ -139,22 +178,25 @@
             <!-- Screen: Map -->
             <section id="screen-map" class="screen hidden">
                 <!-- Map Top Bar: Name, Debuff, Level info -->
-                <div class="map-header-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+                <div class="map-header-bar">
                     <div>
                         <h2 id="world-map-title" style="margin:0; display:inline-flex; align-items:center; gap:0.5rem;">🌲 Floresta dos Vigias (Base)</h2>
-                        <span id="world-map-debuff" style="display:none; font-size:0.8rem; background:#450a0a; color:#fca5a5; border:1px solid #dc2626; padding:0.15rem 0.5rem; border-radius:4px; margin-left:0.5rem; font-weight:bold;">
+                        <span id="world-map-debuff" class="map-debuff-badge" style="display:none;">
                             👁️ Debuff: Névoa Densa (-70% Visão)
                         </span>
                     </div>
-                    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem;">
+                    <div class="map-toolbar-actions">
                         <span id="world-party-level" style="color:var(--accent-gold); font-weight:bold;">Nível do Grupo: Nv. 1</span>
-                        <span style="color:var(--rarity-common);">|</span>
+                        <span style="color:var(--text-muted);">|</span>
                         <span id="world-enemy-scaling" style="color:#f87171;">Escala Inimiga: Nv. 1 ~ 6</span>
+                        <button id="btn-toggle-map-3d" class="btn-view-toggle" title="Alternar Mapa 3D / 2D">🎲 3D</button>
+                        <button id="btn-camp-quick" class="btn-ornate btn-gold" title="Abrir Acampamento de Alvorada">🏕️ Acampamento</button>
+                        <button id="btn-infinite-mode" class="btn-ornate btn-crimson" title="Entrar na Arena das Ondas Infinitas">🔥 Arena Infinita</button>
                     </div>
                 </div>
 
                 <!-- World Progression Tracker (Walk-only, Teleport Disabled) -->
-                <div class="map-journey-tracker" style="display:flex; align-items:center; gap:0.4rem; overflow-x:auto; margin-bottom:0.75rem; padding:0.4rem 0.8rem; background:rgba(0,0,0,0.5); border:1px solid var(--border-color); border-radius:6px; font-size:0.85rem;">
+                <div class="map-journey-tracker">
                     <span style="color:#888; font-size:0.75rem; margin-right:0.25rem;">JORNADA:</span>
                     <span class="journey-badge active" data-map="floresta">1. 🌲 Floresta</span>
                     <span style="color:#555;">➔</span>
@@ -167,17 +209,20 @@
                     <span class="journey-badge" data-map="abismo">5. 🌌 Abismo</span>
                 </div>
 
-                <!-- World Canvas -->
-                <canvas id="world-canvas" style="background:#0d0d0d; border:1px solid var(--border-color); cursor:crosshair; width:100%; display:block;"></canvas>
+                <!-- World 3D & 2D Viewport -->
+                <div id="world-viewport" class="world-viewport gothic-frame">
+                    <div id="world-3d-container" class="viewport-3d world-3d-stage hidden"></div>
+                    <canvas id="world-canvas" style="background:#0d0d0d; cursor:crosshair; width:100%; display:block;"></canvas>
+                </div>
 
                 <!-- Map Info & Controls Bar -->
-                <div class="map-hud-panel" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-top:0.75rem; padding:0.75rem 1rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px;">
+                <div class="map-hud-panel">
                     <div>
-                        <div id="world-map-desc" style="font-size:0.85rem; color:#aaa; margin-bottom:0.25rem;">
+                        <div id="world-map-desc" style="font-size:0.85rem; color:#bbb; margin-bottom:0.25rem;">
                             Base principal da Ordem dos Vigias. Aqui você pode descansar no acampamento e acessar a Loja e a Forja.
                         </div>
-                        <div style="font-size:0.8rem; color:#6b7280;">
-                            🎮 <strong>Controles:</strong> WASD / Setas / Clique para caminhar · 🌲/🪨/🌋 Colisão · 💀 Inimigos · 🚪 Caminhe até os Portais para viajar!
+                        <div style="font-size:0.8rem; color:#8b949e;">
+                            🎮 <strong>Controles:</strong> WASD / Setas / Clique para caminhar · 🗣️ Fale com NPCs · 🧰 Abra Baús &amp; Santuários · 🚪 Caminhe até os Portais para viajar!
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:0.75rem;">
@@ -188,66 +233,84 @@
 
             <!-- Screen: Combat -->
             <section id="screen-combat" class="screen hidden">
-                <h2 id="combat-title" style="text-align: center;">Combate</h2>
-                
-                <div style="display: flex; gap: 1rem; align-items: flex-start; height: calc(100vh - 150px); min-height: 600px; position: relative;">
+                <div class="combat-top-bar">
+                    <h2 id="combat-title" style="margin: 0;">Combate</h2>
+                    <div class="combat-view-controls">
+                        <button id="btn-toggle-combat-3d" class="btn-view-toggle" title="Alternar Arena 3D / 2D">🎲 Arena 3D</button>
+                        <button id="btn-combat-cam" class="btn-view-toggle" title="Mudar Ângulo da Câmera 3D">🎥 Câmera</button>
+                    </div>
+                </div>
+
+                <!-- Dramatic Boss Phase 2 Banner -->
+                <div id="boss-phase-banner" class="boss-phase-banner hidden" role="alert">
+                    <div class="boss-phase-kicker">⚠️ FASE 2 DESPERTADA ⚠️</div>
+                    <div id="boss-phase-title" class="boss-phase-title">Chefe Ascendeu!</div>
+                    <div id="boss-phase-dialogue" class="boss-phase-dialogue"></div>
+                </div>
+
+                <div class="combat-layout">
                     <!-- Left: Party Container and Turn Queue -->
-                    <div style="flex: 0 0 250px; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto;">
-                        <div class="combat-entity player-side" id="combat-party-container" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                    <div class="combat-sidebar combat-sidebar-left">
+                        <div class="combat-entity player-side" id="combat-party-container">
                             <!-- Player cards will be injected here via UI manager -->
                         </div>
-                        <div id="combat-turn-queue" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border-color); max-height: 200px; overflow-y: auto;">
+                        <div id="combat-turn-queue" class="turn-queue-panel gothic-frame">
                             <span style="font-weight: bold; color: var(--accent-gold); text-align: center;">Iniciativa</span>
-                            <div id="combat-turn-queue-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                            <div id="combat-turn-queue-list" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
                         </div>
                     </div>
 
                     <!-- Center: Arena & Actions -->
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto;">
-                        <div class="combat-arena" style="flex: 1; flex-direction: column;">
-                            <div id="combat-canvas-container" style="width: 100%; display: flex; justify-content: center; margin-bottom: 1rem;">
-                                <canvas id="combat-grid-canvas" width="700" height="300" style="background: #2a2a2a; border: 2px solid var(--border-color);"></canvas>
+                    <div class="combat-center-col">
+                        <div class="combat-arena gothic-frame">
+                            <div id="combat-canvas-container" class="combat-canvas-container">
+                                <div id="combat-3d-container" class="viewport-3d combat-3d-stage hidden"></div>
+                                <canvas id="combat-grid-canvas" width="750" height="300"></canvas>
                             </div>
 
-                            <!-- Move actions just below the grid -->
-                            <div class="combat-actions" style="margin-top: 0; position: relative;">
-                                <button id="btn-move" title="Movimento: selecione o espaço no grid">Mover</button>
-                                <button id="btn-attack" title="Ataque: selecione o alvo no grid">Atacar</button>
-                                <button id="btn-skill">Habilidades</button>
-                                <button id="btn-potion">Itens</button>
-                                <button id="btn-end-turn" style="background-color: var(--rarity-epic);">Fim de Turno</button>
-                                <button id="btn-flee">Fugir</button>
+                            <!-- Combat Actions Bar -->
+                            <div class="combat-actions">
+                                <button id="btn-move" title="Movimento (Tecla 1): selecione o espaço no grid">🦶 Mover</button>
+                                <button id="btn-attack" title="Ataque (Tecla 2): selecione o alvo no grid">⚔️ Atacar</button>
+                                <button id="btn-skill" title="Habilidades (Tecla 3)">✨ Habilidades</button>
+                                <button id="btn-ultimate" class="btn-ultimate" disabled title="Supremo (Tecla 4) - Requer 100 de Fúria">
+                                    <span id="btn-ultimate-fill" class="ultimate-fill" style="width: 0%;"></span>
+                                    <span id="btn-ultimate-label" class="ultimate-label">⚡ Supremo (0%)</span>
+                                </button>
+                                <button id="btn-potion" title="Itens (Tecla 5)">🧪 Itens</button>
+                                <button id="btn-end-turn" class="btn-end-turn" title="Encerrar Turno (Espaço)">⏭️ Fim de Turno</button>
+                                <button id="btn-flee" title="Tentar fugir do combate">🏃 Fugir</button>
                             </div>
-                            <div id="combat-instruction" style="text-align: center; color: var(--rarity-legendary); font-weight: bold; padding: 0.5rem; display: none;"></div>
+
+                            <div id="combat-shortcut-bar" class="combat-shortcut-bar">
+                                <span>1:Mover</span> · <span>2:Atacar</span> · <span>3:Skills</span> · <span>4:Supremo</span> · <span>5:Itens</span> · <span>Espaço:Fim</span> · <span>Esc:Cancelar</span>
+                            </div>
+
+                            <div id="combat-instruction" class="combat-instruction" style="display: none;"></div>
 
                             <!-- Efeitos Ativos (Terrenos, Buffs, Taunt) -->
-                            <div id="combat-active-effects" style="text-align: center; font-size: 0.9rem; padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border-color); margin-bottom: 0.5rem; display: none;">
+                            <div id="combat-active-effects" class="combat-active-effects" style="display: none;">
                                 <!-- Populate via JS -->
                             </div>
 
-                            <div id="combat-skills-menu" class="hidden"
-                                style="text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel); margin-bottom: 1rem;">
+                            <div id="combat-skills-menu" class="combat-submenu hidden">
                                 <h4>Habilidades</h4>
-                                <div id="combat-skills-list"
-                                    style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
-                                </div>
+                                <div id="combat-skills-list" class="combat-submenu-list"></div>
                             </div>
-                            <div id="combat-items-menu" class="hidden"
-                                style="text-align: center; border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-panel); margin-bottom: 1rem;">
+                            <div id="combat-items-menu" class="combat-submenu hidden">
                                 <h4>Itens</h4>
-                                <div id="combat-items-list"
-                                    style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
-                                </div>
+                                <div id="combat-items-list" class="combat-submenu-list"></div>
                             </div>
                         </div>
-                                                <div class="combat-log" id="combat-log" style="height: 300px; padding: 0.5rem; overflow-y: auto;">
+
+                        <div class="combat-log gothic-frame" id="combat-log">
                             <!-- Logs go here -->
                         </div>
                     </div>
 
-                    <!-- Right: Monsters Container and Combat Log -->
-                    <div style="flex: 0 0 250px; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto;">
-                        <div class="monsters-container" id="combat-monsters-container" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                    <!-- Right: Monsters Container -->
+                    <div class="combat-sidebar combat-sidebar-right">
+                        <div class="monsters-container" id="combat-monsters-container">
                             <!-- Monster cards will be injected here via UI manager -->
                         </div>
                     </div>
@@ -270,7 +333,7 @@
             <section id="screen-shop" class="screen hidden">
                 <h2>Mercador</h2>
 
-                <div class="shop-controls" id="shop-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; margin-top: 0.5rem;">
+                <div class="shop-controls" id="shop-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
                     <button class="shop-tab-btn active" data-filter="all">Todos os Itens</button>
                     <button class="shop-tab-btn" data-filter="weapon">Armas</button>
                     <button class="shop-tab-btn" data-filter="armor">Armaduras</button>
@@ -287,53 +350,57 @@
 
             <!-- Screen: Bestiary / Manual -->
             <section id="screen-bestiary" class="screen hidden">
-                <h2 style="text-align: center; color: var(--accent-gold); margin-bottom: 1rem;">📖 Manual & Bestiário</h2>
-                
+                <h2 style="text-align: center; color: var(--accent-gold); margin-bottom: 1rem;">📖 Manual &amp; Bestiário</h2>
+
                 <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                    
                     <!-- Left: Manual -->
-                    <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem; height: 60vh; overflow-y: auto;">
+                    <div class="gothic-frame manual-pane">
                         <h3 style="color: var(--rarity-epic); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">O Mundo e Suas Regras</h3>
-                        
+
                         <h4 style="color: var(--rarity-uncommon);">Atributos</h4>
                         <ul style="margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
-                            <li><strong>Força (STR):</strong> Aumenta o dano de ataques físicos com armas pesadas.</li>
-                            <li><strong>Agilidade (AGI):</strong> Afeta a precisão, velocidade no turno de combate (Iniciativa) e evasão.</li>
-                            <li><strong>Inteligência (INT):</strong> Potencializa habilidades mágicas e aumenta o dano de cajados/varinhas.</li>
-                            <li><strong>Defesa (DEF):</strong> Reduz o dano físico sofrido em combate.</li>
-                            <li><strong>Sorte (LUK):</strong> Aumenta as chances de acerto crítico e melhora espólios.</li>
-                        </ul>
-                        
-                        <h4 style="color: var(--rarity-uncommon);">Classes</h4>
-                        <ul style="margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
-                            <li><strong>⚔️ Guerreiro:</strong> Linha de frente resistente. Possui habilidades como "Ataque Furioso" para causar dano com bônus de Força, e "Provocar" para puxar o aggro dos inimigos para si durante turnos.</li>
-                            <li><strong>🏹 Caçador:</strong> Especialista em dano à distância e agilidade. Usa "Tiro Preciso" para acertar ataques de longe e "Tiro Múltiplo" para causar dano rápido e ágil em vários inimigos.</li>
-                            <li><strong>🛡️ Guardião:</strong> Focado em mitigar dano do grupo inteiro e controlar o campo de batalha. Usa "Defesa Absoluta" para se buffar e habilidades defensivas ou de terreno para bloquear passagens e manter a linha de frente.</li>
-                            <li><strong>🔮 Mago:</strong> Especializado em magias em área e dano elemental. Habilidades como "Bola de Fogo", "Nevasca", e "Terremoto" (que cria terrenos de dano/efeito no grid) definem a sua força devastadora.</li>
-                            <li><strong>✨ Clérigo:</strong> A única classe baseada puramente em suporte e cura. Usa "Cura Menor" e "Luz Sagrada" para curar aliados individualmente ou criar terrenos de "Terreno Sagrado" que curam aliados e causam dano a mortos-vivos no grid.</li>
+                            <li><strong>Força (STR):</strong> Aumenta o dano de ataques físicos com armas pesadas e HP máximo.</li>
+                            <li><strong>Agilidade (AGI):</strong> Afeta precisão, Iniciativa, movimento no grid e evasão.</li>
+                            <li><strong>Inteligência (INT):</strong> Potencializa habilidades mágicas, cajados/varinhas e Mana máxima.</li>
+                            <li><strong>Defesa (DEF):</strong> Reduz o dano físico sofrido e aumenta HP máximo.</li>
+                            <li><strong>Sorte (LUK):</strong> Aumenta a chance de acerto crítico e melhora espólios.</li>
                         </ul>
 
-                        <h4 style="color: var(--rarity-uncommon);">Mecânicas</h4>
+                        <h4 style="color: var(--rarity-uncommon);">Classes (Desbloqueio no Nível 1)</h4>
+                        <ul style="margin-left: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
+                            <li><strong>⚔️ Guerreiro:</strong> Linha de frente implacável. Supremo: <em>Lâmina do Cataclismo</em>.</li>
+                            <li><strong>🏹 Caçador:</strong> Atirador ágil de longo alcance e armadilhas. Supremo: <em>Tempestade Estelar</em>.</li>
+                            <li><strong>🛡️ Guardião:</strong> Baluarte defensivo com provocação e terrenos sagrados. Supremo: <em>Égide da Ordem</em>.</li>
+                            <li><strong>🔮 Mago:</strong> Domínio elemental em área e controle de terreno. Supremo: <em>Colapso Arcano</em>.</li>
+                            <li><strong>✨ Clérigo:</strong> Suporte, cura em grupo e purificação sagrada. Supremo: <em>Alvorada Eterna</em>.</li>
+                        </ul>
+
+                        <h4 style="color: var(--rarity-uncommon);">Fúria, Combos Elementais &amp; Relíquias</h4>
                         <p style="font-size: 0.9rem;">
-                            - Ouro e Inventário são divididos pelo seu grupo inteiro.<br>
-                            - A Forja permite consumir materiais largados por monstros para criar equipamentos.<br>
-                            - Explore áreas repetidamente usando o sistema de Contratos para ficar mais forte e desbloquear novos lugares.
+                            - <strong>Fúria &amp; Supremo:</strong> Ataques, críticos, fraquezas e dano sofrido carregam Fúria (0-100). Com 100%, libere o <strong>Supremo</strong>!<br>
+                            - <strong>Reações Elementais:</strong> Combine <em>Fogo + Veneno</em> (Explosão Tóxica), <em>Raio + Gelo</em> (Sobrecarga Cristalina), <em>Gelo + Fogo</em> (Choque Térmico) ou <em>Sagrado + Impuro</em> (Expurgo Radiante).<br>
+                            - <strong>Relíquias:</strong> Derrote os guardiões das 5 regiões para conquistar as Relíquias permanentes da Ordem e desbloquear o Modo Novo Jogo+!
                         </p>
                     </div>
 
                     <!-- Right: Bestiary -->
-                    <div style="flex: 1; min-width: 300px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 1rem; height: 60vh; overflow-y: auto;">
-                        <h3 style="color: var(--rarity-legendary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Bestiário</h3>
-                        <p style="font-size: 0.8rem; margin-bottom: 1rem;">Monstros são catalogados aqui conforme você os derrota em suas viagens.</p>
-                        
+                    <div class="gothic-frame manual-pane">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                            <h3 style="color: var(--rarity-legendary); margin:0;">Bestiário</h3>
+                            <span id="bestiary-count" style="font-size:0.8rem; color:var(--accent-gold);">0/14 Catalogados</span>
+                        </div>
+                        <p style="font-size: 0.8rem; margin-bottom: 1rem; color: var(--text-muted);">Monstros são catalogados aqui conforme você os derrota em suas viagens.</p>
+
                         <div class="bestiary-grid" id="bestiary-list" style="display: grid; gap: 0.5rem;">
                             <!-- Known monsters -->
                         </div>
-                        <div id="bestiary-details" class="hidden" style="background: #111; padding: 1rem; border: 1px solid #333; margin-top: 1rem;">
-                            <h3 id="best-name" style="color: var(--accent-red);"></h3>
-                            <p><strong>Habitat:</strong> <span id="best-habitat"></span></p>
+                        <div id="bestiary-details" class="bestiary-details hidden">
+                            <div id="bestiary-3d-preview" class="bestiary-3d-preview"></div>
+                            <h3 id="best-name" style="color: var(--accent-red); margin-top: 0.5rem;"></h3>
+                            <p><strong>Habitat / Tipo:</strong> <span id="best-habitat"></span></p>
                             <p><strong>Descrição:</strong> <span id="best-desc"></span></p>
                             <p><strong>Fraquezas:</strong> <span id="best-weak" style="color: var(--rarity-uncommon);"></span></p>
+                            <p><strong>Resistências:</strong> <span id="best-resist" style="color: #93c5fd;"></span></p>
                             <p><strong>Loot Base:</strong> <span id="best-loot"></span></p>
                             <button id="btn-close-bestiary" style="margin-top: 1rem;">Voltar para Lista</button>
                         </div>
@@ -344,41 +411,122 @@
             <!-- Screen: Settings -->
             <section id="screen-settings" class="screen hidden">
                 <h2>Configurações</h2>
-                <div style="margin-bottom: 1rem;">
-                    <button id="btn-save">Salvar Jogo</button>
-                    <button id="btn-load">Carregar Jogo</button>
-                    <button id="btn-reset" class="danger">Resetar Progresso</button>
+
+                <div class="settings-grid">
+                    <!-- Audio Mixer Panel -->
+                    <div class="gothic-frame settings-card">
+                        <h3>🎵 Mixer de Áudio</h3>
+                        <div class="audio-slider-row">
+                            <label for="audio-master-vol">Volume Geral</label>
+                            <input type="range" id="audio-master-vol" min="0" max="100" value="80">
+                            <span id="audio-master-val">80%</span>
+                        </div>
+                        <div class="audio-slider-row">
+                            <label for="audio-sfx-vol">Efeitos Sonoros (SFX)</label>
+                            <input type="range" id="audio-sfx-vol" min="0" max="100" value="80">
+                            <span id="audio-sfx-val">80%</span>
+                        </div>
+                        <div class="audio-slider-row">
+                            <label for="audio-music-vol">Música (BGM)</label>
+                            <input type="range" id="audio-music-vol" min="0" max="100" value="60">
+                            <span id="audio-music-val">60%</span>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.75rem;">
+                            <button id="btn-settings-mute">🔇 Silenciar Tudo</button>
+                            <button id="btn-test-sfx">🔔 Testar SFX</button>
+                        </div>
+                    </div>
+
+                    <!-- Order Stats & NG+ Panel -->
+                    <div class="gothic-frame settings-card">
+                        <h3>🏆 Estatísticas da Ordem &amp; Novo Jogo+</h3>
+                        <div id="order-stats-panel" class="order-stats-panel">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div style="margin-top: 0.75rem;">
+                            <button id="btn-start-ng-plus" class="btn-ornate btn-gold hidden">🌟 Iniciar Novo Jogo+</button>
+                        </div>
+                    </div>
                 </div>
 
-                <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                    <h3>Exportar / Importar Save</h3>
-                    <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Cuidado: Copie o texto inteiro do seu save e guarde em um local seguro.</p>
-                    <textarea id="save-data-textarea" style="width: 100%; height: 100px; background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.5rem; margin-bottom: 0.5rem;"></textarea>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button id="btn-export-save">Exportar Save</button>
-                        <button id="btn-import-save">Importar Save</button>
-                        <button id="btn-copy-save" class="hidden">Copiar para a Área de Transferência</button>
+                <div class="gothic-frame settings-card" style="margin-top: 1rem;">
+                    <h3>💾 Gerenciar Progresso</h3>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom: 1rem;">
+                        <button id="btn-save">Salvar Jogo</button>
+                        <button id="btn-load">Carregar Jogo</button>
+                        <button id="btn-reset" class="danger">Resetar Progresso</button>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                        <h4>Exportar / Importar Save</h4>
+                        <p style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted);">Copie o código inteiro do seu save e guarde em um local seguro.</p>
+                        <textarea id="save-data-textarea" style="width: 100%; height: 100px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.5rem; margin-bottom: 0.5rem;"></textarea>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button id="btn-export-save">Exportar Save</button>
+                            <button id="btn-import-save">Importar Save</button>
+                            <button id="btn-copy-save" class="hidden">Copiar para a Área de Transferência</button>
+                        </div>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
+    <!-- Modal: Recruit Preset Companion -->
+    <div id="recruit-preset-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-card gothic-frame">
+            <div class="modal-header">
+                <h3>⭐ Recrutar Campeão da Ordem</h3>
+                <button id="btn-close-recruit-modal" class="btn-modal-close">✕</button>
+            </div>
+            <p class="modal-subtitle">Escolha um herói lendário da Ordem dos Vigias para se juntar ao grupo (máx. 4 membros).</p>
+            <div id="recruit-preset-list" class="recruit-preset-grid">
+                <!-- Populated from GameMechanics.PRESET_COMPANIONS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Campaign Victory / Epílogo -->
+    <div id="victory-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-card victory-modal-card gothic-frame">
+            <div class="victory-header">
+                <p class="title-eyebrow">CAMPANHA CONCLUÍDA</p>
+                <h2>⚔️ A Alvorada Triunfa Sobre o Abismo!</h2>
+                <p class="victory-epilogue-text">
+                    Com o Lorde Supremo do Caos derrotado e as Cinco Relíquias reunidas, a Ordem dos Vigias selou a fenda abissal.
+                    Seus nomes ecoarão eternamente nas crônicas de Aegis Nocturna.
+                </p>
+            </div>
+            <div id="victory-3d-diorama" class="viewport-3d victory-diorama-stage"></div>
+            <div id="victory-relics" class="victory-relics-row"></div>
+            <div id="victory-stats" class="victory-stats-grid"></div>
+            <div class="victory-actions">
+                <button id="btn-victory-continue" class="btn-ornate">Continuar Explorando</button>
+                <button id="btn-victory-infinite" class="btn-ornate btn-crimson">🔥 Arena Infinita</button>
+                <button id="btn-victory-ngplus" class="btn-ornate btn-gold">🌟 Iniciar Novo Jogo+</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals / Tooltips -->
     <div id="item-tooltip" class="tooltip hidden"></div>
 
-    <!-- Scripts -->
+    <!-- Scripts in Exact Load Order -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
     <script src="js/engine.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/mechanics.js"></script>
     <script src="js/items.js"></script>
     <script src="js/monsters.js"></script>
     <script src="js/skills.js"></script>
     <script src="js/player.js"></script>
+    <script src="js/models3d.js"></script>
+    <script src="js/scene3d.js"></script>
     <script src="js/ui/combatUI.js"></script>
     <script src="js/inventory.js"></script>
     <script src="js/crafting.js"></script>
     <script src="js/map.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-    <script src="js/audio.js"></script>
     <script src="js/tilemap.js"></script>
     <script src="js/combat.js"></script>
     <script src="js/quests.js"></script>
